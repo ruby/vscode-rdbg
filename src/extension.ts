@@ -239,7 +239,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			outputTerminal = vscode.window.createTerminal({ name: "rdbg" });
 		}
 
-		vscode.window.showInformationMessage(JSON.stringify(config));
+		// vscode.window.showInformationMessage(JSON.stringify(config));
 
 		const rdbg_args = rdbg + " --command --open --sock-path=" + sock_path + " -- ";
 		const useBundlerFlag = (config.useBundler != undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
