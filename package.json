@@ -2,8 +2,8 @@
 	"name": "vscode-rdbg",
 	"displayName": "VSCode rdbg Ruby Debugger",
 	"description": "Ruby's rdbg debugger support for VSCode",
-	"publisher": "Koichi Sasada",
-	"version": "0.0.0+prerelease",
+	"publisher": "KoichiSasada",
+	"version": "0.0.1",
 	"license": "MIT",
 	"author": {
 		"name": "Koichi Sasada",
@@ -12,21 +12,21 @@
 	},
 	"homepage": "https://github.com/ko1/vscode-rdbg",
 	"repository": {
-	  "type": "git",
-	  "url": "https://github.com/ko1/vscode-rdbg.git"
+		"type": "git",
+		"url": "https://github.com/ko1/vscode-rdbg.git"
 	},
 	"bugs": {
-	  "url": "https://github.com/ko1/vscode-rdbg/issues"
+		"url": "https://github.com/ko1/vscode-rdbg/issues"
 	},
 	"categories": [
-	  "Debuggers"
+		"Debuggers"
 	],
 	"keywords": [
-	  "debug",
-	  "debugging",
-	  "debugger",
-	  "ruby",
-	  "rdbg"
+		"debug",
+		"debugging",
+		"debugger",
+		"ruby",
+		"rdbg"
 	],
 	"engines": {
 		"vscode": "^1.49.0"
@@ -176,5 +176,7 @@
 		"typescript": "^4.0.2",
 		"vscode-test": "^1.4.0"
 	},
-	"dependencies": {}
+	"dependencies": {
+		"yarn": "^1.22.10"
+	}
 }
