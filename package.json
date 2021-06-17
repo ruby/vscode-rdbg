@@ -1,0 +1,180 @@
+{
+	"name": "vscode-rdbg",
+	"displayName": "VSCode rdbg Ruby Debugger",
+	"description": "Ruby's rdbg debugger support for VSCode",
+	"publisher": "Koichi Sasada",
+	"version": "0.0.0+prerelease",
+	"license": "MIT",
+	"author": {
+		"name": "Koichi Sasada",
+		"email": "ko1@atdot.net",
+		"url": "https://www.atdot.net/~ko1/"
+	},
+	"homepage": "https://github.com/ko1/vscode-rdbg",
+	"repository": {
+	  "type": "git",
+	  "url": "https://github.com/ko1/vscode-rdbg.git"
+	},
+	"bugs": {
+	  "url": "https://github.com/ko1/vscode-rdbg/issues"
+	},
+	"categories": [
+	  "Debuggers"
+	],
+	"keywords": [
+	  "debug",
+	  "debugging",
+	  "debugger",
+	  "ruby",
+	  "rdbg"
+	],
+	"engines": {
+		"vscode": "^1.49.0"
+	},
+	"activationEvents": [
+		"onLanguage:ruby",
+		"onDebug"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"breakpoints": [
+			{
+				"language": "ruby"
+			}
+		],
+		"debuggers": [
+			{
+				"type": "rdbg",
+				"label": "Ruby (rdbg)",
+				"languages": [
+					"ruby"
+				],
+				"configurationAttributes": {
+					"attach": {
+						"properties": {
+							"rdbgPath": {
+								"type": "string",
+								"description": "Location of the rdbg executable"
+							},
+							"showProtocolLog": {
+								"type": "boolean",
+								"description": "Show a log of DAP requests, events, and responses",
+								"default": false
+							}
+						}
+					},
+					"launch": {
+						"required": [
+							"script"
+						],
+						"properties": {
+							"command": {
+								"type": "string",
+								"description": "Command name (ruby, rake, bin/rails, bundle exec ruby, etc)",
+								"default": "ruby"
+							},
+							"script": {
+								"type": "string",
+								"description": "Absolute path to a Ruby file.",
+								"default": "${workspaceFolder}/${command:AskForProgramName}"
+							},
+							"cwd": {
+								"type": "string",
+								"description": "Directory to execute the program in",
+								"default": "${workspaceFolder}"
+							},
+							"args": {
+								"type": "array",
+								"description": "Command line arguments passed to the program.",
+								"items": {
+									"type": "string"
+								},
+								"default": []
+							},
+							"env": {
+								"type": "object",
+								"description": "Additional environment variables to pass to the debugging (and debugged) process.",
+								"default": {}
+							},
+							"showProtocolLog": {
+								"type": "boolean",
+								"description": "Show a log of DAP requests, events, and responses",
+								"default": false
+							},
+							"useBundler": {
+								"type": "boolean",
+								"description": "Execute Ruby programs with `bundle exec` instead of directly",
+								"default": false
+							},
+							"bundlePath": {
+								"type": "string",
+								"description": "Location of the bundle executable"
+							},
+							"rdbgPath": {
+								"type": "string",
+								"description": "Location of the rdbg executable"
+							},
+							"askParameters": {
+								"type": "boolean",
+								"description": "Ask parameters at first."
+							}
+						}
+					}
+				},
+				"configurationSnippets": [
+					{
+						"label": "Ruby: launch current file with rdbg",
+						"description": "A new configuration to launch a current file with rdbg",
+						"body": {
+							"type": "rdbg",
+							"name": "Debug current file",
+							"request": "launch",
+							"script": "${file}",
+							"askParameters": true
+						}
+					},
+					{
+						"label": "Ruby: attach process with rdbg",
+						"description": "A new configuration to attach Ruby process with rdbg",
+						"body": {
+							"type": "rdbg",
+							"name": "Attach rdbg",
+							"request": "attach"
+						}
+					}
+				]
+			}
+		],
+		"configuration": {
+			"title": "Ruby rdbg debugger",
+			"properties": {
+				"rdbg.useBundler": {
+					"type": "boolean",
+					"default": true,
+					"description": "Run `bundle exec` if Gemfile is available."
+				},
+				"rdbg.saveBreakpoints": {
+					"type": "boolean",
+					"default": false,
+					"description": "(experimental) Save breakpoints information to '.rdbg.breakpoints' for rdbg command"
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "yarn run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint src --ext ts",
+		"watch": "tsc -watch -p ./"
+	},
+	"devDependencies": {
+		"@types/node": "^12.11.7",
+		"@types/vscode": "^1.49.0",
+		"@typescript-eslint/eslint-plugin": "^4.1.1",
+		"@typescript-eslint/parser": "^4.1.1",
+		"eslint": "^7.9.0",
+		"typescript": "^4.0.2",
+		"vscode-test": "^1.4.0"
+	},
+	"dependencies": {}
+}
