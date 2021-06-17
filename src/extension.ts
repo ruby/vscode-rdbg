@@ -139,7 +139,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	}
 
 	async get_sock_list(config: AttachConfiguration): Promise<string[]> {
-		const rdbg = config.rdbgPath || "/home/ko1/src/rb/ruby-debug/exe/rdbg";
+		const rdbg = config.rdbgPath || "rdbg";
 		const execFile = util.promisify(require('child_process').execFile);
 		async function f() {
 			const { stdout } = await execFile(rdbg, ['--util=list-socks']);
@@ -212,7 +212,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	async launch(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
-		const rdbg = config.rdbgPath || "/home/ko1/src/rb/ruby-debug/exe/rdbg";
+		const rdbg = config.rdbgPath || "rdbg";
 
 		// outputChannel.appendLine(JSON.stringify(session));
 
