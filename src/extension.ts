@@ -28,8 +28,12 @@ function workspace_folder(): string | undefined {
 	}
 }
 
+function pp(obj: any) {
+	vscode.window.showInformationMessage(JSON.stringify(obj));
+}
+
 function export_breakpoints(context: vscode.ExtensionContext) {
-	if (vscode.workspace.getConfiguration("rdbg.saveBreakpoints")) {
+	if (vscode.workspace.getConfiguration("rdbg").get("saveBreakpoints")) {
 		let wspath = workspace_folder();
 
 		if (wspath) {
@@ -42,8 +46,9 @@ function export_breakpoints(context: vscode.ExtensionContext) {
 					bp_lines = bp_lines + "break " + path + ":" + start_line + "\n"
 				}
 			}
-			fs.writeFile(path.join(wspath, ".rdbgrc.breakpoints"), bp_lines, e => { });
-			outputChannel.appendLine(bp_lines);
+			const bp_path = path.join(wspath, ".rdbgrc.breakpoints");
+			fs.writeFile(bp_path, bp_lines, e => { });
+			outputChannel.appendLine("Written: " + bp_path);
 		}
 	}
 }
@@ -138,11 +143,39 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
+	show_error(msg: string): void {
+		outputChannel.appendLine("Error: " + msg);
+		outputChannel.appendLine("Make sure to install rdbg command (`gem install debug`).\n" +
+		                         "If you are using bundler, write `gem 'debug'` in your Gemfile.");
+		outputChannel.show();
+	}
+
+	support_login(shell: string | undefined) {
+		if (shell && (shell.endsWith("bash") || shell.endsWith("zsh") || shell.endsWith("fish"))) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	make_shell_command(cmd: string) {
+		const shell = process.env.SHELL;
+		if (this.support_login(shell)) {
+			return shell + " -l -c '" + cmd + "'";
+		}
+		else {
+			return cmd;
+		}
+	}
+
 	async get_sock_list(config: AttachConfiguration): Promise<string[]> {
 		const rdbg = config.rdbgPath || "rdbg";
-		const execFile = util.promisify(require('child_process').execFile);
+		const exec = util.promisify(require('child_process').exec);
+		const cmd = this.make_shell_command(rdbg + ' --util=list-socks');
+
 		async function f() {
-			const { stdout } = await execFile(rdbg, ['--util=list-socks']);
+			const { stdout } = await exec(cmd);
 			if (stdout.length > 0) {
 				return stdout.split("\n");
 			}
@@ -176,16 +209,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	show_error(msg: string): void {
-		outputChannel.appendLine("Error: " + msg);
-		outputChannel.appendLine("Make sure to install rdbg command (`gem install debug`).\n" +
-		                         "If you are using bundler, write `gem 'debug'` in your Gemfile.");
-		outputChannel.show();
-	}
-
 	async get_sock_path(rdbg: string): Promise<string | null> {
 		return new Promise((resolve) => {
-			const p = child_process.execFile(rdbg, ['--util=gen-sockpath']);
+			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
+			const p = child_process.exec(command);
 			let path: string;
 
 			p.on('error', e => {
@@ -236,7 +263,14 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 
 		if (!outputTerminal) {
-			outputTerminal = vscode.window.createTerminal({ name: "rdbg" });
+			const shell = process.env.SHELL;
+			const shell_args = this.support_login(shell) ? ['-l'] : undefined;
+
+			outputTerminal = vscode.window.createTerminal({
+				name: "rdbg",
+				shellPath: shell,
+				shellArgs: shell_args,
+			});
 		}
 
 		// vscode.window.showInformationMessage(JSON.stringify(config));
