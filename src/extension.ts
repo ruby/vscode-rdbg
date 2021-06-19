@@ -17,6 +17,7 @@ import {
 } from 'vscode';
 
 let outputChannel: vscode.OutputChannel;
+let outputTerminal: vscode.Terminal | undefined;
 let last_exec_command: string | undefined;
 let last_program: string | undefined;
 
@@ -29,7 +30,7 @@ function workspace_folder(): string | undefined {
 }
 
 function pp(obj: any) {
-	vscode.window.showInformationMessage(JSON.stringify(obj));
+	outputChannel.appendLine(JSON.stringify(obj));
 }
 
 function export_breakpoints(context: vscode.ExtensionContext) {
@@ -61,6 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('rdbg', new RdbgInitialConfigurationProvider()));
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('rdbg', new RdbgAdapterDescriptorFactory()));
+	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('rdbg', new RdbgDebugAdapterTrackerFactory()));
 
 	//
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(e => {
@@ -69,6 +71,33 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
+}
+
+class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactory {
+	createDebugAdapterTracker(session: DebugSession): ProviderResult<vscode.DebugAdapterTracker> {
+		const tracker: vscode.DebugAdapterTracker = {
+			onWillStartSession(): void {
+				outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
+			},
+			onWillStopSession(): void {
+				if (outputTerminal) {
+					outputTerminal.show();
+				}
+			},
+			onError(e) {
+				outputChannel.appendLine("[Error on seession]\n" + JSON.stringify(e));
+			}
+		}
+		if (session.configuration.showProtocolLog) {
+			tracker.onDidSendMessage = (message: any): void => {
+				outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
+			}
+			tracker.onWillReceiveMessage = (message: any): void => {
+				outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
+			}
+		}
+		return tracker;
+	}
 }
 
 class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvider {
@@ -135,6 +164,8 @@ class StopDebugAdapter implements vscode.DebugAdapter {
 
 class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	createDebugAdapterDescriptor(session: DebugSession, executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
+		// session.configuration.internalConsoleOptions = "neverOpen"; // TODO: doesn't affect...
+
 		if (session.configuration.request == 'attach') {
 			return this.attach(session);
 		}
@@ -255,7 +286,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		outputChannel.appendLine("sock-path: <" + sock_path + ">");
 
 		// setup terminal
-		let outputTerminal: vscode.Terminal | undefined;
+		outputTerminal = undefined;
+
 		for (const t of vscode.window.terminals) {
 			if (t.name == "rdbg" && !t.exitStatus) {
 				outputTerminal = t;
@@ -272,8 +304,6 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				shellArgs: shell_args,
 			});
 		}
-
-		// vscode.window.showInformationMessage(JSON.stringify(config));
 
 		const rdbg_args = rdbg + " --command --open --sock-path=" + sock_path + " -- ";
 		const useBundlerFlag = (config.useBundler != undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
@@ -320,6 +350,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					}, 100); // ms
 				});
 			}
+
 			return new DebugAdapterNamedPipeServer(sock_path);
 		}
 		else {
