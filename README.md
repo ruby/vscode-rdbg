@@ -91,8 +91,8 @@ It contains "Debug current file with rdbg" (launch) configuration and "Attach wi
 You can use the following "launch" configurations.
 
 * `script`: Script file name (default: active ruby file on VSCode)
-* `command: Executable command (default: `ruby`)
-* `cwd: Directory to execute the program in (default: `${workspaceFolder}`)
+* `command`: Executable command (default: `ruby`)
+* `cwd`: Directory to execute the program in (default: `${workspaceFolder}`)
 * `args`: Command line arguments passed to the program (default: `[]`)
 * `env`: Additional environment variables to pass to the debugging (and debugged) process.
 * `useBundler`: Execute Ruby programs with `bundle exec` if `command` configuration is not given and `Gemfile` is available in the workspace.
