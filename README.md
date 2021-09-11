@@ -7,7 +7,7 @@ Ruby debugger to connect [debug](https://github.com/ruby/debug) library which ut
 You need to install `debug` gem and `rdbg` command should be in `$PATH`.
 
 ```shell
-$ gem install debug --pre
+$ gem install debug
 ```
 
 ## How to use
