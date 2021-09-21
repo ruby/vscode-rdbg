@@ -268,6 +268,45 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		});
 	}
 
+	async get_version(rdbg: string): Promise<string | null> {
+		return new Promise((resolve) => {
+			const command = this.make_shell_command(rdbg + " --version");
+			const p = child_process.exec(command);
+			let version: string;
+
+			p.on('error', e => {
+				this.show_error(e.message);
+				resolve(null);
+			});
+			p.on('exit', (code) => {
+				if (code != 0) {
+					this.show_error(command + ": exit code is " + code);
+					resolve(null);
+				}
+				else {
+					resolve(version);
+				}
+			});
+			p.stderr?.on('data', err => {
+				outputChannel.appendLine(err);
+			});
+			p.stdout?.on('data', out => {
+				version = out.trim();
+			});
+		});
+
+	}
+
+	vernum(version: string): number {
+		const vers = /rdbg (\d+)\.(\d+)\.(\d+)/.exec(version);
+		if (vers) {
+			return Number(vers[1]) * 1000 * 1000 + Number(vers[2]) * 1000 + Number(vers[3]);
+		}
+		else {
+			return 0;
+		}
+	}
+
 	async launch(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
 		const rdbg = config.rdbgPath || "rdbg";
@@ -305,7 +344,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			});
 		}
 
-		const rdbg_args = rdbg + " --command --open --sock-path=" + sock_path + " -- ";
+		const rdbg_args = rdbg + " --command --open --stop-at-load --sock-path=" + sock_path + " -- ";
 		const useBundlerFlag = (config.useBundler != undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
 		const useBundler = useBundlerFlag && fs.existsSync(workspace_folder() + '/Gemfile');
 		const ruby_command = config.command ? config.command : (useBundler ? 'bundle exec ruby' : 'ruby');
@@ -341,7 +380,14 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			while (!fs.existsSync(sock_path)) {
 				i++;
 				if (i > 30) {
-					vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - start_time) + " ms)");
+					const version: string | null = await this.get_version(rdbg);
+
+					if (version && this.vernum(version) < this.vernum("rdbg 1.2.0")) {
+						vscode.window.showErrorMessage("rdbg 1.2.0 is required (" + version + " is used). Please update debug.gem.");
+					}
+					else {
+						vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - start_time) + " ms). Please install debug.gem.");
+					}
 					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 				}
 				await new Promise((resolve, reject) => {
