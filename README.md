@@ -109,8 +109,8 @@ The following command starts the `foo.rb` with opening debug port. There are mor
 $ rdbg --open foo.rb
 ```
 
-After that, you can connect to the debug port. This extension searches opning debugger port and attach to that port by running "Attach with rdbg" (select it on the top of "RUN AND DEBUG" pane and push the green "Start Debugging" button).
+After that, you can connect to the debug port. This extension searches opening debugger port and attach to that port by running "Attach with rdbg" (select it on the top of "RUN AND DEBUG" pane and push the green "Start Debugging" button).
 
 ## Acknowledgement
 
-This extension is based on [Ethan Reesor / VSCode Byebug · GitLab](https://gitlab.com/firelizzard/vscode-byebug/-/tree/master/) by Ethan Reesor. With out his great work, the extension can not be released (Koichi learned TypeScript, VSCode extension and DAP by his extension).
+This extension is based on [Ethan Reesor / VSCode Byebug · GitLab](https://gitlab.com/firelizzard/vscode-byebug/-/tree/master/) by Ethan Reesor. Without his great work, the extension can not be released (Koichi learned TypeScript, VSCode extension and DAP by his extension).
