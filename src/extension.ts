@@ -307,6 +307,19 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
+	env_prefix(env?: {[key: string]: string}): string {
+		if (env) {
+			let prefix = "";
+			for (const key in env) {
+				prefix += key + "='" + env[key] + "' ";
+			}
+			return prefix;
+		}
+		else {
+			return "";
+		}
+	}
+
 	async launch(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
 		const rdbg = config.rdbgPath || "rdbg";
@@ -367,7 +380,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			last_exec_command = exec_command;
 			last_program = config.script;
 
-			const cmdline = rdbg_args + exec_command;
+			const cmdline = this.env_prefix(config.env) + rdbg_args + exec_command;
 
 			if (outputTerminal) {
 				outputTerminal.show(false);
