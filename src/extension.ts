@@ -206,7 +206,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		const cmd = this.make_shell_command(rdbg + ' --util=list-socks');
 
 		async function f() {
-			const { stdout } = await exec(cmd);
+			const { stdout } = await exec(cmd, {cwd: workspace_folder()});
 			if (stdout.length > 0) {
 				return stdout.split("\n");
 			}
@@ -243,7 +243,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	async get_sock_path(rdbg: string): Promise<string | null> {
 		return new Promise((resolve) => {
 			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
-			const p = child_process.exec(command);
+			const p = child_process.exec(command, {cwd: workspace_folder()});
 			let path: string;
 
 			p.on('error', e => {
@@ -271,7 +271,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	async get_version(rdbg: string): Promise<string | null> {
 		return new Promise((resolve) => {
 			const command = this.make_shell_command(rdbg + " --version");
-			const p = child_process.exec(command);
+			const p = child_process.exec(command, {cwd: workspace_folder()});
 			let version: string;
 
 			p.on('error', e => {
