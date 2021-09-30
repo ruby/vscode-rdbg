@@ -90,10 +90,10 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 		}
 		if (session.configuration.showProtocolLog) {
 			tracker.onDidSendMessage = (message: any): void => {
-				outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
+				outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
 			}
 			tracker.onWillReceiveMessage = (message: any): void => {
-				outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
+				outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
 			}
 		}
 		return tracker;
