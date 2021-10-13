@@ -226,7 +226,13 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		async function f() {
 			const { stdout } = await exec(cmd, {cwd: workspace_folder()});
 			if (stdout.length > 0) {
-				return stdout.split("\n");
+				let socks: Array<string> = [];
+				for (const line of stdout.split("\n")) {
+					if (line.length > 0) {
+						socks.push(line);
+					}
+				}
+				return socks;
 			}
 			else {
 				return [];
