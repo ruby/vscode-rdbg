@@ -416,12 +416,15 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		if (exec_command) {
 			last_exec_command = exec_command;
 			last_program = config.script;
-
-			const cmdline = this.env_prefix(config.env) + rdbg_args + exec_command;
+			const cmdline = this.env_prefix(config.env) + (config.noDebug ? '' : rdbg_args) + exec_command;
 
 			if (outputTerminal) {
 				outputTerminal.show(false);
 				outputTerminal.sendText(cmdline);
+			}
+
+			if (config.noDebug) {
+				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			}
 
 			// check sock-path
