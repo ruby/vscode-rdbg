@@ -56,9 +56,18 @@
 								"type": "string",
 								"description": "Location of the rdbg executable"
 							},
+							"debugPort": {
+								"type": "string",
+								"description": "UNIX domain socket name or TPC/IP host:port"
+							},
 							"showProtocolLog": {
 								"type": "boolean",
 								"description": "Show a log of DAP requests, events, and responses",
+								"default": false
+							},
+							"autoAttach": {
+								"type": "boolean",
+								"description": "Auto attach on launch",
 								"default": false
 							}
 						}

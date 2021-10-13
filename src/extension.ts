@@ -68,6 +68,24 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(e => {
 		export_breakpoints(context);
 	}));
+
+	const folders = vscode.workspace.workspaceFolders;
+
+	if (folders != undefined && folders.length > 0) {
+		const config = vscode.workspace.getConfiguration(
+			'launch',
+			folders[0].uri
+		);
+		const cs: [AttachConfiguration] | undefined = config.get("configurations");
+
+		if (cs) {
+			for (const c of cs) {
+				if (c.type == "rdbg" && c.request == "attach" && c.autoAttach) {
+					vscode.debug.startDebugging(folders[0], c);
+				}
+			}
+		}
+	}
 }
 
 export function deactivate() {
@@ -219,25 +237,38 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	async attach(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as AttachConfiguration;
-		const list = await this.get_sock_list(config);
+		let port: string;
 
-		outputChannel.appendLine(JSON.stringify(list));
+		if (config.noDebug) {
+			vscode.window.showErrorMessage("Can not attach \"Without debugging\".");
+			return new DebugAdapterInlineImplementation(new StopDebugAdapter)
+		}
 
-		switch (list.length) {
+		if (config.debugPort) {
+			port = config.debugPort;
+		}
+		else {
+			const list = await this.get_sock_list(config);
+			outputChannel.appendLine(JSON.stringify(list));
+
+			switch (list.length) {
 			case 0:
 				vscode.window.showErrorMessage("Can not find attachable Ruby process.");
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			case 1:
-				return new DebugAdapterNamedPipeServer(list[0]);
+				port = list[0];
+				break;
 			default:
 				const sock = await vscode.window.showQuickPick(list);
 				if (sock) {
-					return new DebugAdapterNamedPipeServer(sock);
+					port = sock;
 				}
 				else {
 					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 				}
+			}
 		}
+		return new DebugAdapterNamedPipeServer(port);
 	}
 
 	async get_sock_path(rdbg: string): Promise<string | null> {
@@ -422,6 +453,8 @@ interface AttachConfiguration extends DebugConfiguration {
 	type: 'rdbg';
 	request: 'attach';
 	rdbgPath?: string;
+	debugPort?: string;
+	autoAttach?: boolean;
 	showProtocolLog?: boolean;
 }
 
