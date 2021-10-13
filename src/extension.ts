@@ -103,7 +103,7 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 				}
 			},
 			onError(e) {
-				outputChannel.appendLine("[Error on seession]\n" + JSON.stringify(e));
+				outputChannel.appendLine("[Error on seession]\n" + e.name + ": " + e.message + "\ne: " + JSON.stringify(e));
 			}
 		}
 		if (session.configuration.showProtocolLog) {
