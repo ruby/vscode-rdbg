@@ -60,6 +60,10 @@
 								"type": "boolean",
 								"description": "Show a log of DAP requests, events, and responses",
 								"default": false
+							},
+							"sockPath": {
+								"type": "string",
+								"description": "(Optional) Location of the UNIX domain socket to attach to"
 							}
 						}
 					},
