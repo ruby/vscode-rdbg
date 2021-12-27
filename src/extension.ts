@@ -201,6 +201,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	}
 
 	async get_sock_list(config: AttachConfiguration): Promise<string[]> {
+		if (config.sockPath) {
+			return [config.sockPath];
+		}
 		const rdbg = config.rdbgPath || "rdbg";
 		const exec = util.promisify(require('child_process').exec);
 		const cmd = this.make_shell_command(rdbg + ' --util=list-socks');
@@ -422,6 +425,7 @@ interface AttachConfiguration extends DebugConfiguration {
 	type: 'rdbg';
 	request: 'attach';
 	rdbgPath?: string;
+	sockPath?: string;
 	showProtocolLog?: boolean;
 }
 
