@@ -64,6 +64,14 @@
 							"sockPath": {
 								"type": "string",
 								"description": "(Optional) Location of the UNIX domain socket to attach to"
+							},
+							"host": {
+								"type": "string",
+								"description": "(Optional) TCP/IP remote debugging: host"
+							},
+							"port": {
+								"type": "number",
+								"description": "(Optional) TCP/IP remote debugging: port"
 							}
 						}
 					},

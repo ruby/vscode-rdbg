@@ -10,6 +10,7 @@ import {
 	DebugAdapterExecutable,
 	DebugAdapterInlineImplementation,
 	DebugAdapterNamedPipeServer,
+	DebugAdapterServer,
 	DebugConfiguration,
 	DebugSession,
 	ProviderResult,
@@ -201,9 +202,6 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	}
 
 	async get_sock_list(config: AttachConfiguration): Promise<string[]> {
-		if (config.sockPath) {
-			return [config.sockPath];
-		}
 		const rdbg = config.rdbgPath || "rdbg";
 		const exec = util.promisify(require('child_process').exec);
 		const cmd = this.make_shell_command(rdbg + ' --util=list-socks');
@@ -222,6 +220,13 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	async attach(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as AttachConfiguration;
+
+		if (config.sockPath) {
+			return new DebugAdapterNamedPipeServer(config.sockPath);
+		} else if (config.port) {
+			return new DebugAdapterServer(config.port, config.host);
+		}
+
 		const list = await this.get_sock_list(config);
 
 		outputChannel.appendLine(JSON.stringify(list));
@@ -426,6 +431,8 @@ interface AttachConfiguration extends DebugConfiguration {
 	request: 'attach';
 	rdbgPath?: string;
 	sockPath?: string;
+	host?: string;
+	port?: number;
 	showProtocolLog?: boolean;
 }
 
