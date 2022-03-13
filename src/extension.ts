@@ -224,7 +224,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		const cmd = this.make_shell_command(rdbg + ' --util=list-socks');
 
 		async function f() {
-			const { stdout } = await exec(cmd, {cwd: workspace_folder()});
+			const { stdout } = await exec(cmd, {cwd: config.cwd ? config.cwd : workspace_folder()});
 			if (stdout.length > 0) {
 				let socks: Array<string> = [];
 				for (const line of stdout.split("\n")) {
@@ -473,6 +473,7 @@ interface AttachConfiguration extends DebugConfiguration {
 	rdbgPath?: string;
 	debugPort?: string;
 	autoAttach?: boolean;
+	cwd?: string;
 	showProtocolLog?: boolean;
 }
 
