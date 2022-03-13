@@ -44,7 +44,7 @@ function export_breakpoints(context: vscode.ExtensionContext) {
 					// outputChannel.appendLine(JSON.stringify(bp));
 					const start_line = bp.location.range.start.line;
 					const path = bp.location.uri.path;
-					bp_lines = bp_lines + "break " + path + ":" + start_line + "\n"
+					bp_lines = bp_lines + "break " + path + ":" + start_line + "\n";
 				}
 			}
 			const bp_path = path.join(wspath, ".rdbgrc.breakpoints");
@@ -105,14 +105,14 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 			onError(e) {
 				outputChannel.appendLine("[Error on seession]\n" + e.name + ": " + e.message + "\ne: " + JSON.stringify(e));
 			}
-		}
+		};
 		if (session.configuration.showProtocolLog) {
 			tracker.onDidSendMessage = (message: any): void => {
 				outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
-			}
+			};
 			tracker.onWillReceiveMessage = (message: any): void => {
 				outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
-			}
+			};
 		}
 		return tracker;
 	}
@@ -247,7 +247,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 		if (config.noDebug) {
 			vscode.window.showErrorMessage("Can not attach \"Without debugging\".");
-			return new DebugAdapterInlineImplementation(new StopDebugAdapter)
+			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 		}
 
 		if (config.debugPort) {
@@ -277,10 +277,11 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return new DebugAdapterNamedPipeServer(port);
 	}
 
-	async get_sock_path(rdbg: string): Promise<string | null> {
+	async get_sock_path(config: LaunchConfiguration): Promise<string | null> {
 		return new Promise((resolve) => {
+			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
-			const p = child_process.exec(command, {cwd: workspace_folder()});
+			const p = child_process.exec(command, {cwd: config.cwd ? config.cwd : workspace_folder()});
 			let path: string;
 
 			p.on('error', e => {
@@ -305,10 +306,11 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		});
 	}
 
-	async get_version(rdbg: string): Promise<string | null> {
+	async get_version(config: LaunchConfiguration): Promise<string | null> {
 		return new Promise((resolve) => {
+			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --version");
-			const p = child_process.exec(command, {cwd: workspace_folder()});
+			const p = child_process.exec(command, {cwd: config.cwd ? config.cwd : workspace_folder()});
 			let version: string;
 
 			p.on('error', e => {
@@ -363,7 +365,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 		// outputChannel.appendLine(JSON.stringify(session));
 
-		const sock_path = await this.get_sock_path(rdbg);
+		const sock_path = await this.get_sock_path(config);
 
 		if (!sock_path) {
 			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
@@ -420,6 +422,13 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 			if (outputTerminal) {
 				outputTerminal.show(false);
+
+				if (config.cwd) {
+					// Ensure we are in the requested working directory
+					const cd_command = "cd " + config.cwd;
+					outputTerminal.sendText(cd_command);
+				}
+
 				outputTerminal.sendText(cmdline);
 			}
 
@@ -433,7 +442,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			while (!fs.existsSync(sock_path)) {
 				i++;
 				if (i > 30) {
-					const version: string | null = await this.get_version(rdbg);
+					const version: string | null = await this.get_version(config);
 
 					if (version && this.vernum(version) < this.vernum("rdbg 1.2.0")) {
 						vscode.window.showErrorMessage("rdbg 1.2.0 is required (" + version + " is used). Please update debug.gem.");
