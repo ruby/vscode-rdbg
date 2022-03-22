@@ -29,6 +29,20 @@ function workspace_folder(): string | undefined {
 	}
 }
 
+function custom_path(working_directory: string): string {
+  if (path.isAbsolute(working_directory)) {
+    return working_directory;
+  } else {
+    const wspath = workspace_folder();
+
+    if (wspath) {
+      return path.join(wspath, working_directory);
+    } else {
+      return working_directory;
+    }
+  }
+}
+
 function pp(obj: any) {
 	outputChannel.appendLine(JSON.stringify(obj));
 }
@@ -224,7 +238,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		const cmd = this.make_shell_command(rdbg + ' --util=list-socks');
 
 		async function f() {
-			const { stdout } = await exec(cmd, {cwd: config.cwd ? config.cwd : workspace_folder()});
+			const { stdout } = await exec(cmd, {cwd: config.cwd ? custom_path(config.cwd) : workspace_folder()});
 			if (stdout.length > 0) {
 				let socks: Array<string> = [];
 				for (const line of stdout.split("\n")) {
@@ -281,7 +295,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
-			const p = child_process.exec(command, {cwd: config.cwd ? config.cwd : workspace_folder()});
+			const p = child_process.exec(command, {cwd: config.cwd ? custom_path(config.cwd) : workspace_folder()});
 			let path: string;
 
 			p.on('error', e => {
@@ -310,7 +324,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --version");
-			const p = child_process.exec(command, {cwd: config.cwd ? config.cwd : workspace_folder()});
+			const p = child_process.exec(command, {cwd: config.cwd ? custom_path(config.cwd) : workspace_folder()});
 			let version: string;
 
 			p.on('error', e => {
@@ -425,7 +439,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 				if (config.cwd) {
 					// Ensure we are in the requested working directory
-					const cd_command = "cd " + config.cwd;
+					const cd_command = "cd " + custom_path(config.cwd);
 					outputTerminal.sendText(cd_command);
 				}
 
