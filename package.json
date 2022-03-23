@@ -126,6 +126,14 @@
 							"askParameters": {
 								"type": "boolean",
 								"description": "Ask parameters at first."
+							},
+							"debugPort": {
+								"type": "string",
+								"description": "UNIX domain socket name or TPC/IP host:port"
+							},
+							"waitLaunchTime": {
+								"type": "number",
+								"description": "Wait time before connection in milliseconds"
 							}
 						}
 					}

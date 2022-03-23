@@ -44,7 +44,7 @@ See also: [Debugging in Visual Studio Code](https://code.visualstudio.com/docs/e
 
 For developers: `RUBY_DEBUG_DAP_SHOW_PROTOCOL=1` on `rdbg` terminal will show the all DAP protocol.
 
-### Configuration
+### Launch with configurations
 
 You can write your favorite setting in `.vscode/launch.json`.
 
@@ -74,7 +74,8 @@ To make a `.vscode/launch.json` with default settings, you only need to click "c
 }
 ```
 
-It contains "Debug current file with rdbg" (launch) configuration and "Attach with rdbg" (attach) configuration.You can modify this configuration, and also you can add your favorite configuration like:
+It contains "Debug current file with rdbg" (launch) configuration and "Attach with rdbg" (attach) configuration.
+You can modify this configuration, and also you can add your favorite configuration like:
 
 ```JSON
                 {
@@ -97,11 +98,16 @@ You can use the following "launch" configurations.
 * `env`: Additional environment variables to pass to the debugging (and debugged) process.
 * `useBundler`: Execute Ruby programs with `bundle exec` if `command` configuration is not given and `Gemfile` is available in the workspace.
 * `askParameters`: Ask "Debug command line" before debugging (default: `true`)
-* `rdbgPath`: Location of the rdbg executable.
+* `rdbgPath`: Location of the rdbg executable (default: `rdbg`).
+* `debugPort`: On default, open a UNIX Domain Socket with default name to communicate with debuggee. If you want to use another debug port, set this configuration.
+  * `12345`: open a TCP/IP debug port with port `12345`
+  * `host:12345`: open a TCP/IP port `12345` and hostname `host`
+  * Otherwize, open a UNIX Domain socket with given filename.
+* `launchWiatTime`: If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds).
 
-### Attach configuration
+### Attach to the running Ruby process
 
-You can attach to a Ruby process which run with opening debugger port.
+You can attach to a Ruby process which run with an opening debugger port.
 
 The following command starts the `foo.rb` with opening debug port. There are more methods to open the port. See more for [ruby/debug: Debugging functionality for Ruby](https://github.com/ruby/debug).
 
@@ -109,7 +115,18 @@ The following command starts the `foo.rb` with opening debug port. There are mor
 $ rdbg --open foo.rb
 ```
 
-After that, you can connect to the debug port. This extension searches opening debugger port and attach to that port by running "Attach with rdbg" (select it on the top of "RUN AND DEBUG" pane and push the green "Start Debugging" button).
+After that, you can connect to the debug port. This extension searches opening debugger port and attach to that port by running `Attach with rdbg` (select it on the top of "RUN AND DEBUG" pane and push the green "Start Debugging" button).
+
+You can specify the following "attach" configrations.
+
+* `rdbgPath`: Same as `launch` request.
+* `debugPort`: Same as `launch` request.
+
+With `debugPort`, you can attach to TCP/IP debug port.
+
+* Start with a TCP/IP debug port with `rdbg --open --port 12345 foo.rb`
+* Add `debugPort: '12345'` attach configration.
+* Choose `Attach with rdbg` and start attach debugging
 
 ## Acknowledgement
 

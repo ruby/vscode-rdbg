@@ -1,8 +1,11 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
+import * as net from 'net';
 import * as path from 'path';
+import { stringify } from 'querystring';
 import * as util from 'util';
 import * as vscode from 'vscode';
+
 import {
 	CancellationToken,
 	DebugAdapterDescriptor,
@@ -255,9 +258,25 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return f();
 	}
 
+	parse_port(port: string) : [string | undefined, number | undefined, string | undefined] {
+		var m;
+
+		if (port.match(/^\d+$/)) {
+			return ["localhost", parseInt(port), undefined];
+		}
+		else if ((m = port.match(/^(.+):(\d+)$/))) {
+			return [m[1], parseInt(m[2]), undefined];
+		}
+		else {
+			return [undefined, undefined, port];
+		}
+	}
+
 	async attach(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as AttachConfiguration;
-		let port: string;
+		let port: number | undefined;
+		let host: string | undefined;
+		let sock_path: string | undefined;
 
 		if (config.noDebug) {
 			vscode.window.showErrorMessage("Can not attach \"Without debugging\".");
@@ -265,7 +284,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 
 		if (config.debugPort) {
-			port = config.debugPort;
+			[host, port, sock_path] = this.parse_port(config.debugPort);
 		}
 		else {
 			const list = await this.get_sock_list(config);
@@ -276,22 +295,32 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				vscode.window.showErrorMessage("Can not find attachable Ruby process.");
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			case 1:
-				port = list[0];
+				sock_path = list[0];
 				break;
 			default:
 				const sock = await vscode.window.showQuickPick(list);
 				if (sock) {
-					port = sock;
+					sock_path = sock;
 				}
 				else {
 					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 				}
 			}
 		}
-		return new DebugAdapterNamedPipeServer(port);
+
+		if (sock_path) {
+			return new DebugAdapterNamedPipeServer(sock_path);
+		}
+		else if (port) {
+			return new vscode.DebugAdapterServer(port, host);
+		}
+		else {
+			vscode.window.showErrorMessage("Unrechable.");
+			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+		}
 	}
 
-	async get_sock_path(config: LaunchConfiguration): Promise<string | null> {
+	async get_sock_path(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
@@ -300,12 +329,12 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 			p.on('error', e => {
 				this.show_error(e.message);
-				resolve(null);
+				resolve(undefined);
 			});
 			p.on('exit', (code) => {
 				if (code != 0) {
 					this.show_error("exit code is " + code);
-					resolve(null);
+					resolve(undefined);
 				}
 				else {
 					resolve(path);
@@ -379,16 +408,25 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 		// outputChannel.appendLine(JSON.stringify(session));
 
-		const sock_path = await this.get_sock_path(config);
+		// setup debugPort
+		let sock_path : string | undefined;
+		let tcp_host : string | undefined;
+		let tcp_port : number | undefined;
 
-		if (!sock_path) {
-			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+		if (config.debugPort) {
+			[tcp_host, tcp_port, sock_path] = this.parse_port(config.debugPort);
 		}
-		if (fs.existsSync(sock_path)) {
-			vscode.window.showErrorMessage("already exists: " + sock_path);
-			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+		else {
+			sock_path = await this.get_sock_path(config);
+			if (!sock_path) {
+				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+			}
+			if (fs.existsSync(sock_path)) {
+				vscode.window.showErrorMessage("already exists: " + sock_path);
+				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+			}
+			outputChannel.appendLine("sock-path: <" + sock_path + ">");
 		}
-		outputChannel.appendLine("sock-path: <" + sock_path + ">");
 
 		// setup terminal
 		outputTerminal = undefined;
@@ -410,7 +448,21 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			});
 		}
 
-		const rdbg_args = rdbg + " --command --open --stop-at-load --sock-path=" + sock_path + " -- ";
+		const connection_parameter = () => {
+			if (sock_path) {
+				return "--sock-path=" + sock_path;
+			}
+			else {
+				if (tcp_host) {
+					return "--port=" + tcp_port + " --host=" + tcp_host;
+				}
+				else {
+					return "--port=" + tcp_port;
+				}
+			}
+		}
+
+		const rdbg_args = rdbg + " --command --open --stop-at-load " + connection_parameter() + " -- ";
 		const useBundlerFlag = (config.useBundler != undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
 		const useBundler = useBundlerFlag && fs.existsSync(workspace_folder() + '/Gemfile');
 		const ruby_command = config.command ? config.command : (useBundler ? 'bundle exec ruby' : 'ruby');
@@ -450,34 +502,48 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			}
 
-			// check sock-path
-			const start_time = Date.now();
-			let i = 0;
-			while (!fs.existsSync(sock_path)) {
-				i++;
-				if (i > 30) {
-					const version: string | null = await this.get_version(config);
+			// use NamedPipe
+			if (sock_path) {
+				// check sock-path
+				const start_time = Date.now();
+				let i = 0;
+				while (!fs.existsSync(sock_path)) {
+					i++;
+					if (i > 30) {
+						const version: string | null = await this.get_version(config);
 
-					if (version && this.vernum(version) < this.vernum("rdbg 1.2.0")) {
-						vscode.window.showErrorMessage("rdbg 1.2.0 is required (" + version + " is used). Please update debug.gem.");
+						if (version && this.vernum(version) < this.vernum("rdbg 1.2.0")) {
+							vscode.window.showErrorMessage("rdbg 1.2.0 is required (" + version + " is used). Please update debug.gem.");
+						}
+						else {
+							vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - start_time) + " ms). Please install debug.gem.");
+						}
+						return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 					}
-					else {
-						vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - start_time) + " ms). Please install debug.gem.");
-					}
-					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+					await new Promise((resolve, reject) => {
+						setTimeout(() => {
+							resolve(0);
+						}, 100); // ms
+					});
 				}
+
+				return new DebugAdapterNamedPipeServer(sock_path);
+			}
+			else if (tcp_port) {
+				// TODO: synchronize technique
+				const wait_ms = config.waitLaunchTime ? config.waitLaunchTime : 1000 /* 1 sec */;
+
 				await new Promise((resolve, reject) => {
 					setTimeout(() => {
 						resolve(0);
-					}, 100); // ms
+					}, wait_ms); // ms
 				});
+				return new vscode.DebugAdapterServer(tcp_port, tcp_host);
 			}
+		}
 
-			return new DebugAdapterNamedPipeServer(sock_path);
-		}
-		else {
-			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
-		}
+		// failed
+		return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 	}
 }
 
@@ -501,6 +567,9 @@ interface LaunchConfiguration extends DebugConfiguration {
 	cwd?: string;
 	args?: string[];
 	env?: { [key: string]: string };
+
+	debugPort?: string;
+	waitLaunchTime?: number;
 
 	useBundler?: boolean;
 	askParameters?: boolean;
