@@ -105,6 +105,8 @@ You can use the following "launch" configurations.
   * Otherwize, open a UNIX Domain socket with given filename.
 * `launchWiatTime`: If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds).
 
+Note that if you have a trouble by launching `rdbg`, please try to specify `rdbgPath`. Without this configuration, this extension simply calls `rdbg` in PATH.
+
 ### Attach to the running Ruby process
 
 You can attach to a Ruby process which run with an opening debugger port.
