@@ -9,7 +9,7 @@
         "@typescript-eslint"
     ],
     "rules": {
-        "@typescript-eslint/naming-convention": "warn",
+        "@typescript-eslint/naming-convention": ["warn", {"format": ["camelCase", "snake_case"]}],
         "@typescript-eslint/semi": "warn",
         "no-throw-literal": "warn",
         "semi": "off"
