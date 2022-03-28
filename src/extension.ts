@@ -349,6 +349,28 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		});
 	}
 
+	async get_tcp_port_file(config: LaunchConfiguration): Promise<string | undefined> {
+		return new Promise((resolve) => {
+			const rdbg = config.rdbgPath || "rdbg";
+			const command = this.make_shell_command(rdbg + " --util=gen-portpath");
+			const p = child_process.exec(command, {cwd: config.cwd ? custom_path(config.cwd) : workspace_folder()});
+			let path: string;
+
+			p.on('error', e => {
+				resolve(undefined);
+			});
+			p.on('exit', (code) => {
+				resolve(path);
+			});
+			p.stderr?.on('data', err => {
+				outputChannel.appendLine(err);
+			})
+			p.stdout?.on('data', out => {
+				path = out.trim();
+			});
+		});
+	}
+
 	async get_version(config: LaunchConfiguration): Promise<string | null> {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
@@ -402,6 +424,29 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
+	async sleep_ms(wait_ms: number) {
+		await new Promise((resolve, reject) => {
+			setTimeout(() => {
+				resolve(0);
+			}, wait_ms); // ms
+		});
+	}
+
+	async wait_file(path: string): Promise<boolean> {
+		// check sock-path
+		const start_time = Date.now();
+		let i = 0;
+		while (!fs.existsSync(path)) {
+			i++;
+			if (i > 30) {
+				vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - start_time) + " ms). Please install debug.gem.");
+				return false;
+			}
+			await this.sleep_ms(100);
+		}
+		return true;
+	}
+
 	async launch(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
 		const rdbg = config.rdbgPath || "rdbg";
@@ -412,9 +457,14 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		let sock_path : string | undefined;
 		let tcp_host : string | undefined;
 		let tcp_port : number | undefined;
+		let tcp_port_file : string | undefined;
 
 		if (config.debugPort) {
 			[tcp_host, tcp_port, sock_path] = this.parse_port(config.debugPort);
+
+			if (tcp_port != undefined) {
+				tcp_port_file = await this.get_tcp_port_file(config);
+			}
 		}
 		else {
 			sock_path = await this.get_sock_path(config);
@@ -453,11 +503,13 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				return "--sock-path=" + sock_path;
 			}
 			else {
+				const port_option = "--port=" + tcp_port + (tcp_port_file ? (":" + tcp_port_file) : "");
+
 				if (tcp_host) {
-					return "--port=" + tcp_port + " --host=" + tcp_host;
+					return port_option + " --host=" + tcp_host;
 				}
 				else {
-					return "--port=" + tcp_port;
+					return port_option;
 				}
 			}
 		}
@@ -504,40 +556,28 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 			// use NamedPipe
 			if (sock_path) {
-				// check sock-path
-				const start_time = Date.now();
-				let i = 0;
-				while (!fs.existsSync(sock_path)) {
-					i++;
-					if (i > 30) {
-						const version: string | null = await this.get_version(config);
-
-						if (version && this.vernum(version) < this.vernum("rdbg 1.2.0")) {
-							vscode.window.showErrorMessage("rdbg 1.2.0 is required (" + version + " is used). Please update debug.gem.");
-						}
-						else {
-							vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - start_time) + " ms). Please install debug.gem.");
-						}
+				if (await this.wait_file(sock_path)) {
+					return new DebugAdapterNamedPipeServer(sock_path);
+				}
+				else {
+					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+				}
+			}
+			else if (tcp_port != undefined) {
+				if (tcp_port_file) {
+					if (await this.wait_file(tcp_port_file)) {
+						const port_str = fs.readFileSync(tcp_port_file);
+						tcp_port = parseInt(port_str.toString());
+					}
+					else {
 						return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 					}
-					await new Promise((resolve, reject) => {
-						setTimeout(() => {
-							resolve(0);
-						}, 100); // ms
-					});
+				}
+				else {
+					const wait_ms = config.waitLaunchTime ? config.waitLaunchTime : 1000 /* 1 sec */;
+					await this.sleep_ms(wait_ms);
 				}
 
-				return new DebugAdapterNamedPipeServer(sock_path);
-			}
-			else if (tcp_port) {
-				// TODO: synchronize technique
-				const wait_ms = config.waitLaunchTime ? config.waitLaunchTime : 1000 /* 1 sec */;
-
-				await new Promise((resolve, reject) => {
-					setTimeout(() => {
-						resolve(0);
-					}, wait_ms); // ms
-				});
 				return new vscode.DebugAdapterServer(tcp_port, tcp_host);
 			}
 		}
