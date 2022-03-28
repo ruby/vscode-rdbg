@@ -103,7 +103,7 @@ You can use the following "launch" configurations.
   * `12345`: open a TCP/IP debug port with port `12345`
   * `host:12345`: open a TCP/IP port `12345` and hostname `host`
   * Otherwize, open a UNIX Domain socket with given filename.
-* `waitLaunchTime`: If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds).
+* `waitLaunchTime`: If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds). With debug.gem 1.5.0 and later you may not need this configulation.
 
 Note that if you have a trouble by launching `rdbg`, please try to specify `rdbgPath`. Without this configuration, this extension simply calls `rdbg` in PATH.
 
