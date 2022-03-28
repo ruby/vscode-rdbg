@@ -99,10 +99,11 @@ You can use the following "launch" configurations.
 * `useBundler`: Execute Ruby programs with `bundle exec` if `command` configuration is not given and `Gemfile` is available in the workspace.
 * `askParameters`: Ask "Debug command line" before debugging (default: `true`)
 * `rdbgPath`: Location of the rdbg executable (default: `rdbg`).
-* `debugPort`: On default, open a UNIX Domain Socket with default name to communicate with debuggee. If you want to use another debug port, set this configuration.
+* `debugPort`: On default (without `debugPort` configulation), open a UNIX Domain Socket with default name to communicate with debuggee. If you want to use another debug port, set this configuration.
   * `12345`: open a TCP/IP debug port with port `12345`
-  * `host:12345`: open a TCP/IP port `12345` and hostname `host`
+  * `hostname:12345`: open a TCP/IP port `12345` and hostname `hostname`
   * Otherwize, open a UNIX Domain socket with given filename.
+  * Note that you can specify `0` TCP/IP port (choose usable port) with debug.gem v1.5.0 or later.
 * `waitLaunchTime`: If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds). With debug.gem 1.5.0 and later you may not need this configulation.
 
 Note that if you have a trouble by launching `rdbg`, please try to specify `rdbgPath`. Without this configuration, this extension simply calls `rdbg` in PATH.
