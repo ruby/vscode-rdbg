@@ -69,6 +69,11 @@
 								"type": "boolean",
 								"description": "Auto attach on launch",
 								"default": false
+							},
+							"localfs": {
+								"type": "boolean",
+								"description": "true if the VSCode and debugger run on a same machine",
+								"default": false
 							}
 						}
 					},
@@ -134,6 +139,11 @@
 							"waitLaunchTime": {
 								"type": "number",
 								"description": "Wait time before connection in milliseconds"
+							},
+							"localfs": {
+								"type": "boolean",
+								"description": "true if the VSCode and debugger run on a same machine",
+								"default": false
 							}
 						}
 					}
