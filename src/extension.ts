@@ -71,7 +71,6 @@ function export_breakpoints(context: vscode.ExtensionContext) {
 	}
 }
 
-
 export function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel('rdbg');
 
@@ -89,17 +88,25 @@ export function activate(context: vscode.ExtensionContext) {
 	const folders = vscode.workspace.workspaceFolders;
 
 	if (folders != undefined && folders.length > 0) {
-		const config = vscode.workspace.getConfiguration(
-			'launch',
-			folders[0].uri
-		);
-		const cs: [AttachConfiguration] | undefined = config.get("configurations");
-
-		if (cs) {
-			for (const c of cs) {
-				if (c.type == "rdbg" && c.request == "attach" && c.autoAttach) {
-					vscode.debug.startDebugging(folders[0], c);
+		const auto_attach_config_p = (c: AttachConfiguration): boolean => {
+			if (c.type == "rdbg" && c.request == "attach" && c.autoAttach) {
+				if (c.autoAttach == process.env.RUBY_DEBUG_AUTOATTACH) {
+					return true;
 				}
+
+				vscode.window.showErrorMessage(".vscode/rdbg_autoattach.json contains unexpected contents. Please check integrity.");
+			}
+			return false;
+		}
+
+		const json_path = path.join(folders[0].uri.path, ".vscode/rdbg_autoattach.json");
+		if (fs.existsSync(json_path)) {
+			const c: AttachConfiguration = require(json_path);
+
+			if (auto_attach_config_p(c)) {
+				fs.unlinkSync(json_path);
+				vscode.debug.startDebugging(folders[0], c);
+				return;
 			}
 		}
 	}
@@ -592,9 +599,10 @@ interface AttachConfiguration extends DebugConfiguration {
 	request: 'attach';
 	rdbgPath?: string;
 	debugPort?: string;
-	autoAttach?: boolean;
 	cwd?: string;
 	showProtocolLog?: boolean;
+
+	autoAttach?: string;
 }
 
 interface LaunchConfiguration extends DebugConfiguration {
