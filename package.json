@@ -33,7 +33,8 @@
 	},
 	"activationEvents": [
 		"onLanguage:ruby",
-		"onDebug"
+		"onDebug",
+		"workspaceContains:.vscode/rdbg_autoattach.json"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -63,11 +64,6 @@
 							"showProtocolLog": {
 								"type": "boolean",
 								"description": "Show a log of DAP requests, events, and responses",
-								"default": false
-							},
-							"autoAttach": {
-								"type": "boolean",
-								"description": "Auto attach on launch",
 								"default": false
 							},
 							"localfs": {
