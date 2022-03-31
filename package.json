@@ -3,7 +3,7 @@
 	"displayName": "VSCode rdbg Ruby Debugger",
 	"description": "Ruby's rdbg debugger support for VSCode",
 	"publisher": "KoichiSasada",
-	"version": "0.0.9",
+	"version": "0.0.10",
 	"license": "MIT",
 	"author": {
 		"name": "Koichi Sasada",
