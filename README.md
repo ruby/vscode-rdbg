@@ -50,7 +50,7 @@ You can write your favorite setting in `.vscode/launch.json`.
 
 To make a `.vscode/launch.json` with default settings, you only need to click "create a launch.json file" on the "Run and Debug" pane. And you will see the following default configurations.
 
-```JSON
+```jsonc
 {
         // Use IntelliSense to learn about possible attributes.
         // Hover to view descriptions of existing attributes.
@@ -77,13 +77,13 @@ To make a `.vscode/launch.json` with default settings, you only need to click "c
 It contains "Debug current file with rdbg" (launch) configuration and "Attach with rdbg" (attach) configuration.
 You can modify this configuration, and also you can add your favorite configuration like:
 
-```JSON
+```jsonc
                 {
                         "type": "rdbg",
                         "name": "Run rake test",
                         "request": "launch",
-                        "command": "rake",  # 
-                        "script": "test",   # launch rake test with debugger
+                        "command": "rake",  // 
+                        "script": "test",   // launch rake test with debugger
                         "args": [],
                         "askParameters": false  # Do not ask any more
                 },
