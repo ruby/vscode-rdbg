@@ -130,14 +130,47 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 				outputChannel.appendLine("[Error on session]\n" + e.name + ": " + e.message + "\ne: " + JSON.stringify(e));
 			}
 		};
+		const mapArgumentSourceFiles = (message: any): void => {
+			if (message.arguments?.source?.path && session.workspaceFolder) {
+				for (let {remoteRoot, localRoot } of session.configuration.sourceMappings) {
+					if (!localRoot) {
+						if (session.workspaceFolder) {
+							localRoot = session.workspaceFolder.uri.path
+						} else {
+							throw new Error("no local mapping found")
+						}
+					}
+					if (message.arguments.source.path.includes(localRoot)) {
+						message.arguments.source.path = message.arguments.source.path.replace(localRoot, remoteRoot)
+						break
+					}
+				}
+			}
+		}
+		const mapStackFramesSourceFiles = (message: any): void => {
+			// eh not crazy about this nested for loop
+			for (let frame of message.body?.stackFrames) {
+				if (frame.source?.path) {
+					for (let {remoteRoot, localRoot } of session.configuration.sourceMappings) {
+						if (!localRoot) {
+							if (session.workspaceFolder) {
+								localRoot = session.workspaceFolder.uri.path
+							} else {
+								throw new Error("no local mapping found")
+							}
+						}
+						if (frame.source.path.includes(remoteRoot)) {
+							frame.source.path = frame.source.path.replace(remoteRoot, localRoot)
+							break
+						}
+					}
+				}
+			}
+		}
     tracker.onDidSendMessage = (message: any): void => {
       if (message.command === 'stackTrace') {
         if (message.body?.stackFrames && session.workspaceFolder) {
-          for (let frame of message.body?.stackFrames) {
-            if (frame.source?.path) {
-              frame.source.path = frame.source.path.replace(session.configuration.remoteRoot, session.workspaceFolder.uri.path)
-            }
-          }
+					mapStackFramesSourceFiles(message)
         }
       }
       if (session.configuration.showProtocolLog) {
@@ -146,13 +179,9 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
     };
     tracker.onWillReceiveMessage = (message: any): void => {
       if (message.command === 'setBreakpoints') {
-        if (message.arguments?.source?.path && session.workspaceFolder) {
-          message.arguments.source.path = message.arguments.source.path.replace(session.workspaceFolder.uri.path, session.configuration.remoteRoot)
-        }
+        mapArgumentSourceFiles(message)
       } else if (message.command === 'source') {
-        if (message.arguments?.source?.path && session.workspaceFolder) {
-          message.arguments.source.path = message.arguments.source.path.replace(session.workspaceFolder.uri.path, session.configuration.remoteRoot)
-        }
+        mapArgumentSourceFiles(message)
       }
       if (session.configuration.showProtocolLog) {
         outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
