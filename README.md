@@ -121,7 +121,7 @@ $ rdbg --open foo.rb
 
 After that, you can connect to the debug port. This extension searches opening debugger port and attach to that port by running `Attach with rdbg` (select it on the top of "RUN AND DEBUG" pane and push the green "Start Debugging" button).
 
-You can specify the following "attach" configrations.
+You can specify the following "attach" configurations.
 
 * `rdbgPath`: Same as `launch` request.
 * `debugPort`: Same as `launch` request.
