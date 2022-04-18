@@ -130,14 +130,34 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 				outputChannel.appendLine("[Error on seession]\n" + e.name + ": " + e.message + "\ne: " + JSON.stringify(e));
 			}
 		};
-		if (session.configuration.showProtocolLog) {
-			tracker.onDidSendMessage = (message: any): void => {
-				outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
-			};
-			tracker.onWillReceiveMessage = (message: any): void => {
-				outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
-			};
-		}
+    tracker.onDidSendMessage = (message: any): void => {
+      if (message.command === 'stackTrace') {
+        if (message.body?.stackFrames && session.workspaceFolder) {
+          for (let frame of message.body?.stackFrames) {
+            if (frame.source?.path) {
+              frame.source.path = frame.source.path.replace(session.configuration.remoteRoot, session.workspaceFolder.uri.path)
+            }
+          }
+        }
+      }
+      if (session.configuration.showProtocolLog) {
+        outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
+      }
+    };
+    tracker.onWillReceiveMessage = (message: any): void => {
+      if (message.command === 'setBreakpoints') {
+        if (message.arguments?.source?.path && session.workspaceFolder) {
+          message.arguments.source.path = message.arguments.source.path.replace(session.workspaceFolder.uri.path, session.configuration.remoteRoot)
+        }
+      } else if (message.command === 'source') {
+        if (message.arguments?.source?.path && session.workspaceFolder) {
+          message.arguments.source.path = message.arguments.source.path.replace(session.workspaceFolder.uri.path, session.configuration.remoteRoot)
+        }
+      }
+      if (session.configuration.showProtocolLog) {
+        outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
+      }
+    };
 		return tracker;
 	}
 }
@@ -600,6 +620,7 @@ interface AttachConfiguration extends DebugConfiguration {
 	rdbgPath?: string;
 	debugPort?: string;
 	cwd?: string;
+  remoteWorkspaceRoot?: string,
 	showProtocolLog?: boolean;
 
 	autoAttach?: string;

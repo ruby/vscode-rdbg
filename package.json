@@ -61,6 +61,10 @@
 								"type": "string",
 								"description": "UNIX domain socket name or TPC/IP host:port"
 							},
+							"remoteRoot": {
+								"type": "string",
+								"description": "Absolute path to the remote directory containing the program"
+							},
 							"showProtocolLog": {
 								"type": "boolean",
 								"description": "Show a log of DAP requests, events, and responses",
