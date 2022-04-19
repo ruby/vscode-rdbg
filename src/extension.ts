@@ -1,9 +1,6 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
-import * as net from 'net';
 import * as path from 'path';
-import { stringify } from 'querystring';
-import * as util from 'util';
 import * as vscode from 'vscode';
 
 import {
@@ -244,25 +241,26 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	async get_sock_list(config: AttachConfiguration): Promise<string[]> {
 		const rdbg = config.rdbgPath || "rdbg";
-		const exec = util.promisify(require('child_process').exec);
 		const cmd = this.make_shell_command(rdbg + ' --util=list-socks');
-
-		async function f() {
-			const { stdout } = await exec(cmd, {cwd: config.cwd ? custom_path(config.cwd) : workspace_folder()});
-			if (stdout.length > 0) {
-				let socks: Array<string> = [];
-				for (const line of stdout.split("\n")) {
-					if (line.length > 0) {
-						socks.push(line);
+		return new Promise((resolve, reject) => {
+			child_process.exec(cmd, {
+				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder()
+			}, (err, stdout, stderr) => {
+				if (err || stderr) {
+					reject(err ?? stderr)
+				} else {
+					let socks: Array<string> = [];
+					if (stdout.length > 0) {
+						for (const line of stdout.split("\n")) {
+							if (line.length > 0) {
+								socks.push(line);
+							}
+						}
 					}
+					resolve(socks);
 				}
-				return socks;
-			}
-			else {
-				return [];
-			}
-		}
-		return f();
+			});
+		})
 	}
 
 	parse_port(port: string) : [string | undefined, number | undefined, string | undefined] {
