@@ -167,27 +167,27 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 				}
 			}
 		}
-    tracker.onDidSendMessage = (message: any): void => {
-      if (message.command === 'stackTrace') {
-        if (message.body?.stackFrames && session.workspaceFolder) {
+		tracker.onDidSendMessage = (message: any): void => {
+			if (message.command === 'stackTrace') {
+				if (message.body?.stackFrames && session.workspaceFolder) {
 					mapStackFramesSourceFiles(message)
-        }
-      }
-      if (session.configuration.showProtocolLog) {
-        outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
-      }
-    };
-    tracker.onWillReceiveMessage = (message: any): void => {
+				}
+			}
+			if (session.configuration.showProtocolLog) {
+				outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
+			}
+		};
+		tracker.onWillReceiveMessage = (message: any): void => {
 			switch (message.command) {
 				case 'setBreakpoints':
 				case 'source':
-          mapArgumentSourceFiles(message)
+					mapArgumentSourceFiles(message)
 					break
 			}
-      if (session.configuration.showProtocolLog) {
-        outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
-      }
-    };
+			if (session.configuration.showProtocolLog) {
+				outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
+			}
+		};
 		return tracker;
 	}
 }
