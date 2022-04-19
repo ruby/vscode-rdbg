@@ -178,11 +178,12 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
       }
     };
     tracker.onWillReceiveMessage = (message: any): void => {
-      if (message.command === 'setBreakpoints') {
-        mapArgumentSourceFiles(message)
-      } else if (message.command === 'source') {
-        mapArgumentSourceFiles(message)
-      }
+			switch (message.command) {
+				case 'setBreakpoints':
+				case 'source':
+          mapArgumentSourceFiles(message)
+					break
+			}
       if (session.configuration.showProtocolLog) {
         outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
       }
