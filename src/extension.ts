@@ -644,13 +644,18 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	}
 }
 
+interface SourceMapping {
+	remoteRoot: string;
+	localRoot?: string;
+}
+
 interface AttachConfiguration extends DebugConfiguration {
 	type: 'rdbg';
 	request: 'attach';
 	rdbgPath?: string;
 	debugPort?: string;
 	cwd?: string;
-  remoteWorkspaceRoot?: string,
+	sourceMappings?: [SourceMapping],
 	showProtocolLog?: boolean;
 
 	autoAttach?: string;
