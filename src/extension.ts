@@ -195,6 +195,9 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvider {
 	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
 		if (config.script || config.request == 'attach') {
+			if (config.sourceMappings) {
+				config.localfs = true
+			}
 			return config;
 		}
 
