@@ -106,6 +106,9 @@ You can use the following "launch" configurations.
   * Note that you can specify `0` TCP/IP port (choose usable port) with debug.gem v1.5.0 or later.
 * `waitLaunchTime`: If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds). With debug.gem 1.5.0 and later you may not need this configulation.
 * `localfs`: On TCP/IP, if target host is local machine, set `true` and you can open the file directly (default: `false`).
+* `sourceMappings`: An array of remote to local directory mappings
+  * `remoteRoot`: Absolute path to the remote directory containing the program.
+  * `localRoot`: Absolute path to the local directory (default: `${workspaceFolder}`)
 
 Note that if you have a trouble by launching `rdbg`, please try to specify `rdbgPath`. Without this configuration, this extension simply calls `rdbg` in PATH.
 
