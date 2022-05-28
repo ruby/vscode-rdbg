@@ -182,7 +182,14 @@
 					"description": "(experimental) Save breakpoints information to '.rdbg.breakpoints' for rdbg command"
 				}
 			}
-		}
+		},
+		"commands": [
+			{
+			  "command": "HistoryViewer.start",
+			  "title": "Record history of where code stops",
+			  "category": "History View"
+			}
+		  ]
 	},
 	"scripts": {
 		"vscode:prepublish": "yarn run compile",

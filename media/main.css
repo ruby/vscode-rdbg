@@ -1,0 +1,8 @@
+.history {
+    cursor: pointer;
+}
+
+.path {
+    cursor: pointer;
+    text-decoration: underline;
+}
