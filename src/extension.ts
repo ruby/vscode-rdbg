@@ -169,11 +169,16 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
     <title>History View</title>
 </head>
 <body>
-		<button id="undoButton">Undo</button>
+		<button>Visualize Traces</button>
 		<div>
 			<table id="main">
 				<tr>
-					<th>History</th>
+					<th></th>
+					<th>Thread ID</th>
+					<th>Direction</th>
+					<th>Method</th>
+					<th>Location</th>
+					<th>Returned Value</th>
 				</tr>
 			</table>
 		</div>
