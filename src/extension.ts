@@ -77,6 +77,16 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.debug.breakpoints;
 
+	let traces: Array<any>;
+	vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
+		switch (event.event) {
+			case 'TraceInfoUpdated':
+				traces = event.body.traces;
+				updateWebview(traces, currentPanel);
+				break;
+		}
+	})
+
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('rdbg', new RdbgInitialConfigurationProvider()));
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('rdbg', new RdbgAdapterDescriptorFactory()));
 	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('rdbg', new RdbgDebugAdapterTrackerFactory()));
@@ -121,33 +131,11 @@ export function activate(context: vscode.ExtensionContext) {
       } else {
         currentPanel = vscode.window.createWebviewPanel('rdbg', 'history viewer', vscode.ViewColumn.Beside, {
           enableScripts: true,
-          localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media'))]
+          localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media')), vscode.Uri.file(path.join(context.extensionPath, 'node_modules'))]
         });
         currentPanel.webview.html = getWebviewContent(currentPanel, context);
-        const options = {
-          hostname: '127.0.0.1',
-          port: 20080,
-          path: '/stops',
-        };
-        getHistory(options, currentPanel);
+				updateWebview(traces, currentPanel);
 
-        currentPanel.webview.onDidReceiveMessage(message => {
-          switch (message.command) {
-            case 'didClick':
-              const args = message.arguments;
-              const obj = JSON.parse(args);
-              const line = obj.line as number;
-              const position = new vscode.Position(line - 1, 0);
-              const path = obj.path as string;
-              const uri = vscode.Uri.file(path);
-              vscode.workspace.openTextDocument(uri).then(doc => {
-                vscode.window.showTextDocument(doc, vscode.ViewColumn.One).then(editor => {
-                  editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.Default);
-                  editor.selection = new vscode.Selection(position, position);
-                });
-              });
-          };
-        });
         currentPanel.onDidDispose(() => {
           currentPanel = undefined;
         });
@@ -156,48 +144,21 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-const sleep = (time: number) => {
-  return new Promise(resolve => {
-    setTimeout(resolve, time);
-  });
-};
-
-function getHistory(options: http.RequestOptions, panel: vscode.WebviewPanel) {
-  new Promise<void>((resolve, reject) => {
-    const req = http.get(options, res => {
-      res.on('data', (data) => {
-        const buf = Buffer.from(data);
-				const str = buf.toString();
-        const obj = JSON.parse(str);
-  
-        if (panel !== undefined && Object.keys(obj).length !== 0) {
-          panel.webview.postMessage({
-            command: 'update',
-            arguments: str
-          });
-          resolve();
-        };
-        resolve();
-      });
-    });
-  
-    req.on('error', error => {
-      reject(error);
-    });
-  }).then(() => {
-    sleep(1000).then(() => {
-      getHistory(options, panel);
-    });
-  }).catch((error) => {
-    console.error(error);
-  });
+function updateWebview(traces: Array<any>, panel: vscode.WebviewPanel | undefined) {
+	if (panel === undefined || traces === undefined ) {
+		return
+	}
+		panel.webview.postMessage({
+			command: 'update',
+			arguments: traces
+		})
 };
 
 function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext) {
 	const styleMainUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'main.css'));
 	const styleMainSrc = panel.webview.asWebviewUri(styleMainUri);
-  const scriptUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'main.js'));
-  const scriptSrc = panel.webview.asWebviewUri(scriptUri);
+  const scriptMainUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'main.js'));
+  const scriptMainSrc = panel.webview.asWebviewUri(scriptMainUri);
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -208,15 +169,18 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
     <title>History View</title>
 </head>
 <body>
-    <div>
-			<table id='main'>
+		<button id="undoButton">Undo</button>
+		<div>
+			<table id="main">
 				<tr>
 					<th>History</th>
 				</tr>
 			</table>
 		</div>
 
-    <script src=${scriptSrc}></script>
+		<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+		<script src=https://d3js.org/d3.v7.min.js></script>
+    <script src=${scriptMainSrc}></script>
 </body>
 </html>`;
 }
