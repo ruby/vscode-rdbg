@@ -437,13 +437,18 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		});
 	}
 
-	async wait_file(path: string): Promise<boolean> {
+	async wait_file(path: string, wait_ms: number | undefined): Promise<boolean> {
+		let iterations : number = 30;
+		if (wait_ms) {
+			iterations = wait_ms / 100;
+		}
+
 		// check sock-path
 		const start_time = Date.now();
 		let i = 0;
 		while (!fs.existsSync(path)) {
 			i++;
-			if (i > 300) {
+			if (i > iterations) {
 				vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - start_time) + " ms). Please install debug.gem.");
 				return false;
 			}
@@ -561,7 +566,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 			// use NamedPipe
 			if (sock_path) {
-				if (await this.wait_file(sock_path)) {
+				if (await this.wait_file(sock_path, config.waitLaunchTime)) {
 					return new DebugAdapterNamedPipeServer(sock_path);
 				}
 				else {
@@ -570,7 +575,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			}
 			else if (tcp_port != undefined) {
 				if (tcp_port_file) {
-					if (await this.wait_file(tcp_port_file)) {
+					if (await this.wait_file(tcp_port_file, config.waitLaunchTime)) {
 						const port_str = fs.readFileSync(tcp_port_file);
 						tcp_port = parseInt(port_str.toString());
 					}
