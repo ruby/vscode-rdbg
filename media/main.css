@@ -1,8 +1,16 @@
-.history {
-    cursor: pointer;
+.frameDetailOpen {
+    background-color: rgba(125, 125, 125, 0.2);
 }
 
 .path {
     cursor: pointer;
     text-decoration: underline;
+}
+
+table {
+    width: 100%;
+}
+
+button {
+    min-width: 80px;
 }

@@ -6,122 +6,94 @@
 
     const container = document.querySelector('#container');
     let currentTraces;
-    const mainString = 'main'
-    const sequenceDeclaration = 'sequenceDiagram'
+    const goHereText = 'GO HERE'
 
-    const config = {
-        startOnLoad: false,
-        theme: 'dark',
-        maxTextSize: 90000
-    }
-    // @ts-ignore
-    mermaid.mermaidAPI.initialize(config);
-    let previousHTML
+    const selfLabel = 'self';
+    const bindingLabel  = 'binding';
+    const iseqLabel = 'iseq';
+    const classLabel = 'class';
+    const frame_depthLabel = 'frame_depth';
+    const has_return_valueLabel = 'has_return_value';
+    const return_valueLabel = 'return_value';
+    const has_raised_exceptionLabel = 'has_raised_exception';
+    const show_lineLabel = 'show_line';
+    const _local_variablesLabel = '_local_variables';
+    const _calleeLabel = '_callee';
+    const dupped_bindingLabel = 'dupped_binding';
 
-    let svgElement;
-    let zoom;
-    container.addEventListener('click', (e) => {
-        switch (e.target.id) {
-            case 'visualizeButton': {
-                let graphDefinition = `${sequenceDeclaration}\n`
-                let tbody = document.querySelector('#tbody-view')
-                for (let i = 0; i < tbody.childElementCount; i ++) {
-                    let input = tbody.children[i].querySelector('input')
-                    if (input && input.checked) {
-                        let trace = currentTraces[i];
-                        if (trace.return_value == undefined) {
-                            graphDefinition += mainString;
-                            graphDefinition += '->>';
-                            graphDefinition += trace.method;
-                            graphDefinition += ': ';
-                        } else {
-                            graphDefinition += trace.method;
-                            graphDefinition += '->>';
-                            graphDefinition += mainString;
-                            graphDefinition += ': ';
-                            graphDefinition += escapeCharacters(trace.return_value);
-                        }
-                        graphDefinition += '\n';
-                    }
-                }
-                if (graphDefinition == `${sequenceDeclaration}\n`) {
-                    graphDefinition += `participant ${mainString}\n`
-                }
-                let insertSvg = (/** @type {string} */ svgGraph) => {
-                    previousHTML = container.innerHTML;
-                    container.innerHTML = svgGraph;
-                    let resetButton = document.createElement('button');
-                    resetButton.id = 'resetButton';
-                    let reset = document.createTextNode('Reset');
-                    resetButton.appendChild(reset);
-                    container.appendChild(resetButton);
-                    let backButton = document.createElement('button');
-                    backButton.id = 'backButton'
-                    let back = document.createTextNode('< Back');
-                    backButton.appendChild(back);
-                    container.prepend(backButton);
-                };
-                 // @ts-ignore
-                mermaid.mermaidAPI.render('id-1', graphDefinition, insertSvg);
-                // @ts-ignore
-                svgElement = d3.select('svg');
-                let html = `<g>${svgElement.html()}</g>`;
-                svgElement.html(html)
-                let g = svgElement.select('g');
-                // @ts-ignore
-                zoom = d3.zoom()
-                    .scaleExtent([1, 30])
-                    .on("zoom", ({transform}) => {
-                        g.attr("transform", transform);
-                    })
-                svgElement.call(zoom);
-                break;
-            }
-            case 'backButton': {
-                container.textContent = '';
-                container.insertAdjacentHTML('afterbegin', previousHTML);
-                break;
-            }
-            case 'resetButton': {
-                if (zoom == undefined || svgElement == undefined) {
-                    break;
-                }
-
-                // @ts-ignore
-                d3.select('svg').transition()
-                    .duration(750)
-                    // @ts-ignore
-                    .call(zoom.transform, d3.zoomIdentity);
-                break;
-            }
-        };
-    })
-
-    function update(traces) {
+    function update(records) {
         const tbody = document.querySelector('#tbody-view')
-        traces.forEach(trace => {
+        let id = 1;
+        records.forEach(record => {
             const tr = document.createElement('tr');
+            tr.classList.add('frame')
+            tr.setAttribute('data-id', id.toString());
             const td = document.createElement('td');
-            const inputElement = document.createElement('input');
-            inputElement.setAttribute('type', 'checkbox');
-            td.appendChild(inputElement)
+            const goHereButton = document.createElement('button');
+            const text = document.createTextNode(goHereText);
+            goHereButton.appendChild(text);
+            goHereButton.addEventListener('click', goHere, false);
+            td.appendChild(goHereButton);
             tr.appendChild(td);
-            createTableData(trace.thread_id, tr);
-            createTableData(trace.event, tr);
-            createTableData(trace.method, tr);
-            createTableData(`${trace.file_name}:${trace.line_number}`, tr);
-            if (trace.return_value != undefined) {
-                createTableData(trace.return_value, tr);
-            }
+            createTableData(record.name, tr);
+            createTableData(record.location, tr);
+            tr.addEventListener('click', () => {
+                const isClosed = tr.classList.toggle('frameDetailOpen');
+                if (!isClosed) {
+                    tr.nextElementSibling.remove();
+                    return;
+                }
+                const details = document.querySelector('.frameDetails')
+                if (details != null) {
+                    details.previousElementSibling.classList.remove('frameDetailOpen')
+                    details.remove();
+                }
+
+                const frameDetails = document.createElement('tr');
+                frameDetails.classList.add("frameDetails");
+                const emptyTd = document.createElement('td');
+                frameDetails.appendChild(emptyTd);
+                const frameData = document.createElement('td');
+
+                appendText(`${selfLabel}: ${record.self}`, frameData);
+                appendText(`${bindingLabel}: ${record.binding}`, frameData);
+                appendText(`${iseqLabel}: ${record.iseq}`, frameData);
+                appendText(`${classLabel}: ${record.class}`, frameData);
+                appendText(`${frame_depthLabel}: ${record.frameDepth}`, frameData);
+                appendText(`${has_return_valueLabel}: ${record.has_return_value}`, frameData);
+                appendText(`${return_valueLabel}: ${record.return_value}`, frameData);
+                appendText(`${has_raised_exceptionLabel}: ${record.has_raised_exception}`, frameData);
+                appendText(`${show_lineLabel}: ${record.show_line}`, frameData);
+                appendText(`${_local_variablesLabel}: ${record._local_variables}`, frameData);
+                appendText(`${_calleeLabel}: ${record._callee}`, frameData);
+                appendText(`${dupped_bindingLabel}: ${record.dupped_binding}`, frameData);
+                frameDetails.appendChild(frameData);
+                tr.insertAdjacentElement('afterend', frameDetails)
+            })
             tbody.appendChild(tr);
+            id += 1;
         })
     };
 
-    function escapeCharacters(str) {
-        return str
-            .replace('#', '#9839;')
-            .replace('<', '#lt;')
-            .replace('>', '#gt;')
+    function goHere(e) {
+        const frameSize = document.querySelectorAll('.frame').length;
+        // @ts-ignore
+        const tr = e.target.closest('tr');
+        if (tr === null) {
+            return;
+        }
+        const times = frameSize - parseInt(tr.dataset.id) + 1;
+        vscode.postMessage({
+            command: 'goHere',
+            times: times,
+        })
+    }
+
+    function appendText(string, element) {
+        const text = document.createTextNode(string);
+        const br = document.createElement('br');
+        element.appendChild(text);
+        element.appendChild(br);
     }
 
     function resetView() {
