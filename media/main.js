@@ -4,96 +4,89 @@
     // @ts-ignore
     const vscode = acquireVsCodeApi();
 
-    const container = document.querySelector('#container');
-    let currentTraces;
-    const goHereText = 'GO HERE'
+    let curRecords;
+    let logIndex;
+    let eventTriggered;
 
-    const selfLabel = 'self';
-    const bindingLabel  = 'binding';
-    const iseqLabel = 'iseq';
-    const classLabel = 'class';
-    const frame_depthLabel = 'frame_depth';
-    const has_return_valueLabel = 'has_return_value';
-    const return_valueLabel = 'return_value';
-    const has_raised_exceptionLabel = 'has_raised_exception';
-    const show_lineLabel = 'show_line';
-    const _local_variablesLabel = '_local_variables';
-    const _calleeLabel = '_callee';
-    const dupped_bindingLabel = 'dupped_binding';
+    const pageSize = 50;
+    let curPage = 1;
 
-    function update(records) {
-        const tbody = document.querySelector('#tbody-view')
-        let id = 1;
-        records.forEach(record => {
-            const tr = document.createElement('tr');
-            tr.classList.add('frame')
-            tr.setAttribute('data-id', id.toString());
-            const td = document.createElement('td');
-            const goHereButton = document.createElement('button');
-            const text = document.createTextNode(goHereText);
-            goHereButton.appendChild(text);
-            goHereButton.addEventListener('click', goHere, false);
-            td.appendChild(goHereButton);
-            tr.appendChild(td);
-            createTableData(record.name, tr);
-            createTableData(record.location, tr);
-            tr.addEventListener('click', () => {
-                const isClosed = tr.classList.toggle('frameDetailOpen');
-                if (!isClosed) {
-                    tr.nextElementSibling.remove();
-                    return;
-                }
-                const details = document.querySelector('.frameDetails')
-                if (details != null) {
-                    details.previousElementSibling.classList.remove('frameDetailOpen')
-                    details.remove();
-                }
-
-                const frameDetails = document.createElement('tr');
-                frameDetails.classList.add("frameDetails");
-                const emptyTd = document.createElement('td');
-                frameDetails.appendChild(emptyTd);
-                const frameData = document.createElement('td');
-
-                appendText(`${selfLabel}: ${record.self}`, frameData);
-                appendText(`${bindingLabel}: ${record.binding}`, frameData);
-                appendText(`${iseqLabel}: ${record.iseq}`, frameData);
-                appendText(`${classLabel}: ${record.class}`, frameData);
-                appendText(`${frame_depthLabel}: ${record.frameDepth}`, frameData);
-                appendText(`${has_return_valueLabel}: ${record.has_return_value}`, frameData);
-                appendText(`${return_valueLabel}: ${record.return_value}`, frameData);
-                appendText(`${has_raised_exceptionLabel}: ${record.has_raised_exception}`, frameData);
-                appendText(`${show_lineLabel}: ${record.show_line}`, frameData);
-                appendText(`${_local_variablesLabel}: ${record._local_variables}`, frameData);
-                appendText(`${_calleeLabel}: ${record._callee}`, frameData);
-                appendText(`${dupped_bindingLabel}: ${record.dupped_binding}`, frameData);
-                frameDetails.appendChild(frameData);
-                tr.insertAdjacentElement('afterend', frameDetails)
-            })
-            tbody.appendChild(tr);
-            id += 1;
-        })
+    function update(records, index) {
+        curRecords = records;
+        logIndex = index;
+        renderPage(curRecords.slice(0, pageSize), 1);
     };
 
-    function goHere(e) {
-        const frameSize = document.querySelectorAll('.frame').length;
-        // @ts-ignore
-        const tr = e.target.closest('tr');
-        if (tr === null) {
+    document.querySelector('#nextButton').addEventListener('click', goToNextPage, false)
+    document.querySelector('#prevButton').addEventListener('click', goToPrevPage, false)
+
+    function goToNextPage() {
+        curPage += 1;
+        const start = (curPage - 1) * pageSize;
+        if (curRecords.length < start) {
             return;
         }
-        const times = frameSize - parseInt(tr.dataset.id) + 1;
-        vscode.postMessage({
-            command: 'goHere',
-            times: times,
+        const end = curPage * pageSize;
+        const id = start + 1;
+        renderPage(curRecords.slice(start, end), id)
+    }
+
+    function goToPrevPage() {
+        if (curPage - 1 < 1) {
+            return;
+        }
+        curPage -= 1
+        const start = (curPage - 1) * pageSize;
+        const end = curPage * pageSize;
+        const id = start + 1;
+        renderPage(curRecords.slice(start, end), id)
+    }
+
+    function renderPage(records, id) {
+        resetView();
+        const tbody = document.querySelector('#tbody-view');
+        let recordId = id;
+        records.forEach((record, index) => {
+            const tr = document.createElement('tr');
+            tr.classList.add('frame')
+            tr.setAttribute('data-id', recordId.toString());
+            createTableData(record.name, tr);
+            createTableData(record.location, tr);
+            tr.addEventListener('click', goHere, false);
+            if (index === logIndex) {
+                tr.classList.add('stopped')
+            }
+            tbody.appendChild(tr);
+            recordId += 1;
         })
     }
 
-    function appendText(string, element) {
-        const text = document.createTextNode(string);
-        const br = document.createElement('br');
-        element.appendChild(text);
-        element.appendChild(br);
+    function goHere() {
+        if (this.classList.contains('stopped') || eventTriggered) {
+            return;
+        }
+        eventTriggered = true;
+        const currentStopped = document.querySelector('.stopped')
+
+        let currentId = curRecords.length + 1;
+        if (currentStopped != null) {
+            // @ts-ignore
+            currentId = currentStopped.dataset.id
+            currentStopped.classList.remove('.stopped')
+        }
+
+        let times = currentId - parseInt(this.dataset.id);
+        var command;
+        if (times > 0) {
+            command = 'goBackTo';
+        } else {
+            command = 'goTo';
+            times = Math.abs(times);
+        }
+        vscode.postMessage({
+            command: command,
+            times: times
+        })
     }
 
     function resetView() {
@@ -113,11 +106,20 @@
         const data = event.data;
         switch (data.command) {
             case 'update':
-                const args = data.arguments;
-                currentTraces = args;
-                resetView()
-                update(args);
+                eventTriggered = false;
+                const records = data.records;
+                const logIndex = data.logIndex;
+                vscode.setState({
+                    records: records,
+                    logIndex: logIndex
+                })
+                update(records, logIndex);
                 break;
         };
     });
+
+    const prevState = vscode.getState()
+    if (prevState) {
+        update(prevState.records, prevState.logIndex)
+    }
 }());

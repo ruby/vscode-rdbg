@@ -1,16 +1,22 @@
-.frameDetailOpen {
-    background-color: rgba(125, 125, 125, 0.2);
+.frame {
+    cursor: pointer;
 }
 
-.path {
-    cursor: pointer;
-    text-decoration: underline;
+.frame:hover {
+    background-color: rgba(125, 125, 125, 0.2);
 }
 
 table {
     width: 100%;
+    table-layout: fixed;
 }
 
-button {
-    min-width: 80px;
+.stopped {
+    background-color: rgba(125, 125, 125, 0.5);
+}
+
+td {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }

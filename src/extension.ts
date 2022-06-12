@@ -77,12 +77,16 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.debug.breakpoints;
 
-	let traces: Array<any>;
+	let traces: Array<any> = [];
+	let logIndex: number;
 	vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
 		switch (event.event) {
 			case 'recordsUpdated':
-				const records = event.body.records;
-				updateWebview(records, currentPanel);
+				traces = traces.concat(event.body.records);
+				logIndex = event.body.log_index;
+				if (event.body.fin) {
+					updateWebview(currentPanel, traces, event.body.log_index);
+				}
 				break;
 		}
 	})
@@ -135,17 +139,18 @@ export function activate(context: vscode.ExtensionContext) {
         });
 				currentPanel.webview.onDidReceiveMessage((message) => {
 					switch (message.command) {
-						case 'goHere':
+						case 'goTo':
+						case 'goBackTo':
 							const session = vscode.debug.activeDebugSession
 							if (session === undefined) {
 								return
 							}
-							session.customRequest('goHere', {'times': message.times})
+							session.customRequest(message.command, {'times': message.times}).then(undefined, console.error)
 							return;
 					}
 				})
         currentPanel.webview.html = getWebviewContent(currentPanel, context);
-				updateWebview(traces, currentPanel);
+				updateWebview(currentPanel, traces, logIndex);
 
         currentPanel.onDidDispose(() => {
           currentPanel = undefined;
@@ -153,17 +158,19 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
-}
 
-function updateWebview(records: Array<any>, panel: vscode.WebviewPanel | undefined) {
-	if (panel === undefined || records === undefined ) {
-		return
-	}
-	panel.webview.postMessage({
-		command: 'update',
-		arguments: records
-	})
-};
+	function updateWebview(panel: vscode.WebviewPanel | undefined, records: Array<any>, logIndex: number) {
+		if (panel === undefined || records === undefined || records.length === 0 ) {
+			return
+		}
+		panel.webview.postMessage({
+			command: 'update',
+			records: records,
+			logIndex: logIndex
+		})
+		traces = []
+	};
+}
 
 function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext) {
 	const styleMainUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'main.css'));
@@ -181,17 +188,17 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
 </head>
 <body>
 		<div id="container">
-			<button id="visualizeButton">Visualize Traces</button>
 			<table align="center">
 				<thead>
 					<tr>
-						<th></th>
 						<th>Name</th>
 						<th>Location</th>
 					</tr>
 				</thead>
 				<tbody id="tbody-view"></tbody>
 			</table>
+			<button id="prevButton">Previous</button>
+			<button id="nextButton">Next Page</button>
 		</div>
 
 		<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
