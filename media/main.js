@@ -50,9 +50,6 @@
             tr.setAttribute('data-index', recordId.toString());
             createTableData(record.name, tr);
             tr.addEventListener('click', showLocations, false);
-            // if (index === logIndex) {
-            //     tr.classList.add('stopped')
-            // }
             tbody.appendChild(tr);
         })
     }
