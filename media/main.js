@@ -14,7 +14,7 @@
     function update(records, index) {
         curRecords = records;
         logIndex = index;
-        renderPage(curRecords.slice(0, pageSize), 1);
+        renderPage(curRecords.slice(0, pageSize), 0);
     };
 
     document.querySelector('#nextButton').addEventListener('click', goToNextPage, false)
@@ -27,8 +27,7 @@
             return;
         }
         const end = curPage * pageSize;
-        const id = start + 1;
-        renderPage(curRecords.slice(start, end), id)
+        renderPage(curRecords.slice(start, end), start)
     }
 
     function goToPrevPage() {
@@ -38,8 +37,7 @@
         curPage -= 1
         const start = (curPage - 1) * pageSize;
         const end = curPage * pageSize;
-        const id = start + 1;
-        renderPage(curRecords.slice(start, end), id)
+        renderPage(curRecords.slice(start, end), start)
     }
 
     function renderPage(records, id) {
@@ -49,15 +47,26 @@
         records.forEach((record, index) => {
             const tr = document.createElement('tr');
             tr.classList.add('frame')
-            tr.setAttribute('data-id', recordId.toString());
+            tr.setAttribute('data-index', recordId.toString());
             createTableData(record.name, tr);
-            createTableData(record.location, tr);
-            tr.addEventListener('click', goHere, false);
-            if (index === logIndex) {
-                tr.classList.add('stopped')
-            }
+            tr.addEventListener('click', showLocations, false);
+            // if (index === logIndex) {
+            //     tr.classList.add('stopped')
+            // }
             tbody.appendChild(tr);
-            recordId += 1;
+        })
+    }
+
+    function showLocations() {
+        const record = curRecords[this.dataset.index];
+        record.locations.forEach((loc, index) => {
+            const tr = document.createElement('tr');
+            createTableData(loc, tr);
+            tr.addEventListener('click', goHere, false);
+            if (index == logIndex) {
+                tr.classList.add('stopped');
+            }
+            this.insertAdjacentElement('afterend', tr);
         })
     }
 

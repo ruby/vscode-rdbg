@@ -192,7 +192,6 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
 				<thead>
 					<tr>
 						<th>Name</th>
-						<th>Location</th>
 					</tr>
 				</thead>
 				<tbody id="tbody-view"></tbody>
