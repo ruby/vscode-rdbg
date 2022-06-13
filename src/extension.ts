@@ -127,8 +127,9 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	let currentPanel: vscode.WebviewPanel | undefined = undefined;
+	const commandId = 'HistoryViewer.start'
 	context.subscriptions.push(
-    vscode.commands.registerCommand('HistoryViewer.start', () => {
+    vscode.commands.registerCommand(commandId, () => {
       const viewColumn = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
       if (currentPanel) {
         currentPanel.reveal(viewColumn);
@@ -158,6 +159,11 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
+
+	const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+	statusBar.command = commandId
+	statusBar.text = '$(eye) History Viewer'
+	statusBar.show();
 
 	function updateWebview(panel: vscode.WebviewPanel | undefined, records: Array<any>, logIndex: number) {
 		if (panel === undefined || records === undefined || records.length === 0 ) {

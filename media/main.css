@@ -20,3 +20,15 @@ td {
     overflow: hidden;
     white-space: nowrap;
 }
+
+.location {
+    cursor: pointer;
+}
+
+.location:hover {
+    background-color: rgba(125, 125, 125, 0.2);
+}
+
+.focused {
+    border: solid blue;
+}
