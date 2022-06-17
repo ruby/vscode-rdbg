@@ -30,5 +30,13 @@ td {
 }
 
 .focused {
-    border: solid blue;
+    border: 1px solid #00B7CE;
+}
+
+button {
+    cursor: pointer;
+}
+
+#recordButton, #goBackToButton, #goToButton {
+    cursor: pointer;
 }
