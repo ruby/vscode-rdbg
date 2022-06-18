@@ -37,6 +37,13 @@ button {
     cursor: pointer;
 }
 
-#recordButton, #goBackToButton, #goToButton {
+.recordButton, #goBackToButton, #goToButton {
     cursor: pointer;
+}
+
+svg {
+    stroke: skyblue ;
+    stroke-width: 2px;
+    fill: transparent;
+    stroke-linejoin: round;
 }

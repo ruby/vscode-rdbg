@@ -1,5 +1,29 @@
 // @ts-check
 
+const SVG_ICONS = {
+    goTo: `
+            <svg version="1.1" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+	            <path d="M 6 5 L 16 15 L 6 25 Z" />
+	            <path d="M 16 5 L 26 15 L 16 25 Z" />
+            </svg>
+        `,
+    goBackTo: `
+                <svg version="1.1" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 24 5 L 14 15 L 24 25 Z" />
+                    <path d="M 14 5 L 4 15 L 14 25 Z" />
+                </svg> 
+    `
+};
+
+window.onload = () => {
+    const containerElement = document.querySelector('#container');
+    if (containerElement == null) {
+        return
+    }
+    containerElement.insertAdjacentHTML('afterbegin', SVG_ICONS.goTo);
+    containerElement.insertAdjacentHTML('afterbegin', SVG_ICONS.goBackTo);
+}
+
 (function () {
     // @ts-ignore
     const vscode = acquireVsCodeApi();
@@ -7,6 +31,7 @@
     let curRecords;
     let logIndex;
     let eventTriggered;
+    let maxPage;
 
     const pageSize = 50;
     let curPage = 1;
@@ -14,13 +39,16 @@
     function update(records, logIdx) {
         curRecords = records;
         logIndex = logIdx;
+        maxPage = Math.ceil(curRecords.length / pageSize);
         const targetRec = findTargetRecords()
         const index = curRecords.findIndex(rec => Object.is(rec, targetRec[0]));
         renderPage(targetRec, index);
     };
 
     function findTargetRecords() {
-        if (logIndex >= curRecords.length) {
+        const lastRec = curRecords[curRecords.length - 1];
+        curPage = maxPage;
+        if (logIndex > lastRec.begin_cursor + lastRec.locations.length) {
             return curRecords.slice(-pageSize)
         }
         let remainRec = curRecords
@@ -30,11 +58,11 @@
             const lastRec = records[records.length - 1];
             const start = firstRec.begin_cursor;
             const end = lastRec.begin_cursor + lastRec.locations.length;
-            if (logIndex >= start && logIndex < end) {
+            if (logIndex >= start && logIndex <= end) {
                 return records
             }
 
-            curPage += 1
+            curPage -= 1
             remainRec = curRecords.slice(0, -pageSize)
         }
         return remainRec
@@ -42,40 +70,42 @@
 
     document.querySelector('#nextButton').addEventListener('click', goToNextPage, false)
     document.querySelector('#prevButton').addEventListener('click', goToPrevPage, false)
-    document.querySelector('#recordButton')?.addEventListener('click', startRecord, false)
+    document.querySelector('.recordButton')?.addEventListener('click', startRecord, false)
     document.querySelector('#goBackToButton')?.addEventListener('click', goBackToOnce, false)
     document.querySelector('#goToButton')?.addEventListener('click', goToOnce, false)
 
     function goToNextPage() {
-        curPage += 1;
-        const start = (curPage - 1) * pageSize;
-        if (curRecords.length < start) {
+        if (curPage === maxPage) {
             return;
         }
-        const end = curPage * pageSize;
+        curPage += 1;
+        const end = curRecords.length - 1 - (maxPage - curPage) * pageSize;
+        const start = end - 50;
         renderPage(curRecords.slice(start, end), start)
     }
 
     function goToPrevPage() {
-        if (curPage - 1 < 1) {
+        if (curPage < 2) {
             return;
         }
         curPage -= 1
-        const start = (curPage - 1) * pageSize;
-        const end = curPage * pageSize;
+        const end = curRecords.length - 1 - (maxPage - curPage) * pageSize;
+        const start = end - 50;
         renderPage(curRecords.slice(start, end), start)
     }
 
     function startRecord() {
-        if (this.id == 'recordButton') {
-            this.src = this.src.replace('record-button.svg', 'stop-record-button.svg')
-            this.id = 'stopRecordButton'
+        if (this.classList.contains('start')) {
+            this.src = this.src.replace('start-record.svg', 'stop-record.svg')
+            this.classList.remove('start');
+            this.classList.add('stop');
             vscode.postMessage({
                 command: 'startRecord'
             })
         } else {
-            this.src = this.src.replace('stop-record-button.svg', 'record-button.svg')
-            this.id = 'startRecordButton'
+            this.src = this.src.replace('stop-record.svg', 'start-record.svg')
+            this.classList.remove('stop');
+            this.classList.add('start');
             vscode.postMessage({
                 command: 'stopRecord'
             })
@@ -138,7 +168,7 @@
             div.setAttribute('data-cursor', cursor);
             createTableData(`${empty}${loc}`, div);
             div.addEventListener('click', goHere, false);
-            if (cursor == logIndex) {
+            if (cursor === logIndex) {
                 div.classList.add('stopped');
                 currentStoppedCursor = cursor;
             }

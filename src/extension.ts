@@ -149,7 +149,7 @@ export function activate(context: vscode.ExtensionContext) {
 							session.customRequest(message.command, {'times': message.times}).then(undefined, console.error)
 							break;
 						case 'startRecord':
-						case 'stopRecord'
+						case 'stopRecord':
 							if (session === undefined) {
 								return
 							}
@@ -189,8 +189,12 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
 	const styleMainSrc = panel.webview.asWebviewUri(styleMainUri);
   const scriptMainUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'main.js'));
   const scriptMainSrc = panel.webview.asWebviewUri(scriptMainUri);
-	const svgRecordUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'record-button.svg'));
-	const svgRecordSrc = panel.webview.asWebviewUri(svgRecordUri);
+	const svgStartRecordUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'start-record.svg'));
+	const svgStartRecordSrc = panel.webview.asWebviewUri(svgStartRecordUri);
+	const svgGoBackToUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'go-back-to.svg'));
+	const svgGoBackToSrc = panel.webview.asWebviewUri(svgGoBackToUri);
+	const svgGoToUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'go-to.svg'));
+	const svgGoToSrc = panel.webview.asWebviewUri(svgGoToUri);
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -202,23 +206,7 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
 </head>
 <body>
 
-<img src="${svgRecordSrc}" id="startRecordButton" />
-
-<span id="goBackToButton">
-<svg version="1.1" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-<circle cx="50%" cy="50%" r="40%" stroke="white" stroke-width="1" />
-   <path d="M 22 5 L 12 15 L 22 25 Z" fill="white" stroke="black"/>
-   <path d="M 14 5 L 4 15 L 14 25 Z" fill="white" stroke="black"/>
-</svg>
-</span>
-
-<span id="goToButton">
-<svg version="1.1" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-<circle cx="50%" cy="50%" r="40%" stroke="white" stroke-width="1" />
-<path d="M 8 5 L 18 15 L 8 25 Z" fill="white" stroke="black"/>
-<path d="M 16 5 L 26 15 L 16 25 Z" fill="white" stroke="black"/>
-</svg>
-</span>
+<img src="${svgStartRecordSrc}" class="recordButton start" />
 
 		<div id="container">
 			<div id="frames"></div>
