@@ -149,22 +149,19 @@ window.onload = () => {
     let currentStoppedCursor = null;
 
     function showLocations() {
-        const locations = document.querySelectorAll('.location')
-        if (locations.length > 0) {
-            const frame = locations[0].previousElementSibling
-            if (frame == this) {
-                return
-            }
+        const result = this.classList.toggle('locationShowed');
+        if (!result) {
+            this.nextElementSibling.remove();
+            return;
         }
-        this.classList.add('locationShowed');
         const recordIdx = this.dataset.index;
         const record = curRecords[recordIdx];
         const empty = "\xA0".repeat(8);
         let cursor = record.begin_cursor;
-        let nextElement = this;
+        const parent = document.createElement('div')
+        parent.classList.add('locations');
         record.locations.forEach((loc) => {
             const div = document.createElement('div');
-            div.classList.add('location');
             div.setAttribute('data-cursor', cursor);
             createTableData(`${empty}${loc}`, div);
             div.addEventListener('click', goHere, false);
@@ -172,10 +169,10 @@ window.onload = () => {
                 div.classList.add('stopped');
                 currentStoppedCursor = cursor;
             }
-            nextElement.insertAdjacentElement('afterend', div);
-            nextElement = div;
+            parent.appendChild(div);
             cursor += 1;
         })
+        this.insertAdjacentElement('afterend', parent)
     }
 
 

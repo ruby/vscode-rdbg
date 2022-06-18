@@ -21,11 +21,11 @@ td {
     white-space: nowrap;
 }
 
-.location {
+.locations {
     cursor: pointer;
 }
 
-.location:hover {
+.locations:hover {
     background-color: rgba(125, 125, 125, 0.2);
 }
 
