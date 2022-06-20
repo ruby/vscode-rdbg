@@ -15,13 +15,13 @@ const SVG_ICONS = {
         `,
     startRecord: `
             <svg version="1.1" width="16" height="16" xmlns="http://www.w3.org/2000/svg" class="start">
-                <circle cx="50%" cy="50%" r="7.5" fill="transparent" stroke="red" stroke-width="0.5" />
+                <circle cx="50%" cy="50%" r="7.5" fill="transparent" stroke="red" />
                 <circle cx="50%" cy="50%" r="4" stroke="red" fill="red" />
             </svg>
         `,
     stopRecord: `
             <svg version="1.1" width="16" height="16" xmlns="http://www.w3.org/2000/svg" class="stop">
-                <circle cx="50%" cy="50%" r="7.5" fill="transparent" stroke="red" stroke-width="0.5" />
+                <circle cx="50%" cy="50%" r="7.5" fill="transparent" stroke="red" />
                 <rect x="32%" y="32%" width="6" height="6" stroke="red" fill="red"/>
             </svg>
     `
@@ -39,6 +39,35 @@ const SVG_ICONS = {
     const pageSize = 50;
     let curPage = 1;
 
+    const actionsElement = document.querySelector('#actions');
+    if (actionsElement !== null) {
+        const ul = document.createElement('ul');
+        // TODO: Do not insert startRecord because it's not always.
+        const li = document.createElement('li');
+        li.classList.add('recordButton');
+        li.innerHTML = SVG_ICONS.startRecord;
+        ul.appendChild(li)
+
+        appendListElement(ul, SVG_ICONS.goBackTo);
+        appendListElement(ul, SVG_ICONS.goTo);
+        actionsElement.appendChild(ul)
+    }
+
+    function appendListElement(parent, text) {
+        const li = document.createElement('li');
+        li.innerHTML = text;
+        parent.appendChild(li)
+    }
+
+    const nextButton = document.querySelector('#nextButton')
+    const prevButton = document.querySelector('#prevButton')
+
+    nextButton.addEventListener('click', goToNextPage, false)
+    prevButton.addEventListener('click', goToPrevPage, false)
+    document.querySelector('.recordButton')?.addEventListener('click', startRecord, false)
+    document.querySelector('#goBackToButton')?.addEventListener('click', goBackToOnce, false)
+    document.querySelector('#goToButton')?.addEventListener('click', goToOnce, false)
+
     function update(records, logIdx) {
         curRecords = records;
         logIndex = logIdx;
@@ -46,6 +75,7 @@ const SVG_ICONS = {
         const targetRec = findTargetRecords()
         const index = curRecords.findIndex(rec => Object.is(rec, targetRec[0]));
         renderPage(targetRec, index);
+        disableButtons();
     };
 
     function findTargetRecords() {
@@ -71,32 +101,6 @@ const SVG_ICONS = {
         return remainRec
     }
 
-    const actionsElement = document.querySelector('#actions');
-    if (actionsElement !== null) {
-        const ul = document.createElement('ul');
-        // TODO: Do not insert startRecord because it's not always.
-        const li = document.createElement('li');
-        li.classList.add('recordButton');
-        li.innerHTML = SVG_ICONS.startRecord;
-        ul.appendChild(li)
-
-        appendListElement(ul, SVG_ICONS.goBackTo);
-        appendListElement(ul, SVG_ICONS.goTo);
-        actionsElement.appendChild(ul)
-    }
-
-    function appendListElement(parent, text) {
-        const li = document.createElement('li');
-        li.innerHTML = text;
-        parent.appendChild(li)
-    }
-
-    document.querySelector('#nextButton').addEventListener('click', goToNextPage, false)
-    document.querySelector('#prevButton').addEventListener('click', goToPrevPage, false)
-    document.querySelector('.recordButton')?.addEventListener('click', startRecord, false)
-    document.querySelector('#goBackToButton')?.addEventListener('click', goBackToOnce, false)
-    document.querySelector('#goToButton')?.addEventListener('click', goToOnce, false)
-
     function goToNextPage() {
         if (curPage === maxPage) {
             return;
@@ -105,6 +109,7 @@ const SVG_ICONS = {
         const end = curRecords.length - (maxPage - curPage) * pageSize;
         const start = end - pageSize;
         renderPage(curRecords.slice(start, end), start)
+        disableButtons();
     }
 
     function goToPrevPage() {
@@ -118,6 +123,16 @@ const SVG_ICONS = {
             start = 0;
         }
         renderPage(curRecords.slice(start, end), start)
+        disableButtons();
+    }
+
+    function disableButtons() {
+        if (curPage === maxPage) {
+            nextButton.disabled = true;
+        }
+        if (curPage === 1) {
+            prevButton.disabled = true;
+        }
     }
 
     function startRecord() {

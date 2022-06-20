@@ -33,13 +33,13 @@ td {
     border: 1px solid #00B7CE;
 }
 
-button {
+button:not(:disabled) {
     cursor: pointer;
 }
 
 .recordButton {
     cursor: pointer;
-} 
+}
 
 svg {
     cursor: pointer;
