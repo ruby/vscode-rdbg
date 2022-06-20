@@ -160,6 +160,7 @@ export function activate(context: vscode.ExtensionContext) {
 				updateWebview(currentPanel, traces, logIndex);
 
         currentPanel.onDidDispose(() => {
+					currentPanel?.dispose();
           currentPanel = undefined;
         });
       }
@@ -189,12 +190,6 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
 	const styleMainSrc = panel.webview.asWebviewUri(styleMainUri);
   const scriptMainUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'main.js'));
   const scriptMainSrc = panel.webview.asWebviewUri(scriptMainUri);
-	const svgStartRecordUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'start-record.svg'));
-	const svgStartRecordSrc = panel.webview.asWebviewUri(svgStartRecordUri);
-	const svgGoBackToUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'go-back-to.svg'));
-	const svgGoBackToSrc = panel.webview.asWebviewUri(svgGoBackToUri);
-	const svgGoToUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'go-to.svg'));
-	const svgGoToSrc = panel.webview.asWebviewUri(svgGoToUri);
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -206,9 +201,8 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
 </head>
 <body>
 
-<img src="${svgStartRecordSrc}" class="recordButton start" />
-
 		<div id="container">
+			<div id="actions"></div>
 			<div id="frames"></div>
 			<button id="prevButton">Previous</button>
 			<button id="nextButton">Next Page</button>

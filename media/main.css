@@ -21,11 +21,11 @@ td {
     white-space: nowrap;
 }
 
-.locations {
+.location {
     cursor: pointer;
 }
 
-.locations:hover {
+.location:hover {
     background-color: rgba(125, 125, 125, 0.2);
 }
 
@@ -37,13 +37,32 @@ button {
     cursor: pointer;
 }
 
-.recordButton, #goBackToButton, #goToButton {
+.recordButton {
     cursor: pointer;
-}
+} 
 
 svg {
+    cursor: pointer;
     stroke: skyblue ;
-    stroke-width: 2px;
+    stroke-width: 1px;
     fill: transparent;
     stroke-linejoin: round;
+}
+
+ul {
+    display: flex;
+    padding: 0;
+    list-style: none;
+    justify-content: space-evenly;
+    background-color: rgba(51, 51, 51);
+    box-shadow: 5px 5px 5px black;
+    width: 25%;
+    height: 32px;
+    margin-right: auto;
+    margin-left: auto;
+    align-items: center;
+}
+
+li:hover {
+    background-color: rgba(90, 90, 90);
 }

@@ -2,27 +2,30 @@
 
 const SVG_ICONS = {
     goTo: `
-            <svg version="1.1" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-	            <path d="M 6 5 L 16 15 L 6 25 Z" />
-	            <path d="M 16 5 L 26 15 L 16 25 Z" />
+            <svg version="1.1" width="16" height="16" xmlns="http://www.w3.org/2000/svg" id="goToButton">
+               <path d="M 0 2 L 8 8 L 0 14 Z" />
+               <path d="M 8 2 L 16 8 L 8 14 Z" />
             </svg>
         `,
     goBackTo: `
-                <svg version="1.1" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M 24 5 L 14 15 L 24 25 Z" />
-                    <path d="M 14 5 L 4 15 L 14 25 Z" />
-                </svg> 
+            <svg version="1.1" width="16" height="16" xmlns="http://www.w3.org/2000/svg" id="goBackToButton">
+                <path d="M 16 14 L 8 8 L 16 2 Z" />
+                <path d="M 8 14 L 0 8 L 8 2 Z" />
+            </svg>
+        `,
+    startRecord: `
+            <svg version="1.1" width="16" height="16" xmlns="http://www.w3.org/2000/svg" class="start">
+                <circle cx="50%" cy="50%" r="7.5" fill="transparent" stroke="red" stroke-width="0.5" />
+                <circle cx="50%" cy="50%" r="4" stroke="red" fill="red" />
+            </svg>
+        `,
+    stopRecord: `
+            <svg version="1.1" width="16" height="16" xmlns="http://www.w3.org/2000/svg" class="stop">
+                <circle cx="50%" cy="50%" r="7.5" fill="transparent" stroke="red" stroke-width="0.5" />
+                <rect x="32%" y="32%" width="6" height="6" stroke="red" fill="red"/>
+            </svg>
     `
 };
-
-window.onload = () => {
-    const containerElement = document.querySelector('#container');
-    if (containerElement == null) {
-        return
-    }
-    containerElement.insertAdjacentHTML('afterbegin', SVG_ICONS.goTo);
-    containerElement.insertAdjacentHTML('afterbegin', SVG_ICONS.goBackTo);
-}
 
 (function () {
     // @ts-ignore
@@ -68,6 +71,26 @@ window.onload = () => {
         return remainRec
     }
 
+    const actionsElement = document.querySelector('#actions');
+    if (actionsElement !== null) {
+        const ul = document.createElement('ul');
+        // TODO: Do not insert startRecord because it's not always.
+        const li = document.createElement('li');
+        li.classList.add('recordButton');
+        li.innerHTML = SVG_ICONS.startRecord;
+        ul.appendChild(li)
+
+        appendListElement(ul, SVG_ICONS.goBackTo);
+        appendListElement(ul, SVG_ICONS.goTo);
+        actionsElement.appendChild(ul)
+    }
+
+    function appendListElement(parent, text) {
+        const li = document.createElement('li');
+        li.innerHTML = text;
+        parent.appendChild(li)
+    }
+
     document.querySelector('#nextButton').addEventListener('click', goToNextPage, false)
     document.querySelector('#prevButton').addEventListener('click', goToPrevPage, false)
     document.querySelector('.recordButton')?.addEventListener('click', startRecord, false)
@@ -79,8 +102,8 @@ window.onload = () => {
             return;
         }
         curPage += 1;
-        const end = curRecords.length - 1 - (maxPage - curPage) * pageSize;
-        const start = end - 50;
+        const end = curRecords.length - (maxPage - curPage) * pageSize;
+        const start = end - pageSize;
         renderPage(curRecords.slice(start, end), start)
     }
 
@@ -89,23 +112,22 @@ window.onload = () => {
             return;
         }
         curPage -= 1
-        const end = curRecords.length - 1 - (maxPage - curPage) * pageSize;
-        const start = end - 50;
+        const end = curRecords.length - (maxPage - curPage) * pageSize;
+        let start = end - pageSize;
+        if (start < 0) {
+            start = 0;
+        }
         renderPage(curRecords.slice(start, end), start)
     }
 
     function startRecord() {
-        if (this.classList.contains('start')) {
-            this.src = this.src.replace('start-record.svg', 'stop-record.svg')
-            this.classList.remove('start');
-            this.classList.add('stop');
+        if (this.querySelector('.start') !== null) {
+            this.innerHTML = SVG_ICONS.stopRecord;
             vscode.postMessage({
                 command: 'startRecord'
             })
         } else {
-            this.src = this.src.replace('stop-record.svg', 'start-record.svg')
-            this.classList.remove('stop');
-            this.classList.add('start');
+            this.innerHTML = SVG_ICONS.startRecord;
             vscode.postMessage({
                 command: 'stopRecord'
             })
@@ -159,9 +181,9 @@ window.onload = () => {
         const empty = "\xA0".repeat(8);
         let cursor = record.begin_cursor;
         const parent = document.createElement('div')
-        parent.classList.add('locations');
         record.locations.forEach((loc) => {
             const div = document.createElement('div');
+            div.classList.add('location');
             div.setAttribute('data-cursor', cursor);
             createTableData(`${empty}${loc}`, div);
             div.addEventListener('click', goHere, false);
@@ -219,11 +241,13 @@ window.onload = () => {
                 const records = data.records;
                 const logIndex = data.logIndex;
                 curPage = 1;
+                update(records, logIndex);
                 vscode.setState({
                     records: records,
-                    logIndex: logIndex
+                    logIndex: logIndex,
+                    maxPage: maxPage,
+                    curPage: curPage
                 })
-                update(records, logIndex);
                 break;
         };
     });
@@ -290,6 +314,8 @@ window.onload = () => {
 
     const prevState = vscode.getState()
     if (prevState) {
+        maxPage = prevState.maxPage;
+        curPage = prevState.curPage;
         update(prevState.records, prevState.logIndex)
     }
 }());
