@@ -128,44 +128,91 @@ export function activate(context: vscode.ExtensionContext) {
 
 	let currentPanel: vscode.WebviewPanel | undefined = undefined;
 	const commandId = 'HistoryViewer.start'
+	let extensionPath: string;
 	context.subscriptions.push(
     vscode.commands.registerCommand(commandId, () => {
       const viewColumn = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
       if (currentPanel) {
-        currentPanel.reveal(viewColumn);
-      } else {
-        currentPanel = vscode.window.createWebviewPanel('rdbg', 'history viewer', vscode.ViewColumn.Beside, {
-          enableScripts: true,
-          localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media')), vscode.Uri.file(path.join(context.extensionPath, 'node_modules'))]
-        });
-				currentPanel.webview.onDidReceiveMessage((message) => {
-					const session = vscode.debug.activeDebugSession;
-					switch (message.command) {
-						case 'goTo':
-						case 'goBackTo':
-							if (session === undefined) {
-								return
-							}
-							session.customRequest(message.command, {'times': message.times}).then(undefined, console.error)
-							break;
-						case 'startRecord':
-						case 'stopRecord':
-							if (session === undefined) {
-								return
-							}
-							session.customRequest(message.command).then(undefined, console.error)
-					}
-				})
-        currentPanel.webview.html = getWebviewContent(currentPanel, context);
-				updateWebview(currentPanel, traces, logIndex);
-
-        currentPanel.onDidDispose(() => {
-					currentPanel?.dispose();
-          currentPanel = undefined;
-        });
+        return currentPanel.reveal(viewColumn);
       }
+			currentPanel = vscode.window.createWebviewPanel('rdbg', 'history viewer', vscode.ViewColumn.Beside, {
+				enableScripts: true,
+				localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media')), vscode.Uri.file(path.join(context.extensionPath, 'node_modules'))]
+			});
+			extensionPath = context.extensionPath;
+			const session = vscode.debug.activeDebugSession;
+			if (session === undefined) {
+				currentPanel.webview.html = getWelcomePage();
+				return
+			}
+			currentPanel.webview.onDidReceiveMessage((message) => {
+				const session = vscode.debug.activeDebugSession;
+				switch (message.command) {
+					case 'goTo':
+					case 'goBackTo':
+						if (session === undefined) {
+							return
+						}
+						session.customRequest(message.command, {'times': message.times}).then(undefined, console.error)
+						break;
+					case 'startRecord':
+					case 'stopRecord':
+						if (session === undefined) {
+							return
+						}
+						session.customRequest(message.command).then(undefined, console.error)
+				}
+			})
+			currentPanel.webview.html = getWebviewContent();
+			updateWebview(currentPanel, traces, logIndex);
+
+			currentPanel.onDidDispose(() => {
+				currentPanel?.dispose();
+				currentPanel = undefined;
+			});
     })
   );
+
+	vscode.debug.onDidTerminateDebugSession(() => {
+		if (currentPanel === undefined) {
+			return
+		}
+		traces = []
+		logIndex = 0
+		currentPanel.webview.html = getWelcomePage();
+	})
+
+	vscode.debug.onDidStartDebugSession(() => {
+		if (currentPanel === undefined) {
+			return
+		}
+		currentPanel.webview.onDidReceiveMessage((message) => {
+			const session = vscode.debug.activeDebugSession;
+			switch (message.command) {
+				case 'goTo':
+				case 'goBackTo':
+					if (session === undefined) {
+						return
+					}
+					session.customRequest(message.command, {'times': message.times}).then(undefined, console.error)
+					break;
+				case 'startRecord':
+				case 'stopRecord':
+					if (session === undefined) {
+						return
+					}
+					session.customRequest(message.command).then(undefined, console.error)
+			}
+		})
+		currentPanel.webview.html = getWebviewContent();
+		updateWebview(currentPanel, traces, logIndex);
+
+		currentPanel.onDidDispose(() => {
+			currentPanel?.dispose();
+			currentPanel = undefined;
+		});
+
+	})
 
 	const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 	statusBar.command = commandId
@@ -183,36 +230,53 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 		traces = []
 	};
-}
 
-function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext) {
-	const styleMainUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'main.css'));
-	const styleMainSrc = panel.webview.asWebviewUri(styleMainUri);
-  const scriptMainUri = vscode.Uri.file(path.join(context.extensionPath, 'media', 'main.js'));
-  const scriptMainSrc = panel.webview.asWebviewUri(scriptMainUri);
-	return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-		<link href="${styleMainSrc}" rel="stylesheet"></link>
-    <title>History View</title>
-</head>
-<body>
-
-		<div id="container">
-			<div id="actions"></div>
-			<div id="frames"></div>
-			<button id="prevButton">Previous</button>
-			<button id="nextButton">Next Page</button>
-		</div>
-
-		<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-		<script src=https://d3js.org/d3.v7.min.js></script>
-    <script src=${scriptMainSrc}></script>
-</body>
-</html>`;
+	function getWebviewContent() {
+		if (currentPanel === undefined) {
+			return ""
+		}
+		const styleMainUri = vscode.Uri.file(path.join(extensionPath, 'media', 'main.css'));
+		const styleMainSrc = currentPanel.webview.asWebviewUri(styleMainUri);
+		const scriptMainUri = vscode.Uri.file(path.join(extensionPath, 'media', 'main.js'));
+		const scriptMainSrc = currentPanel.webview.asWebviewUri(scriptMainUri);
+		return `<!DOCTYPE html>
+	<html lang="en">
+	<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+			<link href="${styleMainSrc}" rel="stylesheet"></link>
+			<title>History Viewer</title>
+	</head>
+	<body>
+	
+			<div id="container">
+				<div id="actions"></div>
+				<div id="frames"></div>
+				<button id="prevButton">Previous</button>
+				<button id="nextButton">Next Page</button>
+			</div>
+	
+			<script src=${scriptMainSrc}></script>
+	</body>
+	</html>`;
+	}
+	
+	function getWelcomePage() {
+		return `
+			<!DOCTYPE html>
+			<html lang="en>
+				<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>History Viewer</title>
+				</head>
+				<body>
+					<h1>Welcome to History Viewer!</h1>
+					<h2>Debugging session is not activated now.</h2>
+				</body>
+			</html>`;
+	}
 }
 
 export function deactivate() {

@@ -1,5 +1,11 @@
+#container {
+    width: 100%;
+}
+
 .frame {
     cursor: pointer;
+    white-space: nowrap;
+    overflow: auto;
 }
 
 .frame:hover {

@@ -127,6 +127,8 @@ const SVG_ICONS = {
     }
 
     function disableButtons() {
+        prevButton.disabled = false;
+        nextButton.disabled = false;
         if (curPage === maxPage) {
             nextButton.disabled = true;
         }
@@ -171,8 +173,9 @@ const SVG_ICONS = {
         records.forEach((record) => {
             const div = document.createElement('div');
             div.classList.add('frame')
-            div.setAttribute('data-index', recordIndex.toString());
-            createTableData(record.name, div);
+            div.setAttribute('data-index', recordIndex.toString())
+            const indent = "\xA0".repeat(record.frame_depth);
+            createTableData(`${indent}${record.name}`, div);
             div.addEventListener('click', showLocations, false);
             tbody.appendChild(div);
             if (clickable && record.begin_cursor + record.locations.length > logIndex) {
@@ -256,6 +259,8 @@ const SVG_ICONS = {
                 const records = data.records;
                 const logIndex = data.logIndex;
                 curPage = 1;
+                console.log(records);
+                console.log(logIndex);
                 update(records, logIndex);
                 vscode.setState({
                     records: records,
