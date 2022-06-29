@@ -445,7 +445,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		let i = 0;
 		while (!fs.existsSync(path)) {
 			i++;
-			if (i > 30) {
+			if (i > 300) {
 				vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - start_time) + " ms). Please install debug.gem.");
 				return false;
 			}
