@@ -50,11 +50,7 @@ You can write your favorite setting in `.vscode/launch.json`.
 
 To make a `.vscode/launch.json` with default settings, you only need to click "create a launch.json file" on the "Run and Debug" pane. And you will see the following default configurations.
 
-<<<<<<< HEAD
 ```jsonc
-=======
-```JSONC
->>>>>>> add `localfsMap` configulation
 {
         // Use IntelliSense to learn about possible attributes.
         // Hover to view descriptions of existing attributes.
@@ -81,22 +77,13 @@ To make a `.vscode/launch.json` with default settings, you only need to click "c
 It contains "Debug current file with rdbg" (launch) configuration and "Attach with rdbg" (attach) configuration.
 You can modify this configuration, and also you can add your favorite configuration like:
 
-<<<<<<< HEAD
 ```jsonc
-=======
-```JSONC
->>>>>>> add `localfsMap` configulation
                 {
                         "type": "rdbg",
                         "name": "Run rake test",
                         "request": "launch",
-<<<<<<< HEAD
-                        "command": "rake",  // 
-                        "script": "test",   // launch rake test with debugger
-=======
                         "command": "rake",
                         "script": "test", // launch rake test with debugger
->>>>>>> add `localfsMap` configulation
                         "args": [],
                         "askParameters": false // Do not ask startup parameter any more
                 },
@@ -139,7 +126,7 @@ You can specify the following "attach" configurations.
 * `rdbgPath`: Same as `launch` request.
 * `debugPort`: Same as `launch` request.
 * `localfs`: Same as `launch` request.
-* `localfsMap`: Specify pairs of remote root path and local root path like `/remote_dir:/local_dir`. `/remote_dir:$(workspaceFolder)` is useful. You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`.
+* `localfsMap`: Specify pairs of remote root path and local root path like `/remote_dir:/local_dir`. You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`.
 
 With `debugPort`, you can attach to TCP/IP debug port.
 
@@ -157,12 +144,12 @@ $ docker run --network=host -it -v `pwd`:/app/ --rm ruby bash
 /app:# rdbg -O --port=12345 target.rb
 ```
 
-In this case, the current directory of host (maybe `${workspaceFolder}`) is shared with the name `/app` in a container and VSCode on the host can connect to the debuggee process in a container by TCP/IP port 12345. The `launch.json` configuration should be:
+In this case, the current directory of host (`${workspaceFolder}`) is shared with the name `/app` in a container and VSCode on the host can connect to the debuggee process in a container by TCP/IP port 12345. The `launch.json` configuration should be:
 
 ```JSONC
         {
             "type": "rdbg",
-            "name": "Attach with rdbg (tcp 12345)", // Specify favorite name
+            "name": "Attach with rdbg (tcp 12345)", // Specify your favorite name
             "request": "attach",
             "debugPort": "localhost:12345",
             "localfsMap": "/app:${workspaceFolder}"
