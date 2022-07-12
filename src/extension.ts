@@ -2,6 +2,7 @@ import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import * as http from 'http';
 
 import {
 	CancellationToken,
@@ -73,6 +74,20 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.debug.breakpoints;
 
+	let traces: Array<any> = [];
+	let logIndex: number;
+	vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
+		switch (event.event) {
+			case 'recordsUpdated':
+				traces = traces.concat(event.body.records);
+				logIndex = event.body.log_index;
+				if (event.body.fin) {
+					updateWebview(currentPanel, traces, event.body.log_index);
+				}
+				break;
+		}
+	})
+
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('rdbg', new RdbgInitialConfigurationProvider()));
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('rdbg', new RdbgAdapterDescriptorFactory()));
 	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('rdbg', new RdbgDebugAdapterTrackerFactory()));
@@ -106,6 +121,158 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 		}
+	}
+
+	let currentPanel: vscode.WebviewPanel | undefined = undefined;
+	const commandId = 'HistoryViewer.start'
+	let extensionPath: string;
+	context.subscriptions.push(
+    vscode.commands.registerCommand(commandId, () => {
+      const viewColumn = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
+      if (currentPanel) {
+        return currentPanel.reveal(viewColumn);
+      }
+			currentPanel = vscode.window.createWebviewPanel('rdbg', 'history viewer', vscode.ViewColumn.Beside, {
+				enableScripts: true,
+				localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media')), vscode.Uri.file(path.join(context.extensionPath, 'node_modules'))]
+			});
+			extensionPath = context.extensionPath;
+			const session = vscode.debug.activeDebugSession;
+			if (session === undefined) {
+				currentPanel.webview.html = getWelcomePage();
+				return
+			}
+			currentPanel.webview.onDidReceiveMessage((message) => {
+				const session = vscode.debug.activeDebugSession;
+				switch (message.command) {
+					case 'goTo':
+					case 'goBackTo':
+						if (session === undefined) {
+							return
+						}
+						session.customRequest(message.command, {'times': message.times}).then(undefined, console.error)
+						break;
+					case 'startRecord':
+					case 'stopRecord':
+						if (session === undefined) {
+							return
+						}
+						session.customRequest(message.command).then(undefined, console.error)
+				}
+			})
+			currentPanel.webview.html = getWebviewContent();
+			updateWebview(currentPanel, traces, logIndex);
+
+			currentPanel.onDidDispose(() => {
+				currentPanel?.dispose();
+				currentPanel = undefined;
+			});
+    })
+  );
+
+	vscode.debug.onDidTerminateDebugSession(() => {
+		if (currentPanel === undefined) {
+			return
+		}
+		traces = []
+		logIndex = 0
+		currentPanel.webview.html = getWelcomePage();
+	})
+
+	vscode.debug.onDidStartDebugSession(() => {
+		if (currentPanel === undefined) {
+			return
+		}
+		currentPanel.webview.onDidReceiveMessage((message) => {
+			const session = vscode.debug.activeDebugSession;
+			switch (message.command) {
+				case 'goTo':
+				case 'goBackTo':
+					if (session === undefined) {
+						return
+					}
+					session.customRequest(message.command, {'times': message.times}).then(undefined, console.error)
+					break;
+				case 'startRecord':
+				case 'stopRecord':
+					if (session === undefined) {
+						return
+					}
+					session.customRequest(message.command).then(undefined, console.error)
+			}
+		})
+		currentPanel.webview.html = getWebviewContent();
+		updateWebview(currentPanel, traces, logIndex);
+
+		currentPanel.onDidDispose(() => {
+			currentPanel?.dispose();
+			currentPanel = undefined;
+		});
+
+	})
+
+	const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+	statusBar.command = commandId
+	statusBar.text = '$(eye) History Viewer'
+	statusBar.show();
+
+	function updateWebview(panel: vscode.WebviewPanel | undefined, records: Array<any>, logIndex: number) {
+		if (panel === undefined || records === undefined || records.length === 0 ) {
+			return
+		}
+		panel.webview.postMessage({
+			command: 'update',
+			records: records,
+			logIndex: logIndex
+		})
+		traces = []
+	};
+
+	function getWebviewContent() {
+		if (currentPanel === undefined) {
+			return ""
+		}
+		const styleMainUri = vscode.Uri.file(path.join(extensionPath, 'media', 'main.css'));
+		const styleMainSrc = currentPanel.webview.asWebviewUri(styleMainUri);
+		const scriptMainUri = vscode.Uri.file(path.join(extensionPath, 'media', 'main.js'));
+		const scriptMainSrc = currentPanel.webview.asWebviewUri(scriptMainUri);
+		return `<!DOCTYPE html>
+	<html lang="en">
+	<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+			<link href="${styleMainSrc}" rel="stylesheet"></link>
+			<title>History Viewer</title>
+	</head>
+	<body>
+	
+			<div id="container">
+				<div id="actions"></div>
+				<div id="frames"></div>
+				<button id="prevButton">Previous</button>
+				<button id="nextButton">Next Page</button>
+			</div>
+	
+			<script src=${scriptMainSrc}></script>
+	</body>
+	</html>`;
+	}
+	
+	function getWelcomePage() {
+		return `
+			<!DOCTYPE html>
+			<html lang="en>
+				<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>History Viewer</title>
+				</head>
+				<body>
+					<h1>Welcome to History Viewer!</h1>
+					<h2>Debugging session is not activated now.</h2>
+				</body>
+			</html>`;
 	}
 }
 
@@ -454,7 +621,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	async launch(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
-		const rdbg = config.rdbgPath || "rdbg";
+		const rdbg = config.rdbgPath || "/Users/s15236/workspace/debug/exe/rdbg";
 
 		// outputChannel.appendLine(JSON.stringify(session));
 

@@ -1,0 +1,74 @@
+#container {
+    width: 100%;
+}
+
+.frame {
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: auto;
+}
+
+.frame:hover {
+    background-color: rgba(125, 125, 125, 0.2);
+}
+
+table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.stopped {
+    background-color: rgba(125, 125, 125, 0.5);
+}
+
+td {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.location {
+    cursor: pointer;
+}
+
+.location:hover {
+    background-color: rgba(125, 125, 125, 0.2);
+}
+
+.focused {
+    border: 1px solid #00B7CE;
+}
+
+button:not(:disabled) {
+    cursor: pointer;
+}
+
+.recordButton {
+    cursor: pointer;
+}
+
+svg {
+    cursor: pointer;
+    stroke: skyblue ;
+    stroke-width: 1px;
+    fill: transparent;
+    stroke-linejoin: round;
+}
+
+ul {
+    display: flex;
+    padding: 0;
+    list-style: none;
+    justify-content: space-evenly;
+    background-color: rgba(51, 51, 51);
+    box-shadow: 5px 5px 5px black;
+    width: 25%;
+    height: 32px;
+    margin-right: auto;
+    margin-left: auto;
+    align-items: center;
+}
+
+li:hover {
+    background-color: rgba(90, 90, 90);
+}
