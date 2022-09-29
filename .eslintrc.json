@@ -9,9 +9,15 @@
         "@typescript-eslint"
     ],
     "rules": {
-        "@typescript-eslint/naming-convention": ["warn", {"format": ["camelCase", "snake_case"]}],
+        "@typescript-eslint/naming-convention": ["warn", {
+            "format": ["camelCase", "snake_case"],
+            "selector": ["variableLike"]
+        }],
         "@typescript-eslint/semi": "warn",
+        "@typescript-eslint/type-annotation-spacing": "warn",
         "no-throw-literal": "warn",
-        "semi": "off"
+        "semi": "off",
+        "indent": ["warn", "tab"],
+        "object-curly-spacing": ["warn", "always"]
     }
 }
