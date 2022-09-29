@@ -17,7 +17,7 @@
         "@typescript-eslint/type-annotation-spacing": "warn",
         "no-throw-literal": "warn",
         "semi": "off",
-        "indent": ["warn", "tab"],
+        "indent": ["warn", "tab", { "SwitchCase": 1 }],
         "object-curly-spacing": ["warn", "always"]
     }
 }
