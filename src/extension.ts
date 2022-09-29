@@ -17,7 +17,7 @@ import {
 } from 'vscode';
 
 let outputChannel: vscode.OutputChannel;
-let outputTerminal: vscode.Terminal | undefined;
+let outputTerminals = new Map<string, vscode.Terminal>();
 let last_exec_command: string | undefined;
 let last_program: string | undefined;
 
@@ -117,8 +117,10 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 				outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
 			},
 			onWillStopSession(): void {
+				let outputTerminal = outputTerminals.get(session.id)
 				if (outputTerminal) {
 					outputTerminal.show();
+					outputTerminals.delete(session.id)
 				}
 			},
 			onError(e) {
@@ -197,6 +199,18 @@ class StopDebugAdapter implements vscode.DebugAdapter {
 
 	dispose() {
 	}
+}
+
+const findRDBGTerminal = (): vscode.Terminal | undefined => {
+	let terminal: vscode.Terminal | undefined
+	let currentTerminals: vscode.Terminal[] = Array.from(outputTerminals.values())
+	for (const t of vscode.window.terminals) {
+		if (t.name === 'rdbg' && !t.exitStatus && !currentTerminals.includes(t)) {
+			terminal = t;
+			break
+		}
+	}
+	return terminal
 }
 
 class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
@@ -487,13 +501,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 
 		// setup terminal
-		outputTerminal = undefined;
-
-		for (const t of vscode.window.terminals) {
-			if (t.name == "rdbg" && !t.exitStatus) {
-				outputTerminal = t;
-			}
-		}
+		let outputTerminal = findRDBGTerminal()
 
 		if (!outputTerminal) {
 			const shell = process.env.SHELL;
@@ -505,6 +513,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				shellArgs: shell_args,
 			});
 		}
+		outputTerminals.set(session.id, outputTerminal)
 
 		const connection_parameter = () => {
 			if (sock_path) {
