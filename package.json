@@ -41,6 +41,12 @@
 		"breakpoints": [
 			{
 				"language": "ruby"
+			},
+			{
+				"language": "haml"
+			},
+			{
+				"language": "slim"
 			}
 		],
 		"debuggers": [
