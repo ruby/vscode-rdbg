@@ -14,6 +14,7 @@ import {
 	DebugSession,
 	ProviderResult,
 	WorkspaceFolder,
+	ThemeIcon
 } from 'vscode';
 
 let outputChannel: vscode.OutputChannel;
@@ -511,6 +512,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				name: "rdbg",
 				shellPath: shell,
 				shellArgs: shell_args,
+				message: `Created by vscode-rdbg at ${new Date()}`,
+				iconPath: new ThemeIcon("ruby")
 			});
 		}
 		outputTerminals.set(session.id, outputTerminal)
