@@ -1,3 +1,5 @@
+name: Test for vscode-rdbg  
+
 on:
   push:
     branches:
