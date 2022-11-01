@@ -1,0 +1,32 @@
+name: Test for vscode-rdbg  
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        ruby-version: ['head']
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.x
+    - run: gem install debug
+    - run: yarn install
+    - run: xvfb-run -a yarn run test
+      if: runner.os == 'Linux'
+    - run: yarn run test
+      if: runner.os != 'Linux'
