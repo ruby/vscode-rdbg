@@ -22,6 +22,8 @@ let outputTerminals = new Map<string, vscode.Terminal>();
 let last_exec_command: string | undefined;
 let last_program: string | undefined;
 
+const terminalName: string = 'Ruby Debug Terminal';
+
 function workspace_folder(): string | undefined {
 	if (vscode.workspace.workspaceFolders) {
 		for (const ws of vscode.workspace.workspaceFolders) {
@@ -206,7 +208,7 @@ const findRDBGTerminal = (): vscode.Terminal | undefined => {
 	let terminal: vscode.Terminal | undefined;
 	let currentTerminals: vscode.Terminal[] = Array.from(outputTerminals.values());
 	for (const t of vscode.window.terminals) {
-		if (t.name === 'rdbg' && !t.exitStatus && !currentTerminals.includes(t)) {
+		if (t.name === terminalName && !t.exitStatus && !currentTerminals.includes(t)) {
 			terminal = t;
 			break;
 		}
@@ -509,7 +511,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			const shell_args = this.support_login(shell) ? ['-l'] : undefined;
 
 			outputTerminal = vscode.window.createTerminal({
-				name: "rdbg",
+				name: terminalName,
 				shellPath: shell,
 				shellArgs: shell_args,
 				message: `Created by vscode-rdbg at ${new Date()}`,
