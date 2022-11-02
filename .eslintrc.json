@@ -11,7 +11,8 @@
     "rules": {
         "@typescript-eslint/naming-convention": ["warn", {
             "format": ["camelCase", "snake_case"],
-            "selector": ["variableLike"]
+            "selector": ["variableLike"],
+            "leadingUnderscore": "allow"
         }],
         "@typescript-eslint/semi": "warn",
         "@typescript-eslint/type-annotation-spacing": "warn",
