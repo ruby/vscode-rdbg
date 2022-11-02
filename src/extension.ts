@@ -93,7 +93,7 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage(".vscode/rdbg_autoattach.json contains unexpected contents. Please check integrity.");
 			}
 			return false;
-		}
+		};
 
 		const json_path = path.join(folders[0].uri.path, ".vscode/rdbg_autoattach.json");
 		if (fs.existsSync(json_path)) {
@@ -118,10 +118,10 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 				outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
 			},
 			onWillStopSession(): void {
-				let outputTerminal = outputTerminals.get(session.id)
+				let outputTerminal = outputTerminals.get(session.id);
 				if (outputTerminal) {
 					outputTerminal.show();
-					outputTerminals.delete(session.id)
+					outputTerminals.delete(session.id);
 				}
 			},
 			onError(e) {
@@ -203,16 +203,16 @@ class StopDebugAdapter implements vscode.DebugAdapter {
 }
 
 const findRDBGTerminal = (): vscode.Terminal | undefined => {
-	let terminal: vscode.Terminal | undefined
-	let currentTerminals: vscode.Terminal[] = Array.from(outputTerminals.values())
+	let terminal: vscode.Terminal | undefined;
+	let currentTerminals: vscode.Terminal[] = Array.from(outputTerminals.values());
 	for (const t of vscode.window.terminals) {
 		if (t.name === 'rdbg' && !t.exitStatus && !currentTerminals.includes(t)) {
 			terminal = t;
-			break
+			break;
 		}
 	}
-	return terminal
-}
+	return terminal;
+};
 
 class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	createDebugAdapterDescriptor(session: DebugSession, executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
@@ -260,7 +260,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder()
 			}, (err, stdout, stderr) => {
 				if (err || stderr) {
-					reject(err ?? stderr)
+					reject(err ?? stderr);
 				} else {
 					let socks: Array<string> = [];
 					if (stdout.length > 0) {
@@ -273,7 +273,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					resolve(socks);
 				}
 			});
-		})
+		});
 	}
 
 	parse_port(port: string): [string | undefined, number | undefined, string | undefined] {
@@ -382,7 +382,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			});
 			p.stderr?.on('data', err => {
 				outputChannel.appendLine(err);
-			})
+			});
 			p.stdout?.on('data', out => {
 				path = out.trim();
 			});
@@ -502,7 +502,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 
 		// setup terminal
-		let outputTerminal = findRDBGTerminal()
+		let outputTerminal = findRDBGTerminal();
 
 		if (!outputTerminal) {
 			const shell = process.env.SHELL;
@@ -516,7 +516,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				iconPath: new ThemeIcon("ruby")
 			});
 		}
-		outputTerminals.set(session.id, outputTerminal)
+		outputTerminals.set(session.id, outputTerminal);
 
 		const connection_parameter = () => {
 			if (sock_path) {
@@ -532,7 +532,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					return port_option;
 				}
 			}
-		}
+		};
 
 		const rdbg_args = rdbg + " --command --open --stop-at-load " + connection_parameter() + " -- ";
 		const useBundlerFlag = (config.useBundler != undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
