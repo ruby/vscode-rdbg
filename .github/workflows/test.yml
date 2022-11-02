@@ -28,8 +28,8 @@ jobs:
       with:
         node-version: 16.x
     - run: gem install debug
-    - run: yarn install
-    - run: xvfb-run -a yarn run test
+    - run: npm install
+    - run: xvfb-run -a npm test
       if: runner.os == 'Linux'
-    - run: yarn run test
+    - run: npm test
       if: runner.os != 'Linux'
