@@ -28,6 +28,7 @@ jobs:
       with:
         node-version: 16.x
     - run: gem install debug
+    - run: rdbg --version
     - run: npm install
     - run: xvfb-run -a npm test
       if: runner.os == 'Linux'
