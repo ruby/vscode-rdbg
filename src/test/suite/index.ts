@@ -9,7 +9,7 @@ export function run(): Promise<void> {
 		color: true
 	});
 
-	mocha.timeout('10000');
+	mocha.timeout('100000');
 
 	const testsRoot = path.resolve(__dirname, '..');
 
