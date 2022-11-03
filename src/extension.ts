@@ -56,7 +56,7 @@ function export_breakpoints(context: vscode.ExtensionContext) {
 			for (const bp of vscode.debug.breakpoints) {
 				if (bp instanceof vscode.SourceBreakpoint && bp.enabled) {
 					// outputChannel.appendLine(JSON.stringify(bp));
-					const start_line = bp.location.range.start.line;
+					const start_line = bp.location.range.start.line + 1;
 					const path = bp.location.uri.path;
 					bp_lines = bp_lines + "break " + path + ":" + start_line + "\n";
 				}
