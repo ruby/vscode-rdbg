@@ -555,6 +555,24 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					outputTerminal.sendText(cd_command);
 				}
 
+				await new Promise((resolve) => {
+					const p = child_process.exec(cmdline);
+					let path: string;
+
+					p.on('error', e => {
+						resolve(undefined);
+					});
+					p.on('exit', (code) => {
+						resolve(path);
+					});
+					p.stderr?.on('data', err => {
+						console.log(`err ${err}`);
+					})
+					p.stdout?.on('data', out => {
+						console.log(`out ${out}`);
+					});
+				});
+
 				outputTerminal.sendText(cmdline);
 			}
 
