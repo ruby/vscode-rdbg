@@ -554,24 +554,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					const cd_command = "cd " + custom_path(config.cwd);
 					outputTerminal.sendText(cd_command);
 				}
-				await new Promise((resolve) => {
-					const p = child_process.exec(cmdline);
-					let path: string;
-		
-					p.on('error', e => {
-						resolve(undefined);
-					});
-					p.on('exit', (code) => {
-						resolve(path);
-					});
-					p.stderr?.on('data', err => {
-						console.log(`err ${err}`);
-					})
-					p.stdout?.on('data', out => {
-						console.log(`out ${out}`);
-					});
-				});
-				outputTerminal.sendText(cmdline);
+
+				outputTerminal.sendText("rdbg -A --port 12345");
 			}
 
 			if (config.noDebug) {
