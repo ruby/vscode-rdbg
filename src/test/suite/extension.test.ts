@@ -213,7 +213,7 @@ suite('launch', () => {
 			const c = generateLaunchConfig(testData);
 			c.debugPort = `localhost:${port}`;
 			const success = await vscode.debug.startDebugging(undefined, c);
-			assert.ok(success);
+			assert.ok(!success);
 			return new Promise((resolve, reject) => resolve());
 		});
 
