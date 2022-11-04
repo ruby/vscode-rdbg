@@ -27,6 +27,7 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
+    - run: brew uninstall debug
     - run: gem install debug
     - run: rdbg --version
     - run: npm install
