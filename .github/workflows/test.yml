@@ -22,11 +22,12 @@ jobs:
       uses: ruby/setup-ruby@0a29871fe2b0200a17a4497bae54fe5df0d973aa
       with:
         ruby-version: ${{ matrix.ruby-version }}
-        # bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
     - name: Install Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
+    - run: gem update --system
     - run: bundle install
     - run: gem install debug
     - run: rdbg --version
