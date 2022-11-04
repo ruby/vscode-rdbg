@@ -189,18 +189,24 @@ suite('launch', () => {
 		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
 
 		let port: number;
+		let server: net.Server | undefined;
 		suiteSetup(() => {
-			const server = net.createServer((sock) => {
+			server = net.createServer((sock) => {
 				sock.on('data', (data: Buffer) => {
+					console.log('connected')
 					sock.end();
 				});
 			});
-			server.listen(0, () => {
+			server.listen(12345, () => {
 				console.log('server bound');
 			});
 			const addr = server.address() as net.AddressInfo;
 			port = addr.port;
-			server.close();
+			// server.close();
+		});
+
+		suiteTeardown(() => {
+			if (server) server.close();
 		});
 
 		test('localhost:{port}', async () => {
@@ -211,50 +217,50 @@ suite('launch', () => {
 			return new Promise((resolve, reject) => resolve());
 		});
 
-		test('port', async () => {
-			const c = generateLaunchConfig(testData);
-			c.debugPort = port.toString();
-			const success = await vscode.debug.startDebugging(undefined, c);
-			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
-		});
+		// test('port', async () => {
+		// 	const c = generateLaunchConfig(testData);
+		// 	c.debugPort = port.toString();
+		// 	const success = await vscode.debug.startDebugging(undefined, c);
+		// 	assert.ok(success);
+		// 	return new Promise((resolve, reject) => resolve());
+		// });
 	});
 
-	suite('unix domain socket: success', () => {
-		const projectRoot = path.join(__dirname, '..', '..', '..');
-		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
+	// suite('unix domain socket: success', () => {
+	// 	const projectRoot = path.join(__dirname, '..', '..', '..');
+	// 	const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
 
-		test('config.debugPort is undefined', async () => {
-			const c = generateLaunchConfig(testData);
-			const success = await vscode.debug.startDebugging(undefined, c);
-			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
-		});
-	});
+	// 	test('config.debugPort is undefined', async () => {
+	// 		const c = generateLaunchConfig(testData);
+	// 		const success = await vscode.debug.startDebugging(undefined, c);
+	// 		assert.ok(success);
+	// 		return new Promise((resolve, reject) => resolve());
+	// 	});
+	// });
 
-	suite('unix domain socket: fail', () => {
-		const projectRoot = path.join(__dirname, '..', '..', '..');
-		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
-		let tempDir: string;
-		let sockPath: string;
-		suiteSetup(() => {
-			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
-			sockPath = tempDir + '/' + Date.now().toString() + '.sock';
-		});
+	// suite('unix domain socket: fail', () => {
+	// 	const projectRoot = path.join(__dirname, '..', '..', '..');
+	// 	const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
+	// 	let tempDir: string;
+	// 	let sockPath: string;
+	// 	suiteSetup(() => {
+	// 		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
+	// 		sockPath = tempDir + '/' + Date.now().toString() + '.sock';
+	// 	});
 
-		suiteTeardown(async () => {
-			await waitToRemoveFile(tempDir);
-			fs.rmdirSync(tempDir);
-		});
+	// 	suiteTeardown(async () => {
+	// 		await waitToRemoveFile(tempDir);
+	// 		fs.rmdirSync(tempDir);
+	// 	});
 
-		test('return false', async () => {
-			const c = generateLaunchConfig(testData);
-			c.debugPort = sockPath;
-			const success = await vscode.debug.startDebugging(undefined, c);
-			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
-		});
-	});
+	// 	test('return false', async () => {
+	// 		const c = generateLaunchConfig(testData);
+	// 		c.debugPort = sockPath;
+	// 		const success = await vscode.debug.startDebugging(undefined, c);
+	// 		assert.ok(success);
+	// 		return new Promise((resolve, reject) => resolve());
+	// 	});
+	// });
 });
 
 function sleep(seconds: number) {

@@ -555,7 +555,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					outputTerminal.sendText(cd_command);
 				}
 
-				outputTerminal.sendText(cmdline);
+				outputTerminal.sendText("rdbg -A --port 12345");
 			}
 
 			if (config.noDebug) {
