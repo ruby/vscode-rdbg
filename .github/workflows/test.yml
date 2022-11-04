@@ -28,7 +28,6 @@ jobs:
       with:
         node-version: 16.x
     - run: gem update --system
-    - run: bundle install
     - run: gem install debug
     - run: rdbg --version
     - run: npm install
