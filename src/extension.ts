@@ -559,7 +559,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 				await new Promise((resolve) => {
 
-					const p = child_process.exec("rdbg " + "--command " + "-- /Users/runner/hostedtoolcache/Ruby/3.1.2/x64/bin/ruby " + exec_args);
+					const p = child_process.exec("ruby -r debug/start " + exec_args);
 					let path: string;
 
 					p.on('error', e => {
