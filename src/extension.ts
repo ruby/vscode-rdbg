@@ -544,6 +544,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		if (exec_command) {
 			last_exec_command = exec_command;
 			last_program = config.script;
+			console.log(process.env);
 			const cmdline = this.env_prefix(process.env) + this.env_prefix(config.env) + (config.noDebug ? '' : rdbg_args) + exec_command;
 
 			if (outputTerminal) {
