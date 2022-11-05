@@ -557,7 +557,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 				await new Promise((resolve) => {
 
-					const p = child_process.exec("ruby -r debug/start " + exec_args);
+					const p = child_process.exec("ruby -e 'puts $:'");
 					let path: string;
 
 					p.on('error', e => {
