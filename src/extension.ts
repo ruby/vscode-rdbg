@@ -69,6 +69,7 @@ function export_breakpoints(context: vscode.ExtensionContext) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+	console.log(process.env.PATH);
 	outputChannel = vscode.window.createOutputChannel('rdbg');
 
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('rdbg', new RdbgInitialConfigurationProvider()));
