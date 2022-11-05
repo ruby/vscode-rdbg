@@ -19,7 +19,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
     - name: Set up Ruby
-      uses: ruby/setup-ruby@0a29871fe2b0200a17a4497bae54fe5df0d973aa
+      uses: ruby/setup-ruby@1
       with:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
@@ -27,7 +27,7 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
-    # - run: gem install debug
+    - run: gem install debug
     - run: which ruby
     - run: which rdbg
     - run: rdbg --version
