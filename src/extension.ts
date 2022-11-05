@@ -414,7 +414,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	env_prefix(env?: { [key: string]: string }): string {
+	env_prefix(env?: { [key: string]: string | undefined}): string {
 		if (env) {
 			let prefix = "";
 			for (const key in env) {
@@ -525,7 +525,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		const rdbg_args = rdbg + " --command --open --stop-at-load " + connection_parameter() + " -- ";
 		const useBundlerFlag = (config.useBundler != undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
 		const useBundler = useBundlerFlag && fs.existsSync(workspace_folder() + '/Gemfile');
-		const ruby_command = config.command ? config.command : (useBundler ? 'bundle exec ruby' : '/Users/runner/hostedtoolcache/Ruby/3.1.2/x64/bin/ruby');
+		const ruby_command = config.command ? config.command : (useBundler ? 'bundle exec ruby' : 'ruby');
 		let exec_args = config.script + " " + (config.args ? config.args.join(' ') : '');
 		let exec_command: string | undefined = ruby_command + ' ' + exec_args;
 
@@ -544,7 +544,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		if (exec_command) {
 			last_exec_command = exec_command;
 			last_program = config.script;
-			const cmdline = this.env_prefix(config.env) + (config.noDebug ? '' : rdbg_args) + exec_command;
+			const cmdline = this.env_prefix(process.env) + this.env_prefix(config.env) + (config.noDebug ? '' : rdbg_args) + exec_command;
 
 			if (outputTerminal) {
 				outputTerminal.show(false);
