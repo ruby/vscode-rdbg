@@ -3,7 +3,6 @@ import * as path from 'path';
 import { runTests } from '@vscode/test-electron';
 
 async function main() {
-	console.log(process.env.PATH);
 	try {
 		// The folder containing the Extension Manifest package.json
 		// Passed to `--extensionDevelopmentPath`
@@ -13,6 +12,7 @@ async function main() {
 		// Passed to --extensionTestsPath
 		const extensionTestsPath = path.resolve(__dirname, './suite/index');
 
+		console.log(process.env.PATH);
 		// Download VS Code, unzip it and run the integration test
 		await runTests({ extensionDevelopmentPath, extensionTestsPath, extensionTestsEnv: process.env });
 	} catch (err) {
