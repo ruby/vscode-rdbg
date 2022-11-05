@@ -525,7 +525,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		const rdbg_args = rdbg + " --command --open --stop-at-load " + connection_parameter() + " -- ";
 		const useBundlerFlag = (config.useBundler != undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
 		const useBundler = useBundlerFlag && fs.existsSync(workspace_folder() + '/Gemfile');
-		const ruby_command = config.command ? config.command : (useBundler ? 'ruby' : 'ruby');
+		const ruby_command = config.command ? config.command : (useBundler ? 'bundle exec ruby' : 'ruby');
 		let exec_args = config.script + " " + (config.args ? config.args.join(' ') : '');
 		let exec_command: string | undefined = ruby_command + ' ' + exec_args;
 
@@ -556,7 +556,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				}
 
 				await new Promise((resolve) => {
-					const p = child_process.exec(cmdline);
+
+					const p = child_process.exec("rdbg " + exec_args);
 					let path: string;
 
 					p.on('error', e => {
