@@ -28,6 +28,7 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
+    - run: ruby -e "pp ENV"
     - run: gem install debug
     - run: which ruby
     - run: which rdbg
