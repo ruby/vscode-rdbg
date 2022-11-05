@@ -23,6 +23,7 @@ jobs:
       with:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+        cache-version: 1
     - name: Install Node.js
       uses: actions/setup-node@v3
       with:
