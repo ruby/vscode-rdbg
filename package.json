@@ -5,6 +5,7 @@
 	"publisher": "KoichiSasada",
 	"version": "0.0.11",
 	"license": "MIT",
+	"icon": "icon.png",
 	"author": {
 		"name": "Koichi Sasada",
 		"email": "ko1@atdot.net",
