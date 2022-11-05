@@ -555,11 +555,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					outputTerminal.sendText(cd_command);
 				}
 
-				// console.log("rdbg " + "--command --open " + "-- ruby " + exec_args)
-
 				await new Promise((resolve) => {
 
-					const p = child_process.exec("rdbg " + "--command " + exec_args);
+					const p = child_process.exec("rdbg " + "--command -- ruby" + exec_args);
 					let path: string;
 
 					p.on('error', e => {
