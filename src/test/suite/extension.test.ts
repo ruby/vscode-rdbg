@@ -13,6 +13,8 @@ import * as myExtension from '../../extension';
 
 const twoCrlf = '\r\n\r\n';
 
+console.log(process.env.PATH);
+
 suite('attach', () => {
 	suite('tcp: success', () => {
 		let server: net.Server;
