@@ -27,7 +27,7 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
-    - run: gem install debug
+    # - run: gem install debug
     - run: which ruby
     - run: which rdbg
     - run: rdbg --version
