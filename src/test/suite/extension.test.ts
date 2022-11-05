@@ -18,25 +18,7 @@ suite('attach', () => {
 		let server: net.Server;
 		suiteSetup(() => {
 			server = net.createServer((sock) => {
-				sock.on('data', (data: Buffer) => {
-					const rawReq = data.toString().split(twoCrlf);
-					try {
-						const req = JSON.parse(rawReq[1]) as DebugProtocol.Request;
-						const res: DebugProtocol.Response = {
-							seq: req.seq,
-							type: 'response',
-							request_seq: req.seq,
-							success: true,
-							command: req.command,
-						};
-						const json = JSON.stringify(res);
-						const header = `Content-Length: ${Buffer.byteLength(json)}`;
-						sock.write(header + twoCrlf + json);
-					} catch (error) {
-						console.error(error);
-						sock.end();
-					}
-				});
+				sock.on('data', (data: Buffer) => handleRequest(sock, data));
 			});
 			server.listen(0, () => {
 				console.log('server bound');
@@ -104,25 +86,7 @@ suite('attach', () => {
 			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
 			sockPath = tempDir + '/' + Date.now().toString() + '.sock';
 			server = net.createServer((sock) => {
-				sock.on('data', (data: Buffer) => {
-					const rawReq = data.toString().split(twoCrlf);
-					try {
-						const req = JSON.parse(rawReq[1]) as DebugProtocol.Request;
-						const res: DebugProtocol.Response = {
-							seq: req.seq,
-							type: 'response',
-							request_seq: req.seq,
-							success: true,
-							command: req.command,
-						};
-						const json = JSON.stringify(res);
-						const header = `Content-Length: ${Buffer.byteLength(json)}`;
-						sock.write(header + twoCrlf + json);
-					} catch (error) {
-						console.error(error);
-						sock.end();
-					}
-				});
+				sock.on('data', (data: Buffer) => handleRequest(sock, data));
 			});
 			server.listen(sockPath, () => {
 				console.log('server bound');
@@ -146,6 +110,26 @@ suite('attach', () => {
 			});
 		});
 	});
+
+	function handleRequest(sock: net.Socket, data: Buffer) {
+		const rawReq = data.toString().split(twoCrlf);
+		try {
+			const req = JSON.parse(rawReq[1]) as DebugProtocol.Request;
+			const res: DebugProtocol.Response = {
+				seq: req.seq,
+				type: 'response',
+				request_seq: req.seq,
+				success: true,
+				command: req.command,
+			};
+			const json = JSON.stringify(res);
+			const header = `Content-Length: ${Buffer.byteLength(json)}`;
+			sock.write(header + twoCrlf + json);
+		} catch (error) {
+			console.error(error);
+			sock.end();
+		}
+	}
 
 	suite('unix domain socket: fail', () => {
 		let server: net.Server | undefined;
@@ -223,18 +207,6 @@ suite('launch', () => {
 	suite('unix domain socket: success', () => {
 		const projectRoot = path.join(__dirname, '..', '..', '..');
 		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
-
-		test('config.debugPort is undefined', async () => {
-			const c = generateLaunchConfig(testData);
-			const success = await vscode.debug.startDebugging(undefined, c);
-			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
-		});
-	});
-
-	suite('unix domain socket: fail', () => {
-		const projectRoot = path.join(__dirname, '..', '..', '..');
-		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
 		let tempDir: string;
 		let sockPath: string;
 		suiteSetup(() => {
@@ -247,9 +219,21 @@ suite('launch', () => {
 			fs.rmdirSync(tempDir);
 		});
 
-		test('return false', async () => {
+		test('return true', async () => {
 			const c = generateLaunchConfig(testData);
 			c.debugPort = sockPath;
+			const success = await vscode.debug.startDebugging(undefined, c);
+			assert.ok(success);
+			return new Promise((resolve, reject) => resolve());
+		});
+	});
+
+	suite('other: success', () => {
+		const projectRoot = path.join(__dirname, '..', '..', '..');
+		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
+
+		test('config.debugPort is undefined', async () => {
+			const c = generateLaunchConfig(testData);
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 			return new Promise((resolve, reject) => resolve());
