@@ -556,6 +556,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					outputTerminal.sendText(cd_command);
 				}
 
+				console.log(cmdline);
+
 				outputTerminal.sendText(cmdline);
 			}
 
