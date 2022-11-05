@@ -3,6 +3,9 @@ import * as Mocha from 'mocha';
 import * as glob from 'glob';
 
 export function run(): Promise<void> {
+	console.log('hoge2')
+	console.log(process.env.PATH);
+	console.log('hoge2')
 	// Create the mocha test
 	const mocha = new Mocha({
 		ui: 'tdd',
