@@ -12,9 +12,9 @@ import { DebugProtocol } from '@vscode/debugprotocol';
 import * as myExtension from '../../extension';
 
 const twoCrlf = '\r\n\r\n';
-
+console.log('hoge')
 console.log(process.env.PATH);
-
+console.log('hoge')
 suite('attach', () => {
 	suite('tcp: success', () => {
 		let server: net.Server;
