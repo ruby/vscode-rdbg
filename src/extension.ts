@@ -456,6 +456,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	}
 
 	async launch(session: DebugSession): Promise<DebugAdapterDescriptor> {
+
+		console.log(process.env.PATH);
 		const config = session.configuration as LaunchConfiguration;
 		const rdbg = config.rdbgPath || "rdbg";
 
@@ -506,6 +508,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			});
 		}
 
+		console.log(process.env.PATH);
+
 		const connection_parameter = () => {
 			if (sock_path) {
 				return "--sock-path=" + sock_path;
@@ -544,7 +548,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		if (exec_command) {
 			last_exec_command = exec_command;
 			last_program = config.script;
-			console.log(process.env);
+			console.log(process.env.PATH);
 			const cmdline = this.env_prefix(process.env) + this.env_prefix(config.env) + (config.noDebug ? '' : rdbg_args) + exec_command;
 
 			if (outputTerminal) {
