@@ -4,6 +4,7 @@ import * as assert from 'assert';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 
+import * as child_process from 'child_process';
 import * as net from 'net';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -278,12 +279,16 @@ function generateAttachConfig(): AttachConfiguration {
 }
 
 function generateLaunchConfig(script: string): LaunchConfiguration {
-	return {
+	const config: LaunchConfiguration = {
 		type: 'rdbg',
 		name: '',
 		request: 'launch',
 		script,
 	};
+	if (process.platform === 'darwin' && process.env.RUBY_DEBUG_TEST_PATH) {
+		config.command = process.env.RUBY_DEBUG_TEST_PATH;
+	}
+	return config;
 }
 
 interface AttachConfiguration extends vscode.DebugConfiguration {
