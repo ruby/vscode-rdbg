@@ -101,7 +101,9 @@ suite('attach', () => {
 		let server: net.Server | undefined;
 		let tempDir: string | undefined;
 		let sockPath: string | undefined;
-		suiteSetup(() => {
+		suiteSetup(function () {
+			if (process.platform === 'win32') this.skip();
+
 			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
 			sockPath = tempDir + '/' + Date.now().toString() + '.sock';
 			server = net.createServer((sock) => {
@@ -152,7 +154,9 @@ suite('attach', () => {
 		let server: net.Server | undefined;
 		let tempDir: string | undefined;
 		let sockPath: string | undefined;
-		suiteSetup(() => {
+		suiteSetup(function () {
+			if (process.platform === 'win32') this.skip();
+
 			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
 			sockPath = tempDir + '/' + Date.now().toString() + '.sock';
 			server = net.createServer((sock) => {
@@ -225,6 +229,10 @@ suite('launch', () => {
 		const projectRoot = path.join(__dirname, '..', '..', '..');
 		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
 
+		suiteSetup(function () {
+			if (process.platform === 'win32') this.skip();
+		});
+
 		test('config.debugPort is undefined', async () => {
 			const c = generateLaunchConfig(testData);
 			const success = await vscode.debug.startDebugging(undefined, c);
@@ -236,16 +244,18 @@ suite('launch', () => {
 	suite('unix domain socket: fail', () => {
 		const projectRoot = path.join(__dirname, '..', '..', '..');
 		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
-		let tempDir: string;
-		let sockPath: string;
-		suiteSetup(() => {
+		let tempDir: string | undefined;
+		let sockPath: string | undefined;
+		suiteSetup(function () {
+			if (process.platform === 'win32') this.skip();
+
 			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
 			sockPath = tempDir + '/' + Date.now().toString() + '.sock';
 		});
 
 		suiteTeardown(async () => {
-			await waitToRemoveFile(tempDir);
-			fs.rmdirSync(tempDir);
+			if (tempDir) await waitToRemoveFile(tempDir);
+			if (tempDir) fs.rmdirSync(tempDir);
 		});
 
 		test('return false', async () => {
@@ -287,6 +297,9 @@ function generateLaunchConfig(script: string): LaunchConfiguration {
 	};
 	if (process.platform === 'darwin' && process.env.RUBY_DEBUG_TEST_PATH) {
 		config.command = process.env.RUBY_DEBUG_TEST_PATH;
+	}
+	if (process.platform === 'win32') {
+		config.waitLaunchTime = 5000;
 	}
 	return config;
 }
