@@ -596,7 +596,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					}
 				}
 				else {
-					const wait_ms = config.waitLaunchTime ? config.waitLaunchTime : 1000 /* 1 sec */;
+					const wait_ms = config.waitLaunchTime ? config.waitLaunchTime : 5000 /* 5 sec */;
 					await this.sleep_ms(wait_ms);
 				}
 
