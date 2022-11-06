@@ -453,7 +453,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	}
 
 	async wait_file(path: string, wait_ms: number | undefined): Promise<boolean> {
-		let iterations: number = 50;
+		let iterations: number = 100;
 		if (wait_ms) {
 			iterations = wait_ms / 100;
 		}
