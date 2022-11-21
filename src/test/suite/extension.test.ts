@@ -223,6 +223,15 @@ suite('launch', () => {
 			assert.ok(success);
 			return new Promise((resolve, reject) => resolve());
 		});
+
+		test('env', async () => {
+			const c = generateLaunchConfig(testData);
+			c.env = { "SAMPLE": "sample" };
+			c.debugPort = port.toString();
+			const success = await vscode.debug.startDebugging(undefined, c);
+			assert.ok(success);
+			return new Promise((resolve, reject) => resolve());
+		});
 	});
 
 	suite('unix domain socket: success', () => {

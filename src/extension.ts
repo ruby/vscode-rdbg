@@ -434,8 +434,14 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	env_prefix(env?: { [key: string]: string }): string {
 		if (env) {
 			let prefix = "";
-			for (const key in env) {
-				prefix += key + "='" + env[key] + "' ";
+			if (process.platform === 'win32') {
+				for (const key in env) {
+					prefix += '$Env:' + key + "='" + env[key] + "'; ";
+				}
+			} else {
+				for (const key in env) {
+					prefix += key + "='" + env[key] + "' ";
+				}
 			}
 			return prefix;
 		}
