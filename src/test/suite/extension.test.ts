@@ -67,6 +67,28 @@ suite('attach', () => {
 			assert.ok(success);
 			return new Promise((resolve, reject) => resolve());
 		});
+
+		suite('auto attach', () => {
+			const key = Math.random().toString();
+			suiteSetup(() => {
+				process.env.RUBY_DEBUG_AUTOATTACH = key;
+			});
+
+			suiteTeardown(() => {
+				process.env.RUBY_DEBUG_AUTOATTACH = undefined;
+			});
+	
+			test('success', async () => {
+				const addr = server.address() as net.AddressInfo;
+				const port = addr.port;
+				const c = generateAttachConfig();
+				c.debugPort = port.toString();
+				c.autoAttach = key;
+				const success = await vscode.debug.startDebugging(undefined, c);
+				assert.ok(success);
+				return new Promise((resolve, reject) => resolve());
+			});
+		});
 	});
 
 	suite('tcp: fail', () => {
