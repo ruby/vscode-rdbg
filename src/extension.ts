@@ -97,7 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
 			return false;
 		};
 
-		const json_path = path.join(folders[0].uri.path, ".vscode/rdbg_autoattach.json");
+		const json_path = path.join(folders[0].uri.fsPath, ".vscode/rdbg_autoattach.json");
 		if (fs.existsSync(json_path)) {
 			const c: AttachConfiguration = JSON.parse(fs.readFileSync(json_path, 'utf8'));
 
