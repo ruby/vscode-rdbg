@@ -1,0 +1,24 @@
+name: UI Test
+
+on:
+  schedule:
+    # This job runs at 00:00 UTC every day.
+    - cron: '0 0 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: head
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.x
+    - run: gem install debug
+    - run: npm install
+    - run: xvfb-run -a npm run ui-test
