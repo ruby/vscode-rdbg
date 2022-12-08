@@ -1,0 +1,35 @@
+name: Release
+on:
+  # When a `release` event is triggered, `github.ref` is assigned a value such as `refs/tags/<tag_name>`.
+  release:
+    types:
+    # This job is executed only when a release was published. The job is NOT executed when a pre-release was published.
+    # https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads?actionType=released#release
+    - released
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.x
+    - name: Check Tag ref
+      id: check_tag_ref
+      run: |
+        if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "IS_NEW_RELEASE=true" >> $GITHUB_OUTPUT
+        fi
+    - name: Publish
+      if: ${{ steps.check_tag_ref.outputs.IS_NEW_RELEASE == 'true' }}
+      run: |
+        npm install
+        npm install --global @vscode/vsce
+        vsce publish
+      env:
+        # To help protect secrets, we set VSCE_PAT as an environemnt variables.
+        # https://docs.github.com/en/actions/security-guides/encrypted-secrets#using-encrypted-secrets-in-a-workflow
+        VSCE_PAT: ${{ secrets.VSCE_PAT }}
