@@ -151,6 +151,11 @@
 								"type": "boolean",
 								"description": "true if the VSCode and debugger run on a same machine",
 								"default": false
+							},
+							"useTerminal": {
+								"type": "boolean",
+								"description": "Create a new terminal and then execute commands there",
+								"default": false
 							}
 						}
 					}
