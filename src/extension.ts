@@ -222,9 +222,11 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 		if (session.configuration.request == 'attach') {
 			return this.attach(session);
+		} else if (session.configuration.request == 'launch' && session.configuration.useTerminal) {
+			return this.launch_on_terminal(session);
 		}
 		else {
-			return this.launch(session);
+			return this.launch_on_console(session);
 		}
 	}
 
@@ -478,7 +480,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return true;
 	}
 
-	async launch(session: DebugSession): Promise<DebugAdapterDescriptor> {
+	async launch_on_terminal(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
 		const rdbg = config.rdbgPath || "rdbg";
 
@@ -526,32 +528,85 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 		outputTerminals.set(session.id, outputTerminal);
 
-		const connection_parameter = () => {
-			if (sock_path) {
-				return "--sock-path=" + sock_path;
+		let exec_command = '';
+		try {
+			exec_command = await this.getExecCommands(config);
+		} catch (error) {
+			if (error instanceof InvalidExecCommandError) {
+				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+			}
+			throw error;
+		}
+
+		let cmdline = this.env_prefix(config.env);
+
+		if (config.noDebug) {
+			cmdline += exec_command;
+		} else {
+			let rdbg_args: string[];
+			if (tcp_host !== undefined && tcp_port !== undefined) {
+				rdbg_args = this.getTCPRdbgArgs(exec_command, tcp_host, tcp_port, tcp_port_file);
+			} else {
+				rdbg_args = this.getUnixRdbgArgs(exec_command, sock_path);
+			}
+			cmdline += rdbg + ' ' + rdbg_args.join(' ');
+		}
+
+		if (outputTerminal) {
+			outputTerminal.show(false);
+
+			if (config.cwd) {
+				// Ensure we are in the requested working directory
+				const cd_command = "cd " + custom_path(config.cwd);
+				outputTerminal.sendText(cd_command);
+			}
+
+			outputTerminal.sendText(cmdline);
+		}
+
+		if (config.noDebug) {
+			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+		}
+
+		// use NamedPipe
+		if (sock_path) {
+			if (await this.wait_file(sock_path, config.waitLaunchTime)) {
+				return new DebugAdapterNamedPipeServer(sock_path);
 			}
 			else {
-				const port_option = "--port=" + tcp_port + (tcp_port_file ? (":" + tcp_port_file) : "");
-
-				if (tcp_host) {
-					return port_option + " --host=" + tcp_host;
+				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+			}
+		}
+		else if (tcp_port != undefined) {
+			if (tcp_port_file) {
+				if (await this.wait_file(tcp_port_file, config.waitLaunchTime)) {
+					const port_str = fs.readFileSync(tcp_port_file);
+					tcp_port = parseInt(port_str.toString());
 				}
 				else {
-					return port_option;
+					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 				}
 			}
-		};
+			else {
+				const wait_ms = config.waitLaunchTime ? config.waitLaunchTime : 5000 /* 5 sec */;
+				await this.sleep_ms(wait_ms);
+			}
+			return new vscode.DebugAdapterServer(tcp_port, tcp_host);
+		}
 
-		const rdbg_args = rdbg + " --command --open --stop-at-load " + connection_parameter() + " -- ";
-		const useBundlerFlag = (config.useBundler != undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
+		// failed
+		return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+	}
+
+	async getExecCommands(config: LaunchConfiguration) {
+		const useBundlerFlag = (config.useBundler !== undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
 		const useBundler = useBundlerFlag && fs.existsSync(workspace_folder() + '/Gemfile');
 		const ruby_command = config.command ? config.command : (useBundler ? 'bundle exec ruby' : 'ruby');
 		let exec_args = config.script + " " + (config.args ? config.args.join(' ') : '');
 		let exec_command: string | undefined = ruby_command + ' ' + exec_args;
 
-		// launch rdbg
 		if (config.askParameters) {
-			if (last_exec_command && last_program == config.script) {
+			if (last_exec_command && last_program === config.script) {
 				exec_command = last_exec_command;
 			}
 
@@ -560,60 +615,185 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				"value": exec_command
 			});
 		}
+		if (exec_command === undefined || exec_command.length <= 0) {
+			throw new InvalidExecCommandError();
+		}
+		// Save the history of command and script to use next time in `config.askParameters`.
+		last_exec_command = exec_command;
+		last_program = config.script;
 
-		if (exec_command) {
-			last_exec_command = exec_command;
-			last_program = config.script;
-			const cmdline = this.env_prefix(config.env) + (config.noDebug ? '' : rdbg_args) + exec_command;
+		return exec_command;
+	}
 
-			if (outputTerminal) {
-				outputTerminal.show(false);
+	getTCPRdbgArgs(execCommand: string, host: string, port: number, port_path?: string) {
+		const rdbg_args: string[] = [];
+		rdbg_args.push('--command', '--open', '--stop-at-load');
+		rdbg_args.push("--host=" + host);
+		let portArg = port.toString();
+		if (port_path) {
+			portArg += ":" + port_path;
+		}
+		rdbg_args.push("--port=" + portArg);
+		rdbg_args.push('--');
+		rdbg_args.push(...execCommand.split(' '));
+		return rdbg_args;
+	}
 
-				if (config.cwd) {
-					// Ensure we are in the requested working directory
-					const cd_command = "cd " + custom_path(config.cwd);
-					outputTerminal.sendText(cd_command);
-				}
+	getUnixRdbgArgs(exec_command: string, sockPath?: string) {
+		const rdbg_args: string[] = [];
+		rdbg_args.push('--command', '--open', '--stop-at-load');
+		if (sockPath) {
+			rdbg_args.push("--sock-path=" + sockPath);
+		}
+		rdbg_args.push('--');
+		rdbg_args.push(...exec_command.split(' '));
+		return rdbg_args;
+	}
 
-				outputTerminal.sendText(cmdline);
-			}
+	async launch_on_console(session: DebugSession): Promise<DebugAdapterDescriptor> {
+		const config = session.configuration as LaunchConfiguration;
+		const rdbg = config.rdbgPath || "rdbg";
 
-			if (config.noDebug) {
+		// outputChannel.appendLine(JSON.stringify(session));
+
+		let exec_command = '';
+		try {
+			exec_command = await this.getExecCommands(config);
+		} catch (error) {
+			if (error instanceof InvalidExecCommandError) {
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			}
+			throw error;
+		}
+		const options: child_process.SpawnOptionsWithoutStdio = {
+			env: { ...process.env, ...config.env },
+			cwd: custom_path(config.cwd || ''),
+		};
+		if (process.platform === 'win32') options.shell = 'powershell';
 
-			// use NamedPipe
-			if (sock_path) {
-				if (await this.wait_file(sock_path, config.waitLaunchTime)) {
-					return new DebugAdapterNamedPipeServer(sock_path);
-				}
-				else {
-					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
-				}
-			}
-			else if (tcp_port != undefined) {
-				if (tcp_port_file) {
-					if (await this.wait_file(tcp_port_file, config.waitLaunchTime)) {
-						const port_str = fs.readFileSync(tcp_port_file);
-						tcp_port = parseInt(port_str.toString());
-					}
-					else {
-						return new DebugAdapterInlineImplementation(new StopDebugAdapter);
-					}
-				}
-				else {
-					const wait_ms = config.waitLaunchTime ? config.waitLaunchTime : 5000 /* 5 sec */;
-					await this.sleep_ms(wait_ms);
-				}
-
-				return new vscode.DebugAdapterServer(tcp_port, tcp_host);
-			}
+		if (config.noDebug) {
+			const cmds = exec_command.split(' ');
+			const process = child_process.spawn(cmds[0], cmds.slice(1), options);
+			process.stdout.on('data', (chunk) => {
+				debugConsole.append(this.colorMessage(chunk.toString(), this.colors.blue));
+			});
+			process.stderr.on('data', (chunk) => {
+				debugConsole.append(this.colorMessage(chunk.toString(), this.colors.red));
+			});
+			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 		}
 
+		let sock_path: string | undefined = undefined;
+		let tcp_host: string | undefined = undefined;
+		let tcp_port: number | undefined = undefined;
+		if (config.debugPort) {
+			[tcp_host, tcp_port, sock_path] = this.parse_port(config.debugPort);
+		}
+		const debugConsole = vscode.debug.activeDebugConsole;
+		if (tcp_host !== undefined && tcp_port !== undefined) {
+			const rdbg_args = this.getTCPRdbgArgs(exec_command, tcp_host, tcp_port);
+			try {
+				[, tcp_port] = await this.runDebuggeeWithTCP(debugConsole, rdbg, rdbg_args, options);
+			} catch (error: any) {
+				vscode.window.showErrorMessage(error.message);
+				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+			}
+			return new vscode.DebugAdapterServer(tcp_port, tcp_host);
+		}
+		const rdbg_args = this.getUnixRdbgArgs(exec_command, sock_path);
+		try {
+			sock_path = await this.runDebuggeeWithUnix(debugConsole, rdbg, rdbg_args, options);
+		} catch (error: any) {
+			vscode.window.showErrorMessage(error.message);
+			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+		}
+		if (await this.wait_file(sock_path, config.waitLaunchTime)) {
+			return new DebugAdapterNamedPipeServer(sock_path);
+		}
 		// failed
 		return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 	}
+
+	private colorMessage(message: string, colorCode: number) {
+		return `\u001b[${colorCode}m${message}\u001b[0m`;
+	}
+
+	private readonly unixDomainRegex = /DEBUGGER:\sDebugger\scan\sattach\svia\s.+\((.+)\)/;
+	private readonly colors = {
+		red: 31,
+		blue: 34
+	};
+
+	private async runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
+		let connectionReady = false;
+		let sockPath = '';
+		let stderr = '';
+		return new Promise<string>((resolve, reject) => {
+			const debugProcess = child_process.spawn(cmd, args, options);
+			debugProcess.stderr.on('data', (chunk) => {
+				const msg: string = chunk.toString();
+				stderr += msg;
+				if (stderr.includes('DEBUGGER: wait for debugger connection...')) {
+					connectionReady = true;
+				}
+				const found = stderr.match(this.unixDomainRegex);
+				if (found !== null && found.length === 2) {
+					sockPath = found[1];
+				}
+				debugConsole.append(this.colorMessage(msg, this.colors.red));
+
+				if (sockPath.length > 0 && connectionReady) {
+					resolve(sockPath);
+				}
+			});
+			debugProcess.stdout.on('data', (chunk) => {
+				debugConsole.append(this.colorMessage(chunk.toString(), this.colors.blue));
+			});
+			debugProcess.on('error', (err) => {
+				debugConsole.append(err.message);
+				reject(err);
+			});
+		});
+	}
+
+	private readonly TCPRegex = /DEBUGGER:\sDebugger\scan\sattach\svia\s.+\((.+):(\d+)\)/;
+
+	private async runDebuggeeWithTCP(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
+		let connectionReady = false;
+		let host = '';
+		let port = -1;
+		let stderr = '';
+		return new Promise<[string, number]>((resolve, reject) => {
+			const debugProcess = child_process.spawn(cmd, args, options);
+			debugProcess.stderr.on('data', (chunk) => {
+				const msg: string = chunk.toString();
+				stderr += msg;
+				if (stderr.includes('DEBUGGER: wait for debugger connection...')) {
+					connectionReady = true;
+				}
+				const found = stderr.match(this.TCPRegex);
+				if (found !== null && found.length === 3) {
+					host = found[1];
+					port = parseInt(found[2]);
+				}
+				debugConsole.append(this.colorMessage(msg, this.colors.red));
+
+				if (host.length > 0 && port !== -1 && connectionReady) {
+					resolve([host, port]);
+				}
+			});
+			debugProcess.stdout.on('data', (chunk) => {
+				debugConsole.append(this.colorMessage(chunk.toString(), this.colors.blue));
+			});
+			debugProcess.on('error', (err) => {
+				debugConsole.append(err.message);
+				reject(err);
+			});
+		});
+	}
 }
+
+class InvalidExecCommandError extends Error { }
 
 interface AttachConfiguration extends DebugConfiguration {
 	type: 'rdbg';
@@ -645,5 +825,7 @@ interface LaunchConfiguration extends DebugConfiguration {
 
 	rdbgPath?: string;
 	showProtocolLog?: boolean;
+
+	useTerminal?: boolean
 }
 
