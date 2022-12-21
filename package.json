@@ -81,6 +81,11 @@
 							"localfsMap": {
 								"type": "string",
 								"description": "Specify pairs of remote root path and local root path like `/remote_dir:/local_dir`. `/remote_dir:$(workspaceFolder)` is useful. You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`."
+							},
+							"env": {
+								"type": "string",
+								"description": "Additional environment variables to pass to the rdbg process",
+								"default": {}
 							}
 						}
 					},
@@ -106,7 +111,7 @@
 							},
 							"args": {
 								"type": "array",
-								"description": "Command line arguments passed to the program.",
+								"description": "Command line arguments passed to the program",
 								"items": {
 									"type": "string"
 								},
@@ -114,7 +119,7 @@
 							},
 							"env": {
 								"type": "object",
-								"description": "Additional environment variables to pass to the debugging (and debugged) process.",
+								"description": "Additional environment variables to pass to the debugging (and debugged) process",
 								"default": {}
 							},
 							"showProtocolLog": {
