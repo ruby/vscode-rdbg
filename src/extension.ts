@@ -219,14 +219,19 @@ const findRDBGTerminal = (): vscode.Terminal | undefined => {
 class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	createDebugAdapterDescriptor(session: DebugSession, executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
 		// session.configuration.internalConsoleOptions = "neverOpen"; // TODO: doesn't affect...
+		const c = session.configuration;
 
-		if (session.configuration.request == 'attach') {
+		if (c.request == 'attach') {
 			return this.attach(session);
-		} else if (session.configuration.request == 'launch' && session.configuration.useTerminal) {
-			return this.launch_on_terminal(session);
 		}
 		else {
-			return this.launch_on_console(session);
+			// launch
+			if (c.useTerminal || c.noDebug) {
+				return this.launch_on_terminal(session);
+			}
+			else {
+				return this.launch_on_console(session);
+			}
 		}
 	}
 
@@ -663,6 +668,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	async launch_on_console(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
 		const rdbg = config.rdbgPath || "rdbg";
+		const debugConsole = vscode.debug.activeDebugConsole;
 
 		// outputChannel.appendLine(JSON.stringify(session));
 
@@ -681,25 +687,13 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		};
 		if (process.platform === 'win32') options.shell = 'powershell';
 
-		if (config.noDebug) {
-			const cmds = exec_command.split(' ');
-			const process = child_process.spawn(cmds[0], cmds.slice(1), options);
-			process.stdout.on('data', (chunk) => {
-				debugConsole.append(this.colorMessage(chunk.toString(), this.colors.blue));
-			});
-			process.stderr.on('data', (chunk) => {
-				debugConsole.append(this.colorMessage(chunk.toString(), this.colors.red));
-			});
-			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
-		}
-
 		let sock_path: string | undefined = undefined;
 		let tcp_host: string | undefined = undefined;
 		let tcp_port: number | undefined = undefined;
 		if (config.debugPort) {
 			[tcp_host, tcp_port, sock_path] = this.parse_port(config.debugPort);
 		}
-		const debugConsole = vscode.debug.activeDebugConsole;
+
 		if (tcp_host !== undefined && tcp_port !== undefined) {
 			const rdbg_args = this.getTCPRdbgArgs(exec_command, tcp_host, tcp_port);
 			try {
