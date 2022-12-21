@@ -261,7 +261,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		const cmd = this.make_shell_command(rdbg + ' --util=list-socks');
 		return new Promise((resolve, reject) => {
 			child_process.exec(cmd, {
-				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder()
+				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
+				env: { ...process.env, ...config.env }
 			}, (err, stdout, stderr) => {
 				if (err || stderr) {
 					reject(err ?? stderr);
@@ -346,7 +347,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
-			const p = child_process.exec(command, { cwd: config.cwd ? custom_path(config.cwd) : workspace_folder() });
+			const p = child_process.exec(command, {
+				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder() ,
+				env: { ...process.env, ...config.env }
+			});
 			let path: string;
 
 			p.on('error', e => {
@@ -375,7 +379,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-portpath");
-			const p = child_process.exec(command, { cwd: config.cwd ? custom_path(config.cwd) : workspace_folder() });
+			const p = child_process.exec(command, {
+				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
+				env: { ...process.env, ...config.env }
+			});
 			let path: string;
 
 			p.on('error', e => {
@@ -397,7 +404,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --version");
-			const p = child_process.exec(command, { cwd: config.cwd ? custom_path(config.cwd) : workspace_folder() });
+			const p = child_process.exec(command, {
+				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
+				env: { ...process.env, ...config.env }
+			});
 			let version: string;
 
 			p.on('error', e => {
@@ -799,6 +809,7 @@ interface AttachConfiguration extends DebugConfiguration {
 	type: 'rdbg';
 	request: 'attach';
 	rdbgPath?: string;
+	env?: { [key: string]: string };
 	debugPort?: string;
 	cwd?: string;
 	showProtocolLog?: boolean;
