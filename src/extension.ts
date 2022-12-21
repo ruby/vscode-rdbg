@@ -646,7 +646,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			rdbg_args.push("--sock-path=" + sockPath);
 		}
 		rdbg_args.push('--');
-		rdbg_args.push(...exec_command.split(' '));
+		rdbg_args.push(...exec_command.trim().split(' '));
 		return rdbg_args;
 	}
 
