@@ -116,7 +116,6 @@ export function deactivate() {
 
 class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactory {
 	createDebugAdapterTracker(session: DebugSession): ProviderResult<vscode.DebugAdapterTracker> {
-		// let initialized = false;
 		const tracker: vscode.DebugAdapterTracker = {
 			onWillStartSession(): void {
 				outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
@@ -372,7 +371,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
 			const p = child_process.exec(command, {
-				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
+				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder() ,
 				env: { ...process.env, ...config.env }
 			});
 			let path: string;
