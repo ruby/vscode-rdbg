@@ -2,6 +2,7 @@ import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { DebugProtocol } from '@vscode/debugprotocol';
 
 import {
 	CancellationToken,
@@ -115,6 +116,7 @@ export function deactivate() {
 
 class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactory {
 	createDebugAdapterTracker(session: DebugSession): ProviderResult<vscode.DebugAdapterTracker> {
+		// let initialized = false;
 		const tracker: vscode.DebugAdapterTracker = {
 			onWillStartSession(): void {
 				outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
@@ -128,12 +130,29 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 			},
 			onError(e) {
 				outputChannel.appendLine("[Error on session]\n" + e.name + ": " + e.message + "\ne: " + JSON.stringify(e));
+			},
+			onDidSendMessage(message: any) {
+				if (session.configuration.showProtocolLog) {
+					outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
+				}
+				const m = message as DebugProtocol.ProtocolMessage;
+				if (m.type === 'response') {
+					const res = m as DebugProtocol.Response;
+					if (res.command === 'stackTrace') {
+						const stRes = res as DebugProtocol.StackTraceResponse;
+						if (stRes.body.stackFrames[0].id === 1) {
+							const args: DebugProtocol.EvaluateArguments = {
+								frameId: 1,
+								expression: '$stdout.sync=true',
+								context: 'repl'
+							};
+							session.customRequest('evaluate', args).then(undefined, console.error);
+						}
+					}
+				}
 			}
 		};
 		if (session.configuration.showProtocolLog) {
-			tracker.onDidSendMessage = (message: any): void => {
-				outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
-			};
 			tracker.onWillReceiveMessage = (message: any): void => {
 				outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
 			};
@@ -353,7 +372,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
 			const p = child_process.exec(command, {
-				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder() ,
+				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
 				env: { ...process.env, ...config.env }
 			});
 			let path: string;
