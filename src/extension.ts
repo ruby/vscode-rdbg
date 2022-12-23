@@ -708,8 +708,14 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		let sock_path: string | undefined = undefined;
 		let tcp_host: string | undefined = undefined;
 		let tcp_port: number | undefined = undefined;
+
 		if (config.debugPort) {
 			[tcp_host, tcp_port, sock_path] = this.parse_port(config.debugPort);
+		}
+		else if (process.platform==='win32') {
+			// default
+			tcp_host = "localhost";
+			tcp_port = 0;
 		}
 
 		if (tcp_host !== undefined && tcp_port !== undefined) {

@@ -40,7 +40,7 @@ You can stop the programs
 When the program stops, you can see "Call stack", "Variables" and you can set "Watch" expressions.
 On the debug console, you can input valid Ruby program and you will get an evaluation result on selected context ("Call stack").
 
-See also: [Debugging in Visual Studio Code](https://code.visualstudio.com/docs/editor/debugging) 
+See also: [Debugging in Visual Studio Code](https://code.visualstudio.com/docs/editor/debugging)
 
 For developers: `RUBY_DEBUG_DAP_SHOW_PROTOCOL=1` on `rdbg` terminal will show the all DAP protocol.
 
@@ -121,7 +121,7 @@ You can use the following "launch" configurations.
     * Note that you can specify this `rdbgPath` by the extension configuration (default: `rdbg`).
     * default: `rdbg`
   * `debugPort`
-    * On default (without `debugPort` configulation), open a UNIX Domain Socket with default name to communicate with debuggee. If you want to use another debug port, set this configuration.
+    * On default (without `debugPort` configulation), open a UNIX Domain Socket (or TCP/IP `localhost:0` when `useTerminal: false`) with default name to communicate with debuggee. If you want to use another debug port, set this configuration.
       * `12345`: open a TCP/IP debug port with port `12345`
       * `hostname:12345`: open a TCP/IP port `12345` and hostname `hostname`
       * Otherwize, open a UNIX Domain socket with given configuration.
@@ -153,7 +153,7 @@ The following commands starts the `foo.rb` with opening debug port. There are mo
 # With rdbg command
 $ rdbg --open foo.rb              # open debug port. -O is short for --open
 $ rdbg -n -O foo.rb               # do not stop at the beggining of application
-$ rdbg -O -c -- bundle exec rspec # run rspec with remote 
+$ rdbg -O -c -- bundle exec rspec # run rspec with remote
 
 # With debug/open lib
 $ ruby -r debug/open foo.rb
@@ -187,7 +187,7 @@ You can specify the following "attach" configurations.
   * You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`.
   * default: undefined
 
-Without `debugPort` configuration, the 
+Without `debugPort` configuration, the
 
 With `debugPort`, you can attach to TCP/IP debug port.
 
