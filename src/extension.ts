@@ -747,6 +747,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	};
 
 	private async runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
+		pp(`Running: ${cmd} ${args?.join(' ')}`);
 		let connectionReady = false;
 		let sockPath = '';
 		let stderr = '';
@@ -781,6 +782,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	private readonly TCPRegex = /DEBUGGER:\sDebugger\scan\sattach\svia\s.+\((.+):(\d+)\)/;
 
 	private async runDebuggeeWithTCP(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
+		pp(`Running: ${cmd} ${args?.join(' ')}`);
 		let connectionReady = false;
 		let host = '';
 		let port = -1;
