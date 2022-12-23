@@ -91,22 +91,55 @@ You can modify this configuration, and also you can add your favorite configurat
 
 You can use the following "launch" configurations.
 
-* `script`: Script file name (default: active ruby file on VSCode)
-* `command`: Executable command (default: `ruby`)
-* `cwd`: Directory to execute the program in (default: `${workspaceFolder}`)
-* `args`: Command line arguments passed to the program (default: `[]`)
-* `env`: Additional environment variables to pass to the debugging (and debugged) process.
-* `useBundler`: Execute Ruby programs with `bundle exec` if `command` configuration is not given and `Gemfile` is available in the workspace.
-* `askParameters`: Ask "Debug command line" before debugging (default: `true`)
-* `rdbgPath`: Location of the rdbg executable (default: `rdbg`).
-* `debugPort`: On default (without `debugPort` configulation), open a UNIX Domain Socket with default name to communicate with debuggee. If you want to use another debug port, set this configuration.
-  * `12345`: open a TCP/IP debug port with port `12345`
-  * `hostname:12345`: open a TCP/IP port `12345` and hostname `hostname`
-  * Otherwize, open a UNIX Domain socket with given filename.
-  * Note that you can specify `0` TCP/IP port (choose usable port) with debug.gem v1.5.0 or later.
-* `waitLaunchTime`: If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds). With debug.gem 1.5.0 and later you may not need this configulation.
-* `localfs`: On TCP/IP, if target host is local machine, set `true` and you can open the file directly (default: `false`).
-* `useTerminal`: Create a new terminal and then execute the debug command line there (default: `false`).
+* Debuggee settings
+  * `script`
+    * A target script file name.
+    * default: an active ruby file on VSCode
+  * `command`
+    * Executable Ruby command. You can specify `bundle exec ruby` for example.
+    * default: `ruby`
+  * `cwd`
+    * Directory to execute the program in.
+    * default: `${workspaceFolder}`
+  * `args`
+    * Command line arguments passed to the program.
+    * default: `[]`
+  * `env`
+    * Additional environment variables to pass to the debugging (and debugged) process.
+    * default: N/A
+  * `useBundler`:
+    * Execute Ruby programs with `bundle exec` if `command` configuration is not given. and `Gemfile` is available in the workspace.
+    * Note that you can specify this `useBundler` by the extension configuration (default: true).
+    * default: undefined (and the extention configuration default value is `true`)
+* Behavir settings
+  * `askParameters`
+    * Ask "Debug command line" before debugging. If the MAIN program is always same, set it false.
+    * Note that the last invoked command is rememberred.
+    * default: true
+  * `rdbgPath`
+    * Location of the rdbg executable.
+    * Note that you can specify this `rdbgPath` by the extension configuration (default: `rdbg`).
+    * default: `rdbg`
+  * `debugPort`
+    * On default (without `debugPort` configulation), open a UNIX Domain Socket with default name to communicate with debuggee. If you want to use another debug port, set this configuration.
+      * `12345`: open a TCP/IP debug port with port `12345`
+      * `hostname:12345`: open a TCP/IP port `12345` and hostname `hostname`
+      * Otherwize, open a UNIX Domain socket with given configuration.
+    * Note that you can specify `0` TCP/IP port (choose usable port) with debug.gem v1.5.0 or later.
+  * `waitLaunchTime`
+    * If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds).
+    * With debug.gem 1.5.0 and later you may not need this configulation.
+  * `localfs`
+    * On TCP/IP, if target host is local machine, set `true` and you can open the file directly
+    * default: false
+  * `useTerminal`
+    * If the configuration is true, create a new terminal and then execute the debug command line there. It is a bit slower.
+    * Otherwise, all outputs to the STDIN/OUT are shown in the DEBUG CONSOLE.
+    * If you need to use STDIN, please set this option.
+    * default: false
+  * `showProtocolLog`
+    * Prints all DAP communication log in "rdbg" output. This is for development of this extension.
+    * default: false
 
 Note that if you have a trouble by launching `rdbg`, please try to specify `rdbgPath`. Without this configuration, this extension simply calls `rdbg` in PATH.
 
@@ -114,26 +147,57 @@ Note that if you have a trouble by launching `rdbg`, please try to specify `rdbg
 
 You can attach to a Ruby process which run with an opening debugger port.
 
-The following command starts the `foo.rb` with opening debug port. There are more methods to open the port. See more for [ruby/debug: Debugging functionality for Ruby](https://github.com/ruby/debug).
+The following commands starts the `foo.rb` with opening debug port. There are more methods to open the port. See more for [ruby/debug: Debugging functionality for Ruby](https://github.com/ruby/debug).
 
 ```shell
-$ rdbg --open foo.rb
+# With rdbg command
+$ rdbg --open foo.rb              # open debug port. -O is short for --open
+$ rdbg -n -O foo.rb               # do not stop at the beggining of application
+$ rdbg -O -c -- bundle exec rspec # run rspec with remote 
+
+# With debug/open lib
+$ ruby -r debug/open foo.rb
+$ ruby -r debug/open_nonstop foo.rb # do not stop at the beggining of application
+
+# If your application requires debug/open (or debug/open_nonstop) explictly, of course -r is not needed.
+$ ruby foo.rb
+
+# With debug lib with RUBY_DEBUG_OPEN
+$ RUBY_DEBUG_OPEN=true ruby -r debug foo.rb
+
+# If your application requires debug explictly, of course -r is not needed.
+$ RUBY_DEBUG_OPEN=true ruby foo.rb
+
+# If your Gemfile has a line `gem 'debug'` with Rails, you only need to launch it with the `RUBY_DEBUG_OPEN` envval.
+$ RUBY_DEBUG_OPEN=true raise server
 ```
 
 After that, you can connect to the debug port. This extension searches opening debugger port and attach to that port by running `Attach with rdbg` (select it on the top of "RUN AND DEBUG" pane and push the green "Start Debugging" button).
 
 You can specify the following "attach" configurations.
 
-* `rdbgPath`: Same as `launch` request.
-* `debugPort`: Same as `launch` request.
-* `localfs`: Same as `launch` request.
-* `localfsMap`: Specify pairs of remote root path and local root path like `/remote_dir:/local_dir`. You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`.
+* `rdbgPath`
+  * Same as `launch` request.
+* `debugPort`
+  * Same as `launch` request.
+* `localfs`
+  * Same as `launch` request.
+* `localfsMap`
+  * Specify pairs of remote root path and local root path like `/remote_dir:/local_dir` if sharing the same source reposiroty with local and remote computers.
+  * You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`.
+  * default: undefined
+
+Without `debugPort` configuration, the 
 
 With `debugPort`, you can attach to TCP/IP debug port.
 
-* Start with a TCP/IP debug port with `rdbg --open --port 12345 foo.rb`
-* Add `debugPort: '12345'` attach configration.
-* Choose `Attach with rdbg` and start attach debugging
+* Start your debuggee command with a TCP/IP debug port with debug.gem configurations.
+  * Using `rdbg` command like: `rdbg --open --port 12345 foo.rb`
+  * Using `debug/open` lib: `RUBY_DEBUG_PORT=12345 ruby -r debug/open foo.rb`
+  * Using `debug` lib with `RUBY_DEBUG_OPEN` envval: `RUBY_DEBUG_OPEN=true RUBY_DEBUG_PORT=12345 ruby -r debug foo.rb`
+* On VSCode (debugger-side):
+  * Add `debugPort: '12345'` attach configration.
+  * Choose `Attach with rdbg` and start attach debugging
 
 `localfsMap` is helpful if you run the debuggee and share the same file system with another name in debuggee.
 
