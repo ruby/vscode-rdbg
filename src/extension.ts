@@ -650,7 +650,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 		rdbg_args.push("--port=" + portArg);
 		rdbg_args.push('--');
-		rdbg_args.push(...execCommand.split(' '));
+		rdbg_args.push(...execCommand.trim().split(' '));
 		return rdbg_args;
 	}
 
