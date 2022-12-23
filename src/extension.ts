@@ -353,7 +353,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
 			const p = child_process.exec(command, {
-				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder() ,
+				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
 				env: { ...process.env, ...config.env }
 			});
 			let path: string;
@@ -757,6 +757,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				debugConsole.append(err.message);
 				reject(err);
 			});
+			debugProcess.on('exit', (code) => {
+				reject(new Error(`Couldn't start debug session. The debuggee process exited with code ${code}`));
+			});
 		});
 	}
 
@@ -792,6 +795,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			debugProcess.on('error', (err) => {
 				debugConsole.append(err.message);
 				reject(err);
+			});
+			debugProcess.on('exit', (code) => {
+				reject(new Error(`Couldn't start debug session. The debuggee process exited with code ${code}`));
 			});
 		});
 	}
