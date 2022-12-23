@@ -158,4 +158,5 @@ In this case, the current directory of host (`${workspaceFolder}`) is shared wit
 
 ## Acknowledgement
 
-This extension is based on [Ethan Reesor / VSCode Byebug · GitLab](https://gitlab.com/firelizzard/vscode-byebug/-/tree/master/) by Ethan Reesor. Without his great work, the extension can not be released (Koichi learned TypeScript, VSCode extension and DAP by his extension).
+* This extension is based on [Ethan Reesor / VSCode Byebug · GitLab](https://gitlab.com/firelizzard/vscode-byebug/-/tree/master/) by Ethan Reesor. Without his great work, the extension can not be released (Koichi learned TypeScript, VSCode extension and DAP by his extension).
+* Icon is by [@firien](https://github.com/firien) (https://github.com/ruby/vscode-rdbg/pull/74).
