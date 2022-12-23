@@ -17,6 +17,8 @@ import {
 	ThemeIcon
 } from 'vscode';
 
+import { DebugProtocol } from '@vscode/debugprotocol';
+
 let outputChannel: vscode.OutputChannel;
 let outputTerminals = new Map<string, vscode.Terminal>();
 let last_exec_command: string | undefined;
@@ -81,6 +83,22 @@ export function activate(context: vscode.ExtensionContext) {
 	//
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(e => {
 		export_breakpoints(context);
+	}));
+
+	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {
+		const config = session.configuration;
+		if (config.request !== 'launch' || config.useTerminal || config.noDebug) return;
+
+		const args: DebugProtocol.EvaluateArguments = {
+			expression: ',eval $stdout.sync=true',
+			context: 'repl'
+		};
+		try {
+			await session.customRequest('evaluate', args);
+		} catch (err) {
+			// We need to ignore the error because this request will be failed if the version of rdbg is older than 1.7. The `,command` API is introduced from version 1.7.
+			pp(err);
+		}
 	}));
 
 	const folders = vscode.workspace.workspaceFolders;
