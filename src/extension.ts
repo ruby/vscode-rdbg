@@ -756,6 +756,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			debugProcess.stderr.on('data', (chunk) => {
 				const msg: string = chunk.toString();
 				stderr += msg;
+				if (stderr.includes('Error')) {
+					reject(new Error(stderr));
+				}
 				if (stderr.includes('DEBUGGER: wait for debugger connection...')) {
 					connectionReady = true;
 				}
@@ -795,6 +798,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			debugProcess.stderr.on('data', (chunk) => {
 				const msg: string = chunk.toString();
 				stderr += msg;
+				if (stderr.includes('Error')) {
+					reject(new Error(stderr));
+				}
 				if (stderr.includes('DEBUGGER: wait for debugger connection...')) {
 					connectionReady = true;
 				}
