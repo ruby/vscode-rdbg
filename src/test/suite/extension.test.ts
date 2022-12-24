@@ -77,7 +77,7 @@ suite('attach', () => {
 			suiteTeardown(() => {
 				process.env.RUBY_DEBUG_AUTOATTACH = undefined;
 			});
-	
+
 			test('success', async () => {
 				const addr = server.address() as net.AddressInfo;
 				const port = addr.port;
