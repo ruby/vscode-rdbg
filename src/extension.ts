@@ -1,6 +1,7 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as net from 'net';
 import * as vscode from 'vscode';
 
 import {
@@ -513,6 +514,15 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return true;
 	}
 
+	getRandomPort() {
+		const server = net.createServer();
+		server.listen(0);
+		const addr = server.address() as net.AddressInfo;
+		const port = addr.port;
+		server.close();
+		return port;
+	}
+
 	async launch_on_terminal(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
 		const rdbg = config.rdbgPath || "rdbg";
@@ -528,11 +538,16 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		if (config.debugPort) {
 			[tcp_host, tcp_port, sock_path] = this.parse_port(config.debugPort);
 
-			if (tcp_port != undefined) {
+			if (process.platform === 'win32' && tcp_port === 0) {
+				tcp_port = this.getRandomPort();
+			} else if (tcp_port != undefined) {
 				tcp_port_file = await this.get_tcp_port_file(config);
 			}
-		}
-		else {
+		} else if (process.platform === 'win32') {
+			// default
+			tcp_host = "localhost";
+			tcp_port = this.getRandomPort();
+		} else {
 			sock_path = await this.get_sock_path(config);
 			if (!sock_path) {
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
