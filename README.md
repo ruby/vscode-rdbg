@@ -121,17 +121,14 @@ You can use the following "launch" configurations.
     * Note that you can specify this `rdbgPath` by the extension configuration (default: `rdbg`).
     * default: `rdbg`
   * `debugPort`
-    * On default (without `debugPort` configulation), open a UNIX Domain Socket (or TCP/IP `localhost:0` when `useTerminal: false`) with default name to communicate with debuggee. If you want to use another debug port, set this configuration.
-      * `12345`: open a TCP/IP debug port with port `12345`
-      * `hostname:12345`: open a TCP/IP port `12345` and hostname `hostname`
-      * Otherwize, open a UNIX Domain socket with given configuration.
+    * Without `debugPort` configulation, open a UNIX Domain Socket (or TCP/IP `localhost:0` on Windows) to communicate with debuggee. If you want to use another debug port, set this configuration.
+      * Digits (e.g. `12345`): open a TCP/IP debug port with port `12345`
+      * `hostname:port` (e.g. `hostname:12345`): open a TCP/IP port `12345` and hostname `hostname`
+      * Otherwize, open a UNIX Domain socket with the filename given by this configration.
     * Note that you can specify `0` TCP/IP port (choose usable port) with debug.gem v1.5.0 or later.
   * `waitLaunchTime`
     * If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds).
     * With debug.gem 1.5.0 and later you may not need this configulation.
-  * `localfs`
-    * On TCP/IP, if target host is local machine, set `true` and you can open the file directly
-    * default: false
   * `useTerminal`
     * If the configuration is true, create a new terminal and then execute the debug command line there. It is a bit slower.
     * Otherwise, all outputs to the STDIN/OUT are shown in the DEBUG CONSOLE.
@@ -181,7 +178,8 @@ You can specify the following "attach" configurations.
 * `debugPort`
   * Same as `launch` request.
 * `localfs`
-  * Same as `launch` request.
+  * On TCP/IP, if target host is local machine, set `true` and you can open the file directly
+  * default: false
 * `localfsMap`
   * Specify pairs of remote root path and local root path like `/remote_dir:/local_dir` if sharing the same source reposiroty with local and remote computers.
   * You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`.
