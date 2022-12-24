@@ -319,13 +319,9 @@ suite('launch', () => {
 		});
 	});
 
-	suite('unix domain socket: success', () => {
+	suite('default: success', () => {
 		const projectRoot = path.join(__dirname, '..', '..', '..');
 		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
-
-		setup(function () {
-			if (process.platform === 'win32') this.skip();
-		});
 
 		test('config.debugPort is undefined', async () => {
 			const c = generateLaunchConfig(testData);
