@@ -8,8 +8,20 @@ on:
     - released
 
 jobs:
-  publish:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      is_new_release: ${{ steps.check_tag_ref.outputs.IS_NEW_RELEASE }}
+    steps:
+    - name: Check Tag ref
+      id: check_tag_ref
+      run: |
+        if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "IS_NEW_RELEASE=true" >> $GITHUB_OUTPUT
+        fi
+  publishToVSMarket:
+    runs-on: ubuntu-latest
+    needs: setup
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -17,14 +29,8 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
-    - name: Check Tag ref
-      id: check_tag_ref
-      run: |
-        if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "IS_NEW_RELEASE=true" >> $GITHUB_OUTPUT
-        fi
-    - name: Publish
-      if: ${{ steps.check_tag_ref.outputs.IS_NEW_RELEASE == 'true' }}
+    - name: Publish to Visual Studio Marketplace
+      if: ${{ needs.setup.outputs.is_new_release == 'true' }}
       run: |
         npm install
         npm install --global @vscode/vsce
@@ -33,3 +39,23 @@ jobs:
         # To help protect secrets, we set VSCE_PAT as an environemnt variables.
         # https://docs.github.com/en/actions/security-guides/encrypted-secrets#using-encrypted-secrets-in-a-workflow
         VSCE_PAT: ${{ secrets.VSCE_PAT }}
+  publishToOpenVSX:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.x
+    - name: Publish to Open VSX Registry
+      if: ${{ needs.setup.outputs.is_new_release == 'true' }}
+      run: |
+        npm install
+        npm install --global ovsx
+        ovsx publish
+      env:
+        # To help protect secrets, we set VSCE_PAT as an environemnt variables.
+        # https://docs.github.com/en/actions/security-guides/encrypted-secrets#using-encrypted-secrets-in-a-workflow
+        OVSX_PAT: ${{ secrets.OVSX_PAT }}
