@@ -127,7 +127,7 @@ You can use the following "launch" configurations.
       * Otherwize, open a UNIX Domain socket with the filename given by this configration.
     * Note that you can specify `0` TCP/IP port (choose usable port) with debug.gem v1.5.0 or later.
   * `waitLaunchTime`
-    * If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 1000 milli seconds (1 sec) but if it is not enough, please specify more wait time (default: `1000` in milli seconds).
+    * If you want to open TCP/IP debug port, you may need to wait for opening debug port. On default, it waits 5000 milli seconds (5 sec) but if it is not enough, please specify more wait time (default: `5000` in milli seconds).
     * With debug.gem 1.5.0 and later you may not need this configulation.
   * `useTerminal`
     * If the configuration is true, create a new terminal and then execute the debug command line there. It is a bit slower.
