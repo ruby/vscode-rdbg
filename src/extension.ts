@@ -727,7 +727,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		if (config.debugPort) {
 			[tcp_host, tcp_port, sock_path] = this.parse_port(config.debugPort);
 		}
-		else if (process.platform==='win32') {
+		else if (process.platform === 'win32') {
 			// default
 			tcp_host = "localhost";
 			tcp_port = 0;
