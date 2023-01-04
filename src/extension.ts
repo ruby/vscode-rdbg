@@ -19,6 +19,7 @@ import {
 } from 'vscode';
 
 import { DebugProtocol } from '@vscode/debugprotocol';
+import { ExecLogsProvider } from './tree';
 
 let outputChannel: vscode.OutputChannel;
 let outputTerminals = new Map<string, vscode.Terminal>();
@@ -84,6 +85,10 @@ export function activate(context: vscode.ExtensionContext) {
 	//
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(e => {
 		export_breakpoints(context);
+	}));
+
+	context.subscriptions.push(vscode.debug.onDidStartDebugSession((session) => {
+		vscode.window.registerTreeDataProvider('historyInspector', new ExecLogsProvider(session));
 	}));
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {

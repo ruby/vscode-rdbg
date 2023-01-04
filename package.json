@@ -35,7 +35,8 @@
 	"activationEvents": [
 		"onLanguage:ruby",
 		"onDebug",
-		"workspaceContains:.vscode/rdbg_autoattach.json"
+		"workspaceContains:.vscode/rdbg_autoattach.json",
+		"onView:historyInspector"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -203,6 +204,47 @@
 					"description": "(experimental) Save breakpoints information to '.rdbg.breakpoints' for rdbg command"
 				}
 			}
+		},
+		"views": {
+			"debug": [
+				{
+					"id": "historyInspector",
+					"name": "History Inspector"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "historyInspector.startRecord",
+				"title": "Start Record"
+			},
+			{
+				"command": "historyInspector.stopRecord",
+				"title": "Stop Record"
+			},
+			{
+				"command": "historyInspector.goToHere",
+				"title": "Go To Here"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "historyInspector.startRecord",
+					"when": "debuggersAvailable && inDebugMode"
+				},
+				{
+					"command": "historyInspector.stopRecord",
+					"when": "debuggersAvailable && inDebugMode"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "historyInspector.goToHere",
+					"when": "debuggersAvailable && inDebugMode && view == historyInspector && viewItem == goToHere",
+					"group": "inline"
+				}
+			]
 		}
 	},
 	"scripts": {
