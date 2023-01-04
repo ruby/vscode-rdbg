@@ -15,10 +15,12 @@ import {
 	DebugSession,
 	ProviderResult,
 	WorkspaceFolder,
-	ThemeIcon
+	ThemeIcon,
+	EventEmitter
 } from "vscode";
 
 import { DebugProtocol } from "@vscode/debugprotocol";
+import { registerTraceProvider } from "./trace";
 
 let outputChannel: vscode.OutputChannel;
 const outputTerminals = new Map<string, vscode.Terminal>();
@@ -77,9 +79,11 @@ function exportBreakpoints() {
 export function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel("rdbg");
 
+	const adapterDescriptorFactory = new RdbgAdapterDescriptorFactory();
+	const stopppedEvtEmitter = new EventEmitter<number | undefined>();
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider("rdbg", new RdbgInitialConfigurationProvider()));
-	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory("rdbg", new RdbgAdapterDescriptorFactory()));
-	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory("rdbg", new RdbgDebugAdapterTrackerFactory()));
+	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory("rdbg", adapterDescriptorFactory));
+	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory("rdbg", new RdbgDebugAdapterTrackerFactory(stopppedEvtEmitter)));
 
 	//
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(() => {
@@ -127,13 +131,41 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}
 	}
+
+	let disposables: vscode.Disposable[];
+	context.subscriptions.push(
+		vscode.debug.onDidStartDebugSession((session) => {
+			const enabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgTraceInspector");
+			if (!enabled) return;
+
+			const config = session.configuration as LaunchConfiguration;
+			adapterDescriptorFactory.getVersion(config).then((strVer) => {
+				if (strVer === null) return;
+				const version = adapterDescriptorFactory.vernum(strVer);
+				// checks the version of debug.gem is 1.8.0 or higher.
+				if (version >= 1008000) {
+					disposables = registerTraceProvider(context, stopppedEvtEmitter);
+				}
+			});
+		}),
+
+		vscode.debug.onDidTerminateDebugSession(() => {
+			for (const disp of disposables) {
+				disp.dispose();
+			}
+		})
+	);
 }
 
 export function deactivate() {
 }
 
 class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactory {
+	constructor(
+		public readonly _emitter: vscode.EventEmitter<number | undefined>,
+	) {}
 	createDebugAdapterTracker(session: DebugSession): ProviderResult<vscode.DebugAdapterTracker> {
+		const self = this;
 		const tracker: vscode.DebugAdapterTracker = {
 			onWillStartSession(): void {
 				outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
@@ -151,13 +183,26 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 		};
 		if (session.configuration.showProtocolLog) {
 			tracker.onDidSendMessage = (message: any): void => {
+				self.stoppedEvtPublisher(message);
 				outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
 			};
 			tracker.onWillReceiveMessage = (message: any): void => {
 				outputChannel.appendLine("[VSCode->DA] " + JSON.stringify(message));
 			};
+		} else {
+			tracker.onDidSendMessage = (message: any): void => {
+				self.stoppedEvtPublisher(message);
+			};
 		}
 		return tracker;
+	}
+
+	private stoppedEvtPublisher(message: any) {
+		if (message.event === "stopped") {
+			const evt = message as DebugProtocol.StoppedEvent;
+			const threadId = evt.body.threadId;
+			this._emitter.fire(threadId);
+		}
 	}
 }
 
