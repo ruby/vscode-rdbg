@@ -1,10 +1,13 @@
-import { DebugProtocol } from '@vscode/debugprotocol';
 import * as vscode from 'vscode';
+
+const locationId = 'location';
+const groupByRefTypeId = 'group-by-ref-type';
 
 export class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecLogChild> {
 	private threadId: number = 0;
 	private currentLogIdx: number = 0;
 	constructor(private readonly session: vscode.DebugSession) {
+		vscode.commands.executeCommand('setContext', 'startRecordEnabled', true);
 		vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
 			switch (event.event) {
 				case 'execLogsUpdated':
@@ -13,18 +16,24 @@ export class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecL
 			}
 		});
 		vscode.commands.registerCommand('historyInspector.startRecord', async () => {
+			vscode.commands.executeCommand('setContext', 'startRecordEnabled', false);
+			vscode.commands.executeCommand('setContext', 'stopRecordEnabled', true);
 			try {
 				await this.session.customRequest('rdbgInspectorStartRecord');
 			} catch (err) { }
 		});
 		vscode.commands.registerCommand('historyInspector.stopRecord', async () => {
+			vscode.commands.executeCommand('setContext', 'startRecordEnabled', true);
+			vscode.commands.executeCommand('setContext', 'stopRecordEnabled', false);
 			try {
 				await this.session.customRequest('rdbgInspectorStopRecord');
 			} catch (err) { }
 		});
-		vscode.commands.registerCommand('historyInspector.goToHere', async (arg: ExecLogChild) => {
+		vscode.commands.registerCommand('historyInspector.goToHere', async (index: number | undefined) => {
+			if (index === undefined) return;
+
 			let cmd: string;
-			let times = this.currentLogIdx - arg.index;
+			let times = this.currentLogIdx - index;
 			if (times > 0) {
 				cmd = 'rdbgInspectorStepBack';
 			} else {
@@ -43,7 +52,7 @@ export class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecL
 		return element;
 	}
 
-	async getChildren(element?: ExecLog | ExecLogChild): Promise<ExecLog[] | ExecLogChild[]> {
+	async getChildren(element?: ExecLog): Promise<ExecLog[] | ExecLogChild[]> {
 		if (element) {
 			let resp: execLogsChildResponse;
 			try {
@@ -60,7 +69,7 @@ export class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecL
 				if (loc.index === resp.logIndex) {
 					label.highlights = [[0, loc.name.length]];
 				}
-				return new ExecLogChild(label, vscode.TreeItemCollapsibleState.None, loc.index);
+				return new ExecLogChild(label, vscode.TreeItemCollapsibleState.None, loc.index, locationId);
 			});
 		} else {
 			let resp: execLogsResponse;
@@ -78,7 +87,7 @@ export class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecL
 					label.highlights = [[0, frame.name.length]];
 					state = vscode.TreeItemCollapsibleState.Expanded;
 				}
-				return new ExecLog(label, state, index, frame.arguments);
+				return new ExecLog(label, state, index, frame.arguments, groupByRefTypeId);
 			});
 		}
 	}
@@ -99,10 +108,14 @@ class ExecLog extends vscode.TreeItem {
 		public readonly collapsibleState: vscode.TreeItemCollapsibleState,
 		public readonly index: number,
 		private readonly args: string[],
+		private readonly iconId: string,
 	) {
 		super(label, collapsibleState);
-		this.tooltip = `Frame: ${this.label.label} Argument: ${this.args.join(" ")}`;
-		this.description = this.args.join(" ");
+		let argString = this.args.join(" ");
+		if (argString.trim().length < 1) argString = 'nil';
+		this.description = `args: ${argString}`;
+		this.tooltip = `Frame: ${this.label.label} Arguments: ${argString}`;
+		this.iconPath = new vscode.ThemeIcon(this.iconId);
 	}
 }
 
@@ -111,10 +124,12 @@ class ExecLogChild extends vscode.TreeItem {
 		public readonly label: vscode.TreeItemLabel,
 		public readonly collapsibleState: vscode.TreeItemCollapsibleState,
 		public readonly index: number,
+		private readonly iconId: string,
 	) {
 		super(label, collapsibleState);
 		this.tooltip = this.label.label;
-		this.contextValue = 'goToHere';
+		this.command = { command: 'historyInspector.goToHere', title: 'Go To Here', arguments: [this.index] };
+		this.iconPath = new vscode.ThemeIcon(this.iconId);
 	}
 }
 

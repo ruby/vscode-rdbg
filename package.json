@@ -216,11 +216,19 @@
 		"commands": [
 			{
 				"command": "historyInspector.startRecord",
-				"title": "Start Record"
+				"title": "Start Record",
+				"icon": {
+					"light": "media/startRecord.svg",
+					"dark": "media/startRecord.svg"
+				}
 			},
 			{
 				"command": "historyInspector.stopRecord",
-				"title": "Stop Record"
+				"title": "Stop Record",
+				"icon": {
+					"light": "media/stopRecord.svg",
+					"dark": "media/stopRecord.svg"
+				}
 			},
 			{
 				"command": "historyInspector.goToHere",
@@ -231,18 +239,13 @@
 			"view/title": [
 				{
 					"command": "historyInspector.startRecord",
-					"when": "debuggersAvailable && inDebugMode"
+					"when": "debuggersAvailable && inDebugMode && view == historyInspector && startRecordEnabled",
+					"group": "navigation"
 				},
 				{
 					"command": "historyInspector.stopRecord",
-					"when": "debuggersAvailable && inDebugMode"
-				}
-			],
-			"view/item/context": [
-				{
-					"command": "historyInspector.goToHere",
-					"when": "debuggersAvailable && inDebugMode && view == historyInspector && viewItem == goToHere",
-					"group": "inline"
+					"when": "debuggersAvailable && inDebugMode && view == historyInspector && stopRecordEnabled",
+					"group": "navigation"
 				}
 			]
 		}
