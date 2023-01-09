@@ -19,7 +19,8 @@ import {
 } from 'vscode';
 
 import { DebugProtocol } from '@vscode/debugprotocol';
-import { ExecLogsProvider } from './tree';
+import { registerExecLogsProvider } from './tree';
+import { registerTraceLogsProvider } from './trace';
 
 let outputChannel: vscode.OutputChannel;
 let outputTerminals = new Map<string, vscode.Terminal>();
@@ -87,9 +88,8 @@ export function activate(context: vscode.ExtensionContext) {
 		export_breakpoints(context);
 	}));
 
-	context.subscriptions.push(vscode.debug.onDidStartDebugSession((session) => {
-		vscode.window.registerTreeDataProvider('historyInspector', new ExecLogsProvider(session));
-	}));
+	registerExecLogsProvider(context);
+	registerTraceLogsProvider(context);
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {
 		const config = session.configuration;

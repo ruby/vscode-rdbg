@@ -1,49 +1,105 @@
 import * as vscode from 'vscode';
+import { DebugProtocol } from '@vscode/debugprotocol';
 
 const locationId = 'location';
 const groupByRefTypeId = 'group-by-ref-type';
 
-export class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecLogChild> {
-	private threadId: number = 0;
-	private currentLogIdx: number = 0;
-	constructor(private readonly session: vscode.DebugSession) {
-		vscode.commands.executeCommand('setContext', 'startRecordEnabled', true);
-		vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
-			switch (event.event) {
-				case 'execLogsUpdated':
-					this.threadId = event.body.threadId;
-					this._onDidChangeTreeData.fire();
+export function registerExecLogsProvider(ctx: vscode.ExtensionContext) {
+	const provider = new ExecLogsProvider();
+	ctx.subscriptions.push(
+		vscode.window.registerTreeDataProvider('debugReplayer', provider),
+
+		vscode.commands.registerCommand('debugReplayer.startRecord', async () => {
+			const session = vscode.debug.activeDebugSession;
+			if (session === undefined) {
+				vscode.window.showErrorMessage('Failed to get active debug session');
+				return;
 			}
-		});
-		vscode.commands.registerCommand('historyInspector.startRecord', async () => {
 			vscode.commands.executeCommand('setContext', 'startRecordEnabled', false);
 			vscode.commands.executeCommand('setContext', 'stopRecordEnabled', true);
 			try {
-				await this.session.customRequest('rdbgInspectorStartRecord');
+				await sendDebugCommand(session, 'record on');
 			} catch (err) { }
-		});
-		vscode.commands.registerCommand('historyInspector.stopRecord', async () => {
+		}),
+
+		vscode.commands.registerCommand('debugReplayer.stopRecord', async () => {
+			const session = vscode.debug.activeDebugSession;
+			if (session === undefined) {
+				vscode.window.showErrorMessage('Failed to get active debug session');
+				return;
+			}
 			vscode.commands.executeCommand('setContext', 'startRecordEnabled', true);
 			vscode.commands.executeCommand('setContext', 'stopRecordEnabled', false);
 			try {
-				await this.session.customRequest('rdbgInspectorStopRecord');
+				await sendDebugCommand(session, 'record off');
 			} catch (err) { }
-		});
-		vscode.commands.registerCommand('historyInspector.goToHere', async (index: number | undefined) => {
+		}),
+
+		vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
+			switch (event.event) {
+				case 'rdbgInspectorExecLogsUpdated':
+					provider.threadId = event.body.threadId;
+					provider.refresh();
+			}
+		}),
+
+		vscode.commands.registerCommand('debugReplayer.goToHere', async (index: number | undefined) => {
 			if (index === undefined) return;
 
+			const session = vscode.debug.activeDebugSession;
+			if (session === undefined) {
+				vscode.window.showErrorMessage('Failed to get active debug session');
+				return;
+			}
+
 			let cmd: string;
-			let times = this.currentLogIdx - index;
+			const times = provider.currentLogIndex - index;
 			if (times > 0) {
-				cmd = 'rdbgInspectorStepBack';
+				cmd = `step back ${times}`;
 			} else {
-				cmd = 'rdbgInspectorStepInto';
-				times = Math.abs(times);
+				cmd = `s ${Math.abs(times)}`;
 			};
 			try {
-				await this.session.customRequest(cmd, { times });
+				await sendDebugCommand(session, cmd);
 			} catch (err) { }
-		});
+		}),
+
+		vscode.debug.onDidStartDebugSession(() => {
+			vscode.commands.executeCommand('setContext', 'startRecordEnabled', true);
+			vscode.commands.executeCommand('setContext', 'stopRecordEnabled', false);
+		}),
+
+		vscode.debug.onDidTerminateDebugSession(() => {
+			provider.refresh();
+			vscode.commands.executeCommand('setContext', 'startRecordEnabled', true);
+			vscode.commands.executeCommand('setContext', 'stopRecordEnabled', false);
+		})
+	);
+}
+
+async function sendDebugCommand(session: vscode.DebugSession, cmd: string) {
+	const args: DebugProtocol.EvaluateArguments = {
+		expression: `,${cmd}`,
+		context: 'repl'
+	};
+	try {
+		await session.customRequest('evaluate', args);
+	} catch (err) { }
+	try {
+		await session.customRequest('completions');
+	} catch (err) { }
+};
+
+class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecLogChild> {
+	public threadId: number = 0;
+	private currentLogIdx: number = 0;
+
+	refresh() {
+		this._onDidChangeTreeData.fire();
+	}
+
+	get currentLogIndex() {
+		return this.currentLogIdx;
 	}
 
 	private _onDidChangeTreeData: vscode.EventEmitter<ExecLog | ExecLogChild | undefined | null | void> = new vscode.EventEmitter<ExecLog | ExecLogChild | undefined | null | void>();
@@ -53,10 +109,13 @@ export class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecL
 	}
 
 	async getChildren(element?: ExecLog): Promise<ExecLog[] | ExecLogChild[]> {
+		const session = vscode.debug.activeDebugSession;
+		if (session === undefined) return [];
+
 		if (element) {
 			let resp: execLogsChildResponse;
 			try {
-				resp = await this.session.customRequest('rdbgInspectorExecLogsChild', {
+				resp = await session.customRequest('rdbgInspectorExecLogsChild', {
 					index: element.index,
 					threadId: this.threadId
 				});
@@ -74,7 +133,7 @@ export class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecL
 		} else {
 			let resp: execLogsResponse;
 			try {
-				resp = await this.session.customRequest('rdbgInspectorExecLogs', {
+				resp = await session.customRequest('rdbgInspectorExecLogs', {
 					threadId: this.threadId
 				});
 			} catch (err) { return []; }
@@ -94,7 +153,7 @@ export class ExecLogsProvider implements vscode.TreeDataProvider<ExecLog | ExecL
 }
 
 interface execLogsResponse {
-	frames: { name: string, arguments: string[], currentLocation?: boolean }[];
+	frames: { name: string, arguments: Argument[], currentLocation?: boolean }[];
 }
 
 interface execLogsChildResponse {
@@ -102,19 +161,29 @@ interface execLogsChildResponse {
 	logIndex: number;
 }
 
+interface Argument {
+	name: string;
+	value: any;
+}
+
 class ExecLog extends vscode.TreeItem {
 	constructor(
 		public readonly label: vscode.TreeItemLabel,
 		public readonly collapsibleState: vscode.TreeItemCollapsibleState,
 		public readonly index: number,
-		private readonly args: string[],
+		private readonly args: Argument[],
 		private readonly iconId: string,
 	) {
 		super(label, collapsibleState);
-		let argString = this.args.join(" ");
-		if (argString.trim().length < 1) argString = 'nil';
-		this.description = `args: ${argString}`;
-		this.tooltip = `Frame: ${this.label.label} Arguments: ${argString}`;
+		this.tooltip = `Frame Name: ${this.label.label}`;
+		if (this.args.length > 0) {
+			let argString = '';
+			this.args.forEach((arg) => {
+				argString += `${arg.name}=${arg.value} `;
+			});
+			this.description = `args: ${argString}`;
+			this.tooltip += ` Arguments: ${argString}`;
+		}
 		this.iconPath = new vscode.ThemeIcon(this.iconId);
 	}
 }
@@ -128,7 +197,7 @@ class ExecLogChild extends vscode.TreeItem {
 	) {
 		super(label, collapsibleState);
 		this.tooltip = this.label.label;
-		this.command = { command: 'historyInspector.goToHere', title: 'Go To Here', arguments: [this.index] };
+		this.command = { command: 'debugReplayer.goToHere', title: 'Go To Here', arguments: [this.index] };
 		this.iconPath = new vscode.ThemeIcon(this.iconId);
 	}
 }

@@ -36,7 +36,8 @@
 		"onLanguage:ruby",
 		"onDebug",
 		"workspaceContains:.vscode/rdbg_autoattach.json",
-		"onView:historyInspector"
+		"onView:debugReplayer",
+		"onView:debugTracer"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -208,43 +209,65 @@
 		"views": {
 			"debug": [
 				{
-					"id": "historyInspector",
-					"name": "History Inspector"
+					"id": "debugReplayer",
+					"name": "Replay"
+				},
+				{
+					"id": "debugTracer",
+					"name": "Trace"
 				}
 			]
 		},
 		"commands": [
 			{
-				"command": "historyInspector.startRecord",
+				"command": "debugReplayer.startRecord",
 				"title": "Start Record",
-				"icon": {
-					"light": "media/startRecord.svg",
-					"dark": "media/startRecord.svg"
-				}
+				"icon": "$(play-circle)"
 			},
 			{
-				"command": "historyInspector.stopRecord",
+				"command": "debugReplayer.stopRecord",
 				"title": "Stop Record",
-				"icon": {
-					"light": "media/stopRecord.svg",
-					"dark": "media/stopRecord.svg"
-				}
+				"icon": "$(stop-circle)"
 			},
 			{
-				"command": "historyInspector.goToHere",
+				"command": "debugReplayer.goToHere",
+				"title": "Go To Here"
+			},
+			{
+				"command": "debugTracer.startTrace",
+				"title": "Start Trace",
+				"icon": "$(play-circle)"
+			},
+			{
+				"command": "debugTracer.stopTrace",
+				"title": "Stop Trace",
+				"icon": "$(stop-circle)"
+			},
+			{
+				"command": "debugTracer.goToHere",
 				"title": "Go To Here"
 			}
 		],
 		"menus": {
 			"view/title": [
 				{
-					"command": "historyInspector.startRecord",
-					"when": "debuggersAvailable && inDebugMode && view == historyInspector && startRecordEnabled",
+					"command": "debugReplayer.startRecord",
+					"when": "debuggersAvailable && inDebugMode && view == debugReplayer && startRecordEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "historyInspector.stopRecord",
-					"when": "debuggersAvailable && inDebugMode && view == historyInspector && stopRecordEnabled",
+					"command": "debugReplayer.stopRecord",
+					"when": "debuggersAvailable && inDebugMode && view == debugReplayer && stopRecordEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "debugTracer.startTrace",
+					"when": "debuggersAvailable && inDebugMode && view == debugTracer&& startTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "debugTracer.stopTrace",
+					"when": "debuggersAvailable && inDebugMode && view == debugTracer && stopTraceEnabled",
 					"group": "navigation"
 				}
 			]
