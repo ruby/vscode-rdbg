@@ -120,7 +120,7 @@ class TraceLogsProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 			switch (element.label) {
 				case 'Call':
 					return this.resp.call!.map((log) => {
-						const item = new vscode.TreeItem(log.name.slice(1), vscode.TreeItemCollapsibleState.None);
+						const item = new vscode.TreeItem(log.name.slice(1).trim(), vscode.TreeItemCollapsibleState.None);
 
 						if (log.name.slice(0, 1) === '>') {
 							item.iconPath = callIncomingIcon;
