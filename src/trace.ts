@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { DebugProtocol } from '@vscode/debugprotocol';
-import * as path from 'path';
 
 const locationIcon = new vscode.ThemeIcon('location');
 const callIncomingIcon =  new vscode.ThemeIcon('call-incoming');
