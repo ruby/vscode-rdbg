@@ -3,7 +3,7 @@ import { DebugProtocol } from '@vscode/debugprotocol';
 
 const locationIcon = new vscode.ThemeIcon('location');
 const callIncomingIcon =  new vscode.ThemeIcon('call-incoming');
-const callOutgoingIcon = new vscode.ThemeIcon('call-outgoing')
+const callOutgoingIcon = new vscode.ThemeIcon('call-outgoing');
 
 export function registerTraceLogsProvider(ctx: vscode.ExtensionContext) {
 	const provider = new TraceLogsProvider();
