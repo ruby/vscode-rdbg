@@ -210,7 +210,7 @@
 			"debug": [
 				{
 					"id": "debugReplayer",
-					"name": "Replay"
+					"name": "Record And Replay"
 				},
 				{
 					"id": "debugTracer",
@@ -246,6 +246,15 @@
 			{
 				"command": "debugTracer.goToHere",
 				"title": "Go To Here"
+			},
+			{
+				"command": "debugTracer.goTo",
+				"title": "Go"
+			},
+			{
+				"command": "debugTracer.goBackTo",
+				"title": "Go back",
+				"icon": "$(arrow-left)"
 			}
 		],
 		"menus": {
@@ -267,6 +276,11 @@
 				},
 				{
 					"command": "debugTracer.stopTrace",
+					"when": "debuggersAvailable && inDebugMode && view == debugTracer && stopTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "debugTracer.goBackTo",
 					"when": "debuggersAvailable && inDebugMode && view == debugTracer && stopTraceEnabled",
 					"group": "navigation"
 				}
