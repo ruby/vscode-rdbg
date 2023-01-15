@@ -8,6 +8,7 @@ const errorIcon = new vscode.ThemeIcon('error');
 
 export function registerTraceLogsProvider(ctx: vscode.ExtensionContext) {
 	const provider = new TraceLogsProvider();
+	const view = vscode.window.createTreeView('debugTracer', { treeDataProvider: provider });
 	ctx.subscriptions.push(
 		vscode.window.registerTreeDataProvider('debugTracer', provider),
 
