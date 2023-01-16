@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as net from "net";
 import * as vscode from "vscode";
+import { promisify } from "util";
 
 import {
 	CancellationToken,
@@ -21,6 +22,17 @@ import {
 
 import { DebugProtocol } from "@vscode/debugprotocol";
 import { registerTraceProvider } from "./trace";
+
+const asyncExec = promisify(child_process.exec);
+
+enum VersionManager {
+	Asdf = "asdf",
+	Chruby = "chruby",
+	Rbenv = "rbenv",
+	Rvm = "rvm",
+	Shadowenv = "shadowenv",
+	None = "none",
+}
 
 let outputChannel: vscode.OutputChannel;
 const outputTerminals = new Map<string, vscode.Terminal>();
@@ -79,7 +91,7 @@ function exportBreakpoints() {
 export function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel("rdbg");
 
-	const adapterDescriptorFactory = new RdbgAdapterDescriptorFactory();
+	const adapterDescriptorFactory = new RdbgAdapterDescriptorFactory(context);
 	const stopppedEvtEmitter = new EventEmitter<number | undefined>();
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider("rdbg", new RdbgInitialConfigurationProvider()));
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory("rdbg", adapterDescriptorFactory));
@@ -281,9 +293,28 @@ const findRDBGTerminal = (): vscode.Terminal | undefined => {
 };
 
 class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
-	createDebugAdapterDescriptor(session: DebugSession, _executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
+	private context: vscode.ExtensionContext;
+
+	constructor(context: vscode.ExtensionContext) {
+		this.context = context;
+	}
+
+	async createDebugAdapterDescriptor(session: DebugSession, _executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
 		// session.configuration.internalConsoleOptions = "neverOpen"; // TODO: doesn't affect...
 		const c = session.configuration;
+		const cwd = c.cwd ? customPath(c.cwd) : workspaceFolder();
+		await this.activateRuby(cwd);
+
+		// Reactivate the Ruby environment in case .ruby-version, Gemfile or Gemfile.lock changes
+		if (cwd) {
+			const watcher = vscode.workspace.createFileSystemWatcher(
+				new vscode.RelativePattern(cwd, "{.ruby-version,Gemfile,Gemfile.lock}")
+			);
+			this.context.subscriptions.push(watcher);
+			watcher.onDidChange(() => this.activateRuby(cwd));
+			watcher.onDidCreate(() => this.activateRuby(cwd));
+			watcher.onDidDelete(() => this.activateRuby(cwd));
+		}
 
 		if (c.request === "attach") {
 			return this.attach(session);
@@ -317,18 +348,66 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	makeShellCommand(cmd: string) {
 		const shell = process.env.SHELL;
-		switch (true) {
-			case shell && (shell.endsWith("bash") || shell.endsWith("fish")):
-				return shell + " -l -c '" + cmd + "'";
-			case shell && shell.endsWith("zsh"):
-				// As the recommended way, initialization commands for rbenv are written in ".zshrc".
-				// However, it's not loaded on the non-interactive shell.
-				// Thus, we need to run this command as the interactive shell.
-				// FYI: https://zsh.sourceforge.io/Guide/zshguide02.html
-				return shell + " -l -c -i '" + cmd + "'";
-			default:
-				return cmd;
+
+		if (this.supportLogin(shell)) {
+			return shell + " -lic '" + cmd + "'";
+		} else {
+			return cmd;
 		}
+	}
+
+	// Activate the Ruby environment variables using a version manager
+	async activateRuby(cwd: string | undefined) {
+		const manager: VersionManager | undefined = vscode.workspace.getConfiguration("rdbg").get("rubyVersionManager");
+		let command;
+
+		try {
+			switch (manager) {
+				case VersionManager.Asdf:
+					command = this.makeShellCommand('asdf exec ruby');
+					await this.injectRubyEnvironment(command, cwd);
+					break;
+				case VersionManager.Rbenv:
+					command = this.makeShellCommand('rbenv exec ruby');
+					await this.injectRubyEnvironment(command, cwd);
+					break;
+				case VersionManager.Rvm:
+					command = this.makeShellCommand('rvm-auto-ruby');
+					await this.injectRubyEnvironment(command, cwd);
+					break;
+				case VersionManager.Chruby:
+					const rubyVersion = fs.readFileSync(path.join(cwd!, ".ruby-version"), "utf8").trim();
+					command = this.makeShellCommand(`chruby-exec "${rubyVersion}" -- ruby`);
+					await this.injectRubyEnvironment(command, cwd);
+					break;
+				case VersionManager.Shadowenv:
+					await vscode.extensions
+						.getExtension("shopify.vscode-shadowenv")
+						?.activate();
+					await this.sleepMs(500);
+					break;
+				default:
+					break;
+			}
+		} catch (error) {
+			this.showError(`Failed to activate Ruby environment using ${manager}. Error: ${error}`);
+		}
+	}
+
+	async injectRubyEnvironment(command: string, cwd?: string) {
+		// Print the current environment after activating it with a version manager, so that we can inject it into the node
+		// process. We wrap the environment JSON in `RUBY_ENV_ACTIVATE` to make sure we extract only the JSON since some
+		// terminal/shell combinations may print extra characters in interactive mode
+		const result = await asyncExec(`${command} -rjson -e "printf(%{RUBY_ENV_ACTIVATE%sRUBY_ENV_ACTIVATE}, JSON.dump(ENV.to_h))"`, {
+			cwd,
+			env: process.env
+		});
+
+		const envJson = result.stdout.match(
+			/RUBY_ENV_ACTIVATE(.*)RUBY_ENV_ACTIVATE/
+		)![1];
+
+		process.env = JSON.parse(envJson);
 	}
 
 	async getSockList(config: AttachConfiguration): Promise<string[]> {

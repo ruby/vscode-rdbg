@@ -208,6 +208,18 @@
 					"//": "The default value will be changed to true after 1.8.0 is released",
 					"default": false,
 					"description": "(experimental) Enable RdbgTraceInspector view. RdbgTraceInspector visualizes the trace log in Tree View. This feature will work in the version of debug.gem is 1.8.0 or higher."
+				},
+				"rdbg.rubyVersionManager": {
+					"type": "string",
+					"enum": [
+						"shadowenv",
+						"chruby",
+						"asdf",
+						"rbenv",
+						"rvm",
+						"none"
+					],
+					"default": "none"
 				}
 			}
 		},
