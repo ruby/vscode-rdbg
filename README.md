@@ -219,6 +219,20 @@ In this case, the current directory of host (`${workspaceFolder}`) is shared wit
         }
 ```
 
+### Selecting a version manager
+
+In order to launch the debugger using the correct Ruby version, rdbg allows configuring your preferred version manager, which is used to activate the Ruby environment.
+
+```jsonc
+// Default value is "none" for not using a version manager to activate the environment
+// Available managers are shadowenv, chruby, asdf, rbenv and rvm
+
+{
+  // User settings
+  "rdbg.rubyVersionManager": "none"
+}
+```
+
 ## Acknowledgement
 
 * This extension is based on [Ethan Reesor / VSCode Byebug · GitLab](https://gitlab.com/firelizzard/vscode-byebug/-/tree/master/) by Ethan Reesor. Without his great work, the extension can not be released (Koichi learned TypeScript, VSCode extension and DAP by his extension).
