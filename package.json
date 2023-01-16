@@ -252,9 +252,14 @@
 				"title": "Go"
 			},
 			{
-				"command": "debugTracer.goBackTo",
+				"command": "debugTracer.goToPrevLog",
 				"title": "Go back",
 				"icon": "$(arrow-left)"
+			},
+			{
+				"command": "debugTracer.goToNextLog",
+				"title": "Go to",
+				"icon": "$(arrow-right)"
 			}
 		],
 		"menus": {
@@ -280,7 +285,12 @@
 					"group": "navigation"
 				},
 				{
-					"command": "debugTracer.goBackTo",
+					"command": "debugTracer.goToPrevLog",
+					"when": "debuggersAvailable && inDebugMode && view == debugTracer && stopTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "debugTracer.goToNextLog",
 					"when": "debuggersAvailable && inDebugMode && view == debugTracer && stopTraceEnabled",
 					"group": "navigation"
 				}

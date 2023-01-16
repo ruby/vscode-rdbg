@@ -1,0 +1,15 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "foobar",
+  "steps": [
+    {
+      "title": "Introduction",
+      "description": "foobar\n"
+    },
+    {
+      "file": "src/trace.ts",
+      "description": "foobar\n",
+      "line": 184
+    }
+  ]
+}
