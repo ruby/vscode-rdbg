@@ -37,7 +37,7 @@
 		"onDebug",
 		"workspaceContains:.vscode/rdbg_autoattach.json",
 		"onView:debugReplayer",
-		"onView:debugTracer"
+		"onView:debugCallTracer"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -213,8 +213,8 @@
 					"name": "Record And Replay"
 				},
 				{
-					"id": "debugTracer",
-					"name": "Trace"
+					"id": "debugCallTracer",
+					"name": "Trace Call"
 				}
 			]
 		},
@@ -234,30 +234,30 @@
 				"title": "Go To Here"
 			},
 			{
-				"command": "debugTracer.startTrace",
+				"command": "debugCallTracer.startTrace",
 				"title": "Start Trace",
 				"icon": "$(play-circle)"
 			},
 			{
-				"command": "debugTracer.stopTrace",
+				"command": "debugCallTracer.stopTrace",
 				"title": "Stop Trace",
 				"icon": "$(stop-circle)"
 			},
 			{
-				"command": "debugTracer.goToHere",
+				"command": "debugCallTracer.goToHere",
 				"title": "Go To Here"
 			},
 			{
-				"command": "debugTracer.goTo",
+				"command": "debugCallTracer.goTo",
 				"title": "Go"
 			},
 			{
-				"command": "debugTracer.goToPrevLog",
+				"command": "debugCallTracer.openPrevLog",
 				"title": "Go back",
 				"icon": "$(arrow-left)"
 			},
 			{
-				"command": "debugTracer.goToNextLog",
+				"command": "debugCallTracer.openNextLog",
 				"title": "Go to",
 				"icon": "$(arrow-right)"
 			}
@@ -275,23 +275,23 @@
 					"group": "navigation"
 				},
 				{
-					"command": "debugTracer.startTrace",
-					"when": "debuggersAvailable && inDebugMode && view == debugTracer&& startTraceEnabled",
+					"command": "debugCallTracer.startTrace",
+					"when": "debuggersAvailable && inDebugMode && view == debugCallTracer&& startTraceEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "debugTracer.stopTrace",
-					"when": "debuggersAvailable && inDebugMode && view == debugTracer && stopTraceEnabled",
+					"command": "debugCallTracer.stopTrace",
+					"when": "debuggersAvailable && inDebugMode && view == debugCallTracer && stopTraceEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "debugTracer.goToPrevLog",
-					"when": "debuggersAvailable && inDebugMode && view == debugTracer && stopTraceEnabled",
+					"command": "debugCallTracer.openPrevLog",
+					"when": "debuggersAvailable && inDebugMode && view == debugCallTracer && stopTraceEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "debugTracer.goToNextLog",
-					"when": "debuggersAvailable && inDebugMode && view == debugTracer && stopTraceEnabled",
+					"command": "debugCallTracer.openNextLog",
+					"when": "debuggersAvailable && inDebugMode && view == debugCallTracer && stopTraceEnabled",
 					"group": "navigation"
 				}
 			]
