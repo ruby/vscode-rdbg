@@ -92,8 +92,6 @@ export function registerTraceLogsProvider(ctx: vscode.ExtensionContext) {
 			await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(loc.path), opts);
 			await vscode.commands.executeCommand('editor.showCallHierarchy');
 		}),
-
-		vscode.languages.registerCallHierarchyProvider('ruby', new TracerHierarchyProvider(treeProvider))
 	);
 }
 
@@ -258,30 +256,6 @@ interface TraceLogParentResponse {
 	log: { hasChild?: boolean, location: Location, name: string, index: number } | null;
 }
 
-interface Location {
-	name: string;
-	path: string;
-	line: number;
-}
-
-interface TraceLogsResponse {
-	call?: {
-		size: number;
-		logs: { hasChild?: boolean, location: Location, name: string, index: number }[]
-	};
-	line?: { hasChild?: boolean, location: Location, index: number }[];
-	exception?: { hasChild?: boolean, location: Location, name: string, index: number }[];
-	object?: { hasChild?: boolean, location: Location, name: string, index: number }[];
-}
-
-interface TraceLogChildResponse {
-	logs: { hasChild?: boolean, location: Location, name: string, index: number }[];
-}
-
-interface TraceLogParentResponse {
-	log: { hasChild?: boolean, location: Location, name: string, index: number } | null;
-}
-
 class TraceLog extends vscode.TreeItem {
 	public index: number = 0;
 	constructor(
@@ -291,56 +265,5 @@ class TraceLog extends vscode.TreeItem {
 	) {
 		super(label, collapsibleState);
 		this.command = { command: 'debugCallTracer.openTargetLog', title: 'open log', arguments: [location] };
-	}
-}
-
-class TracerHierarchyProvider implements vscode.CallHierarchyProvider {
-	constructor(readonly treeProvider: TraceLogsTreeProvider) { }
-
-	async prepareCallHierarchy(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.CallHierarchyItem | vscode.CallHierarchyItem[] | null | undefined> {
-		const item = await this.treeProvider.getSpecificLog();
-		if (item === undefined) return void 0;
-		const uri = vscode.Uri.file(item.location.path);
-		const range = new vscode.Range(item.location.line - 1, 0, item.location.line - 1, 100);
-		const hierarchy = new TraceLog2(vscode.SymbolKind.Method, item.label, '', uri, range, range);
-		hierarchy.index = item.index;
-		return hierarchy;
-	}
-
-	async provideCallHierarchyIncomingCalls(item: TraceLog2, token: vscode.CancellationToken): Promise<vscode.CallHierarchyIncomingCall[] | null | undefined> {
-		const a = new TraceLog(item.name, { name: '', path: '', line: 0 });
-		a.index = item.index;
-		const b = await this.treeProvider.getChildren(a);
-		if (b.length > 0) {
-			return b.map((log) => {
-				const uri = vscode.Uri.file(log.location.path);
-				const range = new vscode.Range(log.location.line - 1, 0, log.location.line - 1, 100);
-				const hierarchy = new TraceLog2(vscode.SymbolKind.Method, log.label, '', uri, range, range);
-				hierarchy.index = log.index;
-				return new vscode.CallHierarchyIncomingCall(hierarchy, [range]);
-			});
-		}
-		return void 0;
-	}
-
-	async provideCallHierarchyOutgoingCalls(item: TraceLog2, token: vscode.CancellationToken): Promise<vscode.CallHierarchyOutgoingCall[] | null | undefined> {
-		const a = new TraceLog(item.name, { name: '', path: '', line: 0 });
-		a.index = item.index;
-		const b = await this.treeProvider.getParent(a);
-		if (b) {
-			const uri = vscode.Uri.file(b.location.path);
-			const range = new vscode.Range(b.location.line - 1, 0, b.location.line - 1, 100);
-			const hierarchy = new TraceLog2(vscode.SymbolKind.Method, b.label, '', uri, range, range);
-			hierarchy.index = b.index;
-			return [new vscode.CallHierarchyOutgoingCall(hierarchy, [range])];
-		}
-		return void 0;
-	}
-}
-
-class TraceLog2 extends vscode.CallHierarchyItem {
-	public index: number = 0;
-	constructor(kind: vscode.SymbolKind, name: string, detail: string, uri: vscode.Uri, range: vscode.Range, selectionRange: vscode.Range) {
-		super(kind, name, detail, uri, range, selectionRange);
 	}
 }
