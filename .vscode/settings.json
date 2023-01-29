@@ -6,4 +6,5 @@
         "out": true
     },
     "typescript.tsc.autoDetect": "off",
+    "editor.insertSpaces": false,
 }

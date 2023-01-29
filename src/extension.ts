@@ -20,7 +20,9 @@ import {
 
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { registerExecLogsProvider } from './tree';
-import { registerTraceLogsProvider } from './trace';
+import { registerCallTraceProvider } from './callTrace';
+import { registerLineTraceProvider } from './lineTrace';
+import { registerExceptionTraceProvider } from './exceptionTrace';
 
 let outputChannel: vscode.OutputChannel;
 let outputTerminals = new Map<string, vscode.Terminal>();
@@ -89,7 +91,9 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	registerExecLogsProvider(context);
-	registerTraceLogsProvider(context);
+	registerCallTraceProvider(context);
+	registerLineTraceProvider(context);
+	registerExceptionTraceProvider(context);
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {
 		const config = session.configuration;

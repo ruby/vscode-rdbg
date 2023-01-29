@@ -37,7 +37,9 @@
 		"onDebug",
 		"workspaceContains:.vscode/rdbg_autoattach.json",
 		"onView:debugReplayer",
-		"onView:debugCallTracer"
+		"onView:rdbg.trace.call",
+		"onView:rdbg.trace.line",
+		"onView:rdbg.trace.exception"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -213,8 +215,16 @@
 					"name": "Record And Replay"
 				},
 				{
-					"id": "debugCallTracer",
+					"id": "rdbg.trace.call",
 					"name": "Trace Call"
+				},
+				{
+					"id": "rdbg.trace.line",
+					"name": "Trace Line"
+				},
+				{
+					"id": "rdbg.trace.exception",
+					"name": "Trace Exception"
 				}
 			]
 		},
@@ -234,30 +244,62 @@
 				"title": "Go To Here"
 			},
 			{
-				"command": "debugCallTracer.startTrace",
+				"command": "rdbg.trace.call.startTrace",
 				"title": "Start Trace",
 				"icon": "$(play-circle)"
 			},
 			{
-				"command": "debugCallTracer.stopTrace",
+				"command": "rdbg.trace.call.stopTrace",
 				"title": "Stop Trace",
 				"icon": "$(stop-circle)"
 			},
 			{
-				"command": "debugCallTracer.goToHere",
-				"title": "Go To Here"
-			},
-			{
-				"command": "debugCallTracer.goTo",
-				"title": "Go"
-			},
-			{
-				"command": "debugCallTracer.openPrevLog",
+				"command": "rdbg.trace.call.openPrevLog",
 				"title": "Go back",
 				"icon": "$(arrow-left)"
 			},
 			{
-				"command": "debugCallTracer.openNextLog",
+				"command": "rdbg.trace.call.openNextLog",
+				"title": "Go to",
+				"icon": "$(arrow-right)"
+			},
+			{
+				"command": "rdbg.trace.line.startTrace",
+				"title": "Start Trace",
+				"icon": "$(play-circle)"
+			},
+			{
+				"command": "rdbg.trace.line.stopTrace",
+				"title": "Stop Trace",
+				"icon": "$(stop-circle)"
+			},
+			{
+				"command": "rdbg.trace.line.openPrevLog",
+				"title": "Go back",
+				"icon": "$(arrow-left)"
+			},
+			{
+				"command": "rdbg.trace.line.openNextLog",
+				"title": "Go to",
+				"icon": "$(arrow-right)"
+			},
+			{
+				"command": "rdbg.trace.exception.startTrace",
+				"title": "Start Trace",
+				"icon": "$(play-circle)"
+			},
+			{
+				"command": "rdbg.trace.exception.stopTrace",
+				"title": "Stop Trace",
+				"icon": "$(stop-circle)"
+			},
+			{
+				"command": "rdbg.trace.exception.openPrevLog",
+				"title": "Go back",
+				"icon": "$(arrow-left)"
+			},
+			{
+				"command": "rdbg.trace.exception.openNextLog",
 				"title": "Go to",
 				"icon": "$(arrow-right)"
 			}
@@ -275,23 +317,63 @@
 					"group": "navigation"
 				},
 				{
-					"command": "debugCallTracer.startTrace",
-					"when": "debuggersAvailable && inDebugMode && view == debugCallTracer&& startTraceEnabled",
+					"command": "rdbg.trace.call.startTrace",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.call&& startCallTraceEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "debugCallTracer.stopTrace",
-					"when": "debuggersAvailable && inDebugMode && view == debugCallTracer && stopTraceEnabled",
+					"command": "rdbg.trace.call.stopTrace",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.call && stopCallTraceEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "debugCallTracer.openPrevLog",
-					"when": "debuggersAvailable && inDebugMode && view == debugCallTracer && stopTraceEnabled",
+					"command": "rdbg.trace.call.openPrevLog",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.call && stopCallTraceEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "debugCallTracer.openNextLog",
-					"when": "debuggersAvailable && inDebugMode && view == debugCallTracer && stopTraceEnabled",
+					"command": "rdbg.trace.call.openNextLog",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.call && stopCallTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "rdbg.trace.line.startTrace",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.line && startLineTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "rdbg.trace.line.stopTrace",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.line && stopLineTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "rdbg.trace.line.openPrevLog",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.line && stopLineTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "rdbg.trace.line.openNextLog",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.line && stopLineTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "rdbg.trace.exception.startTrace",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.exception && startExceptionTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "rdbg.trace.exception.stopTrace",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.exception && stopExceptionTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "rdbg.trace.exception.openPrevLog",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.exception && stopExceptionTraceEnabled",
+					"group": "navigation"
+				},
+				{
+					"command": "rdbg.trace.exception.openNextLog",
+					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.exception && stopExceptionTraceEnabled",
 					"group": "navigation"
 				}
 			]

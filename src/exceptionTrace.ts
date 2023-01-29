@@ -4,33 +4,33 @@ import { DebugProtocol } from '@vscode/debugprotocol';
 const arrowCircleRight = new vscode.ThemeIcon('arrow-circle-right');
 const arrowCircleLeft = new vscode.ThemeIcon('arrow-circle-left');
 
-export function registerTraceLogsProvider(ctx: vscode.ExtensionContext) {
+export function registerExceptionTraceProvider(ctx: vscode.ExtensionContext) {
 	const treeProvider = new TraceLogsTreeProvider();
-	const view = vscode.window.createTreeView('debugCallTracer', { treeDataProvider: treeProvider });
+	const view = vscode.window.createTreeView('rdbg.trace.exception', { treeDataProvider: treeProvider });
 
 	ctx.subscriptions.push(
-		vscode.commands.registerCommand('debugCallTracer.startTrace', async () => {
+		vscode.commands.registerCommand('rdbg.trace.exception.startTrace', async () => {
 			const session = vscode.debug.activeDebugSession;
 			if (session === undefined) {
 				vscode.window.showErrorMessage('Failed to get active debug session');
 				return;
 			}
 			try {
-				await sendDebugCommand(session, 'trace call');
+				await sendDebugCommand(session, 'trace exception');
 			} catch (err) { }
 
-			vscode.commands.executeCommand('setContext', 'startTraceEnabled', false);
-			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', true);
+			vscode.commands.executeCommand('setContext', 'startExceptionTraceEnabled', false);
+			vscode.commands.executeCommand('setContext', 'stopExceptionTraceEnabled', true);
 		}),
 
-		vscode.commands.registerCommand('debugCallTracer.stopTrace', async () => {
+		vscode.commands.registerCommand('rdbg.trace.exception.stopTrace', async () => {
 			const session = vscode.debug.activeDebugSession;
 			if (session === undefined) {
 				vscode.window.showErrorMessage('Failed to get active debug session');
 				return;
 			}
-			vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
-			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
+			vscode.commands.executeCommand('setContext', 'startExceptionTraceEnabled', true);
+			vscode.commands.executeCommand('setContext', 'stopExceptionTraceEnabled', false);
 			try {
 				await sendDebugCommand(session, 'trace off');
 			} catch (err) { }
@@ -45,17 +45,17 @@ export function registerTraceLogsProvider(ctx: vscode.ExtensionContext) {
 		}),
 
 		vscode.debug.onDidStartDebugSession(() => {
-			vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
-			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
+			vscode.commands.executeCommand('setContext', 'startExceptionTraceEnabled', true);
+			vscode.commands.executeCommand('setContext', 'stopExceptionTraceEnabled', false);
 		}),
 
 		vscode.debug.onDidTerminateDebugSession(() => {
 			treeProvider.refresh();
-			vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
-			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
+			vscode.commands.executeCommand('setContext', 'startExceptionTraceEnabled', true);
+			vscode.commands.executeCommand('setContext', 'stopExceptionTraceEnabled', false);
 		}),
 
-		vscode.commands.registerCommand('debugCallTracer.openPrevLog', async () => {
+		vscode.commands.registerCommand('rdbg.trace.exception.openPrevLog', async () => {
 			if (view.selection.length > 0) {
 				treeProvider.curIndex = view.selection[0].index;
 				treeProvider.curIndex -= 1;
@@ -63,14 +63,13 @@ export function registerTraceLogsProvider(ctx: vscode.ExtensionContext) {
 			const item = await treeProvider.getSpecificLog();
 			if (item) {
 				await view.reveal(item, { select: true, expand: true });
-				const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(item.location.line - 1, 0, item.location.line - 1, 90) };
+				const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(item.location.line - 1, 0, item.location.line - 1, 0), preserveFocus: true };
 				await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(item.location.path), opts);
-				await vscode.commands.executeCommand('editor.showCallHierarchy');
 				treeProvider.curIndex -= 1;
 			}
 		}),
 
-		vscode.commands.registerCommand('debugCallTracer.openNextLog', async () => {
+		vscode.commands.registerCommand('rdbg.trace.exception.openNextLog', async () => {
 			if (view.selection.length > 0) {
 				treeProvider.curIndex = view.selection[0].index;
 				treeProvider.curIndex += 1;
@@ -78,19 +77,17 @@ export function registerTraceLogsProvider(ctx: vscode.ExtensionContext) {
 			const item = await treeProvider.getSpecificLog();
 			if (item) {
 				await view.reveal(item, { select: true, expand: true });
-				const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(item.location.line - 1, 0, item.location.line - 1, 90) };
+				const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(item.location.line - 1, 0, item.location.line - 1, 0), preserveFocus: true };
 				await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(item.location.path), opts);
-				await vscode.commands.executeCommand('editor.showCallHierarchy');
 			}
 		}),
 
-		vscode.commands.registerCommand('debugCallTracer.openTargetLog', async (loc: Location) => {
+		vscode.commands.registerCommand('rdbg.trace.exception.openTargetLog', async (loc: Location) => {
 			if (view.selection.length > 0) {
 				treeProvider.curIndex = view.selection[0].index;
 			}
-			const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(loc.line - 1, 0, loc.line - 1, 90) };
+			const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(loc.line - 1, 0, loc.line - 1, 0), preserveFocus: true };
 			await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(loc.path), opts);
-			await vscode.commands.executeCommand('editor.showCallHierarchy');
 		}),
 	);
 }
@@ -108,7 +105,7 @@ async function sendDebugCommand(session: vscode.DebugSession, cmd: string) {
 	} catch (err) { }
 };
 
-class TraceLogsTreeProvider implements vscode.TreeDataProvider<TraceLog> {
+class TraceLogsTreeProvider implements vscode.TreeDataProvider<TraceLogItem> {
 	public threadId: number = 0;
 	public curIndex: number = 0;
 
@@ -116,32 +113,34 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<TraceLog> {
 		this._onDidChangeTreeData.fire();
 	}
 
-	private _onDidChangeTreeData: vscode.EventEmitter<TraceLog | undefined | null | void> = new vscode.EventEmitter<TraceLog | undefined | null | void>();
-	readonly onDidChangeTreeData: vscode.Event<TraceLog | undefined | null | void> = this._onDidChangeTreeData.event;
-	getTreeItem(element: TraceLog): TraceLog {
+	private _onDidChangeTreeData: vscode.EventEmitter<TraceLogItem | undefined | null | void> = new vscode.EventEmitter<TraceLogItem | undefined | null | void>();
+	readonly onDidChangeTreeData: vscode.Event<TraceLogItem | undefined | null | void> = this._onDidChangeTreeData.event;
+	getTreeItem(element: TraceLogItem): TraceLogItem {
 		return element;
 	}
 
 	async getSpecificLog() {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) return void 0;
+
 		let resp: TraceLogParentResponse;
 		try {
 			resp = await session.customRequest('rdbgInspectorTraceLog', {
 				id: this.curIndex,
-				type: 'call'
+				type: 'exception'
 			});
 		} catch (error) {
 			return void 0;
 		}
-		if (resp.log === null) return void 0;
-		const item = new TraceLog(resp.log.name.slice(1).trim(), resp.log.location);
+		if (resp.log === null || resp.log.name === null) return void 0;
+
+		const item = new TraceLogItem(resp.log.name.slice(1).trim(), resp.log.location);
 		item.id = resp.log.index.toString();
 		item.index = resp.log.index;
 		return item;
 	}
 
-	async getChildren(element?: TraceLog): Promise<TraceLog[]> {
+	async getChildren(element?: TraceLogItem): Promise<TraceLogItem[]> {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) return [];
 
@@ -150,24 +149,20 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<TraceLog> {
 			try {
 				resp = await session.customRequest('rdbgInspectorTraceLogChildren', {
 					id: element.index,
-					type: 'call'
+					type: 'exception'
 				});
 			} catch (error) {
 				return [];
 			}
 			return resp.logs.map((log) => {
+				if (log.name === null) throw new Error('Invalid');
+
 				let state = vscode.TreeItemCollapsibleState.None;
 				if (log.hasChild !== undefined) {
 					state = vscode.TreeItemCollapsibleState.Collapsed;
 				}
-				const item = new TraceLog(log.name.slice(1).trim(), log.location, state);
+				const item = new TraceLogItem(log.name.slice(1).trim(), log.location, state);
 				item.index = log.index;
-
-				if (log.name.slice(0, 1) === '>') {
-					item.iconPath = arrowCircleRight;
-				} else {
-					item.iconPath = arrowCircleLeft;
-				}
 				item.description = log.location.name;
 				item.id = log.index.toString();
 				return item;
@@ -179,32 +174,27 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<TraceLog> {
 					threadId: this.threadId
 				});
 			} catch (err) { return []; }
-			if (resp.call) {
-				this.curIndex = resp.call.size - 1;
-				return resp.call.logs.map((log) => {
+			if (resp.exception) {
+				this.curIndex = resp.exception.size - 1;
+				return resp.exception.logs.map((log) => {
+					if (log.name === null) throw new Error('Invalid');
+
 					let state = vscode.TreeItemCollapsibleState.None;
 					if (log.hasChild !== undefined) {
 						state = vscode.TreeItemCollapsibleState.Collapsed;
 					}
-					const item = new TraceLog(log.name.slice(1).trim(), log.location, state);
+					const item = new TraceLogItem(log.name.slice(1).trim(), log.location, state);
 					item.index = log.index;
-
-					if (log.name.slice(0, 1) === '>') {
-						item.iconPath = arrowCircleRight;
-					} else {
-						item.iconPath = arrowCircleLeft;
-					}
 					item.description = log.location.name;
 					item.id = log.index.toString();
 					return item;
 				});
 			}
-
 			return [];
 		}
 	}
 
-	async getParent(element: TraceLog): Promise<TraceLog | null | undefined> {
+	async getParent(element: TraceLogItem): Promise<TraceLogItem | null | undefined> {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) return void 0;
 
@@ -212,20 +202,16 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<TraceLog> {
 		try {
 			resp = await session.customRequest('rdbgInspectorTraceLogParent', {
 				id: element.index,
-				type: 'call'
+				type: 'exception'
 			});
 		} catch (error) {
 			return void 0;
 		}
-		if (resp.log === null) return void 0;
-		const item = new TraceLog(resp.log.name.slice(1).trim(), resp.log.location);
+		if (resp.log === null || resp.log.name === null) return void 0;
+
+		const item = new TraceLogItem(resp.log.name.slice(1).trim(), resp.log.location);
 		item.index = resp.log.index;
 
-		if (resp.log.name.slice(0, 1) === '>') {
-			item.iconPath = arrowCircleRight;
-		} else {
-			item.iconPath = arrowCircleLeft;
-		}
 		item.id = resp.log.index.toString();
 		item.description = resp.log.location.name;
 		return item;
@@ -241,22 +227,32 @@ interface Location {
 interface TraceLogsResponse {
 	call?: {
 		size: number;
-		logs: { hasChild?: boolean, location: Location, name: string, index: number }[]
+		logs: TraceLog[]
 	};
-	line?: { hasChild?: boolean, location: Location, index: number }[];
-	exception?: { hasChild?: boolean, location: Location, name: string, index: number }[];
-	object?: { hasChild?: boolean, location: Location, name: string, index: number }[];
+	line?: TraceLog[];
+	exception?: {
+		size: number;
+		logs: TraceLog[]
+	};
+	object?: TraceLog[];
 }
 
 interface TraceLogChildResponse {
-	logs: { hasChild?: boolean, location: Location, name: string, index: number }[];
+	logs: TraceLog[];
 }
 
 interface TraceLogParentResponse {
-	log: { hasChild?: boolean, location: Location, name: string, index: number } | null;
+	log: TraceLog | null;
 }
 
-class TraceLog extends vscode.TreeItem {
+interface TraceLog {
+	hasChild?: boolean;
+	location: Location;
+	name: string | null;
+	index: number;
+}
+
+class TraceLogItem extends vscode.TreeItem {
 	public index: number = 0;
 	constructor(
 		public readonly label: string,
@@ -264,6 +260,6 @@ class TraceLog extends vscode.TreeItem {
 		public readonly collapsibleState?: vscode.TreeItemCollapsibleState,
 	) {
 		super(label, collapsibleState);
-		this.command = { command: 'debugCallTracer.openTargetLog', title: 'open log', arguments: [location] };
+		this.command = { command: 'rdbg.trace.exception.openTargetLog', title: 'open log', arguments: [location] };
 	}
 }
