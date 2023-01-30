@@ -25,18 +25,18 @@ export interface TraceLogRootResponse {
 }
 
 export interface TraceLogRootArguments {
-	type: 'line' | 'call'| 'exception';
+	type: 'line' | 'call' | 'exception';
 	offset: number;
 	pageSize: number;
 }
 
-export interface TraceLogChildResponse {
+export interface TraceLogChildrenResponse {
 	logs: TraceLog[];
 }
 
 export interface TraceLogChildrenArguments {
 	index: number;
-	type: 'line' | 'call'| 'exception';
+	type: 'line' | 'call' | 'exception';
 	offset: number;
 	pageSize: number;
 }
@@ -47,7 +47,7 @@ export interface TraceLogParentResponse {
 
 export interface TraceLogParentArguments {
 	index: number;
-	type: 'line' | 'call'| 'exception';
+	type: 'line' | 'call' | 'exception';
 	offset: number;
 	pageSize: number;
 }

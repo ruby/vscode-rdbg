@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { TraceLogItem, RdbgTreeItemOptions, PagenationItem, RdbgTreeItem } from './rdbgTreeItem';
-import { TraceLogParentResponse, TraceLogChildResponse, Location, TraceLogParentArguments, TraceLogRootArguments, TraceLogRootResponse, TraceLogsEvent } from './traceLog';
+import { TraceLogParentResponse, TraceLogChildrenResponse, Location, TraceLogParentArguments, TraceLogRootArguments, TraceLogRootResponse, TraceLogsEvent } from './traceLog';
 import { getPageNationItems } from './utils';
 
 export function registerExceptionTraceProvider(ctx: vscode.ExtensionContext) {
@@ -129,7 +129,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 				case element instanceof ExceptionTraceLogItem:
 					const pageNum = Math.floor((element as ExceptionTraceLogItem).index / pageSize + 1);
 					const offset = (pageNum - 1) * pageSize;
-					let childResp: TraceLogChildResponse;
+					let childResp: TraceLogChildrenResponse;
 					try {
 						const args: TraceLogParentArguments = {
 							index: (element as ExceptionTraceLogItem).index,

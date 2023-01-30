@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { PagenationItem, RdbgTreeItem, RdbgTreeItemOptions, TraceLogItem } from './rdbgTreeItem';
-import { TraceLogsEvent, TraceLogChildResponse, TraceLogParentResponse, TraceLogRootResponse, Location, TraceLogParentArguments, TraceLogChildrenArguments, TraceLogRootArguments } from './traceLog';
+import { TraceLogsEvent, TraceLogChildrenResponse, TraceLogParentResponse, TraceLogRootResponse, Location, TraceLogParentArguments, TraceLogChildrenArguments, TraceLogRootArguments } from './traceLog';
 import { getPageNationItems } from './utils';
 
 const locationIcon = new vscode.ThemeIcon('location');
@@ -132,7 +132,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 				case element instanceof LineTraceLogItem:
 					const pageNum = Math.floor((element as LineTraceLogItem).index / pageSize + 1);
 					const offset = (pageNum - 1) * pageSize;
-					let childResp: TraceLogChildResponse;
+					let childResp: TraceLogChildrenResponse;
 					try {
 						const args: TraceLogChildrenArguments = {
 							index: (element as LineTraceLogItem).index,
