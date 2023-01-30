@@ -7,7 +7,7 @@ import { getPageNationItems, sendDebugCommand } from './utils';
 const locationIcon = new vscode.ThemeIcon('location');
 
 export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
-	const treeProvider = new TraceLogsTreeProvider();
+	const treeProvider = new LineTraceLogsTreeProvider();
 	const view = vscode.window.createTreeView('rdbg.trace.line', { treeDataProvider: treeProvider });
 
 	ctx.subscriptions.push(
@@ -94,7 +94,7 @@ export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
 
 const pageSize = 50;
 
-class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
+class LineTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 	public curSelectedIdx: number = 0;
 	public totalCount = 0;
 	private pages: PagenationItem[] = [];

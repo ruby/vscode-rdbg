@@ -5,7 +5,7 @@ import { TraceLogParentResponse, TraceLogChildrenResponse, Location, TraceLogPar
 import { getPageNationItems, sendDebugCommand } from './utils';
 
 export function registerExceptionTraceProvider(ctx: vscode.ExtensionContext) {
-	const treeProvider = new TraceLogsTreeProvider();
+	const treeProvider = new ExceptionTraceLogsTreeProvider();
 	const view = vscode.window.createTreeView('rdbg.trace.exception', { treeDataProvider: treeProvider });
 
 	ctx.subscriptions.push(
@@ -92,7 +92,7 @@ export function registerExceptionTraceProvider(ctx: vscode.ExtensionContext) {
 
 const pageSize = 50;
 
-class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
+class ExceptionTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 	public curSelectedIdx: number = 0;
 	public totalCount = 0;
 	private pages: PagenationItem[] = [];

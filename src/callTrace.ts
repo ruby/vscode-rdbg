@@ -8,7 +8,7 @@ const arrowCircleRight = new vscode.ThemeIcon('arrow-circle-right');
 const arrowCircleLeft = new vscode.ThemeIcon('arrow-circle-left');
 
 export function registerCallTraceProvider(ctx: vscode.ExtensionContext) {
-	const treeProvider = new TraceLogsTreeProvider();
+	const treeProvider = new CallTraceLogsTreeProvider();
 	const view = vscode.window.createTreeView('rdbg.trace.call', { treeDataProvider: treeProvider });
 
 	ctx.subscriptions.push(
@@ -95,7 +95,7 @@ export function registerCallTraceProvider(ctx: vscode.ExtensionContext) {
 
 const pageSize = 50;
 
-class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
+class CallTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 	public curSelectedIdx: number = 0;
 	public totalCount = 0;
 	private pages: PagenationItem[] = [];
