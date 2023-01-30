@@ -1,3 +1,4 @@
+import { DebugProtocol } from '@vscode/debugprotocol';
 import * as vscode from 'vscode';
 import { PagenationItem, RdbgTreeItem } from './rdbgTreeItem';
 
@@ -22,3 +23,16 @@ export function getPageNationItems(pageSize: number, selectedIdx: number) {
 	pages[pages.length - 1].collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
 	return pages;
 }
+
+export async function sendDebugCommand(session: vscode.DebugSession, cmd: string) {
+	const args: DebugProtocol.EvaluateArguments = {
+		expression: `,${cmd}`,
+		context: 'repl'
+	};
+	try {
+		await session.customRequest('evaluate', args);
+	} catch (err) { }
+	try {
+		await session.customRequest('completions');
+	} catch (err) { }
+};

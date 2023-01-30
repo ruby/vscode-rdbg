@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { Location, TraceLogChildrenResponse, TraceLogParentArguments, TraceLogParentResponse, TraceLogRootArguments, TraceLogRootResponse, TraceLogsEvent } from './traceLog';
 import { RdbgTreeItem, PagenationItem, RdbgTreeItemOptions, TraceLogItem } from './rdbgTreeItem';
-import { getPageNationItems } from './utils';
+import { getPageNationItems, sendDebugCommand } from './utils';
 
 const arrowCircleRight = new vscode.ThemeIcon('arrow-circle-right');
 const arrowCircleLeft = new vscode.ThemeIcon('arrow-circle-left');
@@ -92,19 +92,6 @@ export function registerCallTraceProvider(ctx: vscode.ExtensionContext) {
 		}),
 	);
 }
-
-async function sendDebugCommand(session: vscode.DebugSession, cmd: string) {
-	const args: DebugProtocol.EvaluateArguments = {
-		expression: `,${cmd}`,
-		context: 'repl'
-	};
-	try {
-		await session.customRequest('evaluate', args);
-	} catch (err) { }
-	try {
-		await session.customRequest('completions');
-	} catch (err) { }
-};
 
 const pageSize = 5;
 

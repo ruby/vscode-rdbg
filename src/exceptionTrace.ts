@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { TraceLogItem, RdbgTreeItemOptions, PagenationItem, RdbgTreeItem } from './rdbgTreeItem';
 import { TraceLogParentResponse, TraceLogChildrenResponse, Location, TraceLogParentArguments, TraceLogRootArguments, TraceLogRootResponse, TraceLogsEvent } from './traceLog';
-import { getPageNationItems } from './utils';
+import { getPageNationItems, sendDebugCommand } from './utils';
 
 export function registerExceptionTraceProvider(ctx: vscode.ExtensionContext) {
 	const treeProvider = new TraceLogsTreeProvider();
@@ -89,19 +89,6 @@ export function registerExceptionTraceProvider(ctx: vscode.ExtensionContext) {
 		}),
 	);
 }
-
-async function sendDebugCommand(session: vscode.DebugSession, cmd: string) {
-	const args: DebugProtocol.EvaluateArguments = {
-		expression: `,${cmd}`,
-		context: 'repl'
-	};
-	try {
-		await session.customRequest('evaluate', args);
-	} catch (err) { }
-	try {
-		await session.customRequest('completions');
-	} catch (err) { }
-};
 
 const pageSize = 50;
 

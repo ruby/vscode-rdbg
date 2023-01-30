@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { PagenationItem, RdbgTreeItem, RdbgTreeItemOptions, TraceLogItem } from './rdbgTreeItem';
 import { TraceLogsEvent, TraceLogChildrenResponse, TraceLogParentResponse, TraceLogRootResponse, Location, TraceLogParentArguments, TraceLogChildrenArguments, TraceLogRootArguments } from './traceLog';
-import { getPageNationItems } from './utils';
+import { getPageNationItems, sendDebugCommand } from './utils';
 
 const locationIcon = new vscode.ThemeIcon('location');
 
@@ -91,19 +91,6 @@ export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
 		}),
 	);
 }
-
-async function sendDebugCommand(session: vscode.DebugSession, cmd: string) {
-	const args: DebugProtocol.EvaluateArguments = {
-		expression: `,${cmd}`,
-		context: 'repl'
-	};
-	try {
-		await session.customRequest('evaluate', args);
-	} catch (err) { }
-	try {
-		await session.customRequest('completions');
-	} catch (err) { }
-};
 
 const pageSize = 5;
 
