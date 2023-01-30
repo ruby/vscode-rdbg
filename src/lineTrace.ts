@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { DebugProtocol } from '@vscode/debugprotocol';
+import { PagenationItem, RdbgTreeItem, RdbgTreeItemOptions, TraceLogItem } from './rdbgTreeItem';
+import { TraceLogsEvent, TraceLogChildResponse, TraceLogParentResponse, TraceLogRootResponse, Location, TraceLogParentArguments, TraceLogChildrenArguments, TraceLogRootArguments } from './traceLog';
+import { getPageNationItems } from './utils';
 
-const arrowCircleRight = new vscode.ThemeIcon('arrow-circle-right');
-const arrowCircleLeft = new vscode.ThemeIcon('arrow-circle-left');
 const locationIcon = new vscode.ThemeIcon('location');
 
 export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
@@ -10,7 +11,7 @@ export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
 	const view = vscode.window.createTreeView('rdbg.trace.line', { treeDataProvider: treeProvider });
 
 	ctx.subscriptions.push(
-		vscode.commands.registerCommand('rdbg.trace.line.startTrace', async (hoge) => {
+		vscode.commands.registerCommand('rdbg.trace.line.startTrace', async () => {
 			const session = vscode.debug.activeDebugSession;
 			if (session === undefined) {
 				vscode.window.showErrorMessage('Failed to get active debug session');
@@ -40,8 +41,12 @@ export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
 		vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
 			switch (event.event) {
 				case 'rdbgInspectorTraceLogsUpdated':
-					treeProvider.threadId = event.body.threadId;
-					treeProvider.refresh();
+					const evt = event as TraceLogsEvent;
+					if (evt.body.line) {
+						treeProvider.totalCount = evt.body.line.size;
+						treeProvider.curSelectedIdx = event.body.line.size;
+						treeProvider.refresh();
+					}
 			}
 		}),
 
@@ -57,29 +62,27 @@ export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
 		}),
 
 		vscode.commands.registerCommand('rdbg.trace.line.openPrevLog', async () => {
-			if (view.selection.length > 0 && view.selection[0].type === 'log') {
-				treeProvider.curIndex = (view.selection[0] as TraceLogItem).index;
+			if (view.selection.length > 0 && view.selection[0] instanceof LineTraceLogItem) {
+				treeProvider.curSelectedIdx = (view.selection[0] as LineTraceLogItem).index;
 			}
-			treeProvider.curIndex -= 1;
-			const item = await treeProvider.getSpecificLog();
-			if (item) {
-				await view.reveal(item, { select: true, expand: true });
-				const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(item.location.line - 1, 0, item.location.line - 1, 0), preserveFocus: true };
-				await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(item.location.path), opts);
-			}
+			treeProvider.curSelectedIdx -= 1;
+			const item = new LineTraceLogItem('', treeProvider.curSelectedIdx, { name: '', path: '', line: 0 });
+			await view.reveal(item, { select: true, expand: 3 });
+			const selection = view.selection[0] as LineTraceLogItem;
+			const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(selection.location.line - 1, 0, selection.location.line - 1, 0), preserveFocus: true };
+			await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(selection.location.path), opts);
 		}),
 
 		vscode.commands.registerCommand('rdbg.trace.line.openNextLog', async () => {
-			if (view.selection.length > 0 && view.selection[0].type === 'log') {
-				treeProvider.curIndex = (view.selection[0] as TraceLogItem).index;
+			if (view.selection.length > 0 && view.selection[0] instanceof LineTraceLogItem) {
+				treeProvider.curSelectedIdx = (view.selection[0] as LineTraceLogItem).index;
 			}
-			treeProvider.curIndex += 1;
-			const item = await treeProvider.getSpecificLog();
-			if (item) {
-				await view.reveal(item, { select: true, expand: true });
-				const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(item.location.line - 1, 0, item.location.line - 1, 0), preserveFocus: true };
-				await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(item.location.path), opts);
-			}
+			treeProvider.curSelectedIdx += 1;
+			const item = new LineTraceLogItem('', treeProvider.curSelectedIdx, { name: '', path: '', line: 0 });
+			await view.reveal(item, { select: true, expand: true });
+			const selection = view.selection[0] as LineTraceLogItem;
+			const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(selection.location.line - 1, 0, selection.location.line - 1, 0), preserveFocus: true };
+			await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(selection.location.path), opts);
 		}),
 
 		vscode.commands.registerCommand('rdbg.trace.line.openTargetLog', async (loc: Location) => {
@@ -102,13 +105,15 @@ async function sendDebugCommand(session: vscode.DebugSession, cmd: string) {
 	} catch (err) { }
 };
 
-const pageSize = 100;
+const pageSize = 5;
 
 class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
-	public threadId: number = 0;
-	public curIndex: number = 0;
+	public curSelectedIdx: number = 0;
+	public totalCount = 0;
+	private pages: PagenationItem[] = [];
 
 	refresh() {
+		this.pages = [];
 		this._onDidChangeTreeData.fire();
 	}
 
@@ -118,216 +123,122 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		return element;
 	}
 
-	async getSpecificLog() {
-		const session = vscode.debug.activeDebugSession;
-		if (session === undefined) return void 0;
-
-		let resp: TraceLogParentResponse;
-		try {
-			resp = await session.customRequest('rdbgInspectorTraceLog', {
-				id: this.curIndex,
-				type: 'line'
-			});
-		} catch (error) {
-			return void 0;
-		}
-		if (resp.log === null) return void 0;
-
-		const item = new TraceLogItem(resp.log.location.name, resp.log.location);
-		item.id = resp.log.index.toString();
-		item.index = resp.log.index;
-		return item;
-	}
-
 	async getChildren(element?: RdbgTreeItem): Promise<RdbgTreeItem[]> {
-		console.log('called');
-		console.log(element);
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) return [];
 
 		if (element) {
-			switch (element.type) {
-				case 'log':
-					let resp: TraceLogChildResponse;
+			switch (true) {
+				case element instanceof LineTraceLogItem:
+					const pageNum = Math.floor((element as LineTraceLogItem).index / pageSize + 1);
+					const offset = (pageNum - 1) * pageSize;
+					let childResp: TraceLogChildResponse;
 					try {
-						resp = await session.customRequest('rdbgInspectorTraceLogChildren', {
-							id: (element as TraceLogItem).index,
-							type: 'line'
-						});
+						const args: TraceLogChildrenArguments = {
+							index: (element as LineTraceLogItem).index,
+							type: 'line',
+							offset,
+							pageSize
+						};
+						childResp = await session.customRequest('rdbgInspectorTraceLogChildren', args);
 					} catch (error) {
 						return [];
 					}
-					return resp.logs.map((log) => {
-						const item = new TraceLogItem(log.location.name, log.location);
+					return childResp.logs.map((log) => {
+						const item = new LineTraceLogItem(
+							log.location.name,
+							log.index,
+							log.location,
+							{ iconPath: locationIcon }
+						);
 						if (log.hasChild !== undefined) {
-							if (element.shouldExpand) {
+							if (element.isLastPage) {
 								item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
-								item.shouldExpand = true;
+								item.isLastPage = true;
 							} else {
 								item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 							}
-						} else {
-							item.collapsibleState = vscode.TreeItemCollapsibleState.None;
 						}
-						item.index = log.index;
-						item.iconPath = locationIcon;
-						item.id = log.index.toString();
 						return item;
 					});
-				case 'page':
+				case element instanceof PagenationItem:
 					const page = element as PagenationItem;
-					let resp2: TraceLogChildResponse;
+					let rootResp: TraceLogRootResponse;
 					try {
-						resp2 = await session.customRequest('rdbgInspectorTraceLogRoot', {
+						const args: TraceLogRootArguments = {
 							offset: page.offset,
 							pageSize: pageSize,
 							type: 'line'
-						});
+						};
+						rootResp = await session.customRequest('rdbgInspectorTraceLogRoot', args);
 					} catch (error) {
 						return [];
 					}
-					const a= resp2.logs.map((log) => {
-						const item = new TraceLogItem(log.location.name, log.location);
+					return rootResp.logs.map((log) => {
+						const item = new LineTraceLogItem(
+							log.location.name,
+							log.index,
+							log.location,
+							{ iconPath: locationIcon }
+						);
 						if (log.hasChild !== undefined) {
-							if (element.shouldExpand) {
+							if (element.isLastPage) {
 								item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
-								item.shouldExpand = true;
+								item.isLastPage = true;
 							} else {
 								item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 							}
-						} else {
-							item.collapsibleState = vscode.TreeItemCollapsibleState.None;
 						}
-						item.index = log.index;
-						item.iconPath = locationIcon;
-						item.id = log.index.toString();
 						return item;
 					});
-					a[a.length-1].collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-					return a;
 				default:
 					return [];
 			}
-		} else {
-			let resp: TraceLogsResponse;
-			try {
-				resp = await session.customRequest('rdbgInspectorTraceLogs', {
-					threadId: this.threadId
-				});
-			} catch (err) { return []; }
-			if (resp.line) {
-				this.curIndex = resp.line.size;
-				let i = 1;
-				// const pages = [];
-				while (true) {
-					const page = new PagenationItem(`Page ${i}`);
-					page.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-					page.offset = (i - 1) * pageSize;
-					this.pages.push(page);
-					if (i * pageSize > resp.line.size) {
-						break;
-					}
-					i++;
-				}
-				// pages[pages.length - 1].shouldExpand = true;
-				// pages[pages.length - 1].collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
-				return this.pages;
-			}
-			return [];
 		}
+		this.pages = getPageNationItems(pageSize, this.curSelectedIdx);
+		return this.pages;
 	}
 
-	private pages: PagenationItem[] = [];
-
-	async getParent(element: TraceLogItem): Promise<RdbgTreeItem | null | undefined> {
-		console.log('called2');
-		console.log(element);
+	async getParent(element: RdbgTreeItem): Promise<RdbgTreeItem | null | undefined> {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) return void 0;
 
+		if (!(element instanceof LineTraceLogItem)) return void 0;
+
+		const pageNum = Math.floor(element.index / pageSize + 1);
+		const offset = (pageNum - 1) * pageSize;
 		let resp: TraceLogParentResponse;
 		try {
-			resp = await session.customRequest('rdbgInspectorTraceLogParent', {
-				id: element.index,
-				type: 'line'
-			});
+			const args: TraceLogParentArguments = {
+				index: element.index,
+				type: 'line',
+				offset,
+				pageSize,
+			};
+			resp = await session.customRequest('rdbgInspectorTraceLogParent', args);
 		} catch (error) {
 			return void 0;
 		}
-		if (resp.log === null) return this.pages[this.pages.length-1];
+		if (resp.log === null) return this.pages[pageNum - 1];
 
-		const item = new TraceLogItem(resp.log.location.name, resp.log.location);
-		item.index = resp.log.index;
-		item.iconPath = locationIcon;
-		item.id = resp.log.index.toString();
+		const item = new LineTraceLogItem(
+			resp.log.location.name,
+			resp.log.index,
+			resp.log.location,
+			{ iconPath: locationIcon }
+		);
 		return item;
 	}
 }
 
-interface Location {
-	name: string;
-	path: string;
-	line: number;
-}
-
-interface TraceLogsResponse {
-	call?: {
-		size: number;
-		logs: TraceLog[]
-	};
-	line?: {
-		size: number;
-		logs: TraceLog[]
-	};
-	exception?: TraceLog[];
-	object?: TraceLog[];
-}
-
-interface TraceLogChildResponse {
-	logs: TraceLog[];
-}
-
-interface TraceLogParentResponse {
-	log: TraceLog | null;
-}
-
-interface TraceLog {
-	hasChild?: boolean;
-	location: Location;
-	name: string | null;
-	index: number;
-}
-
-class RdbgTreeItem extends vscode.TreeItem {
-  // isLastPage = false; 
-	public shouldExpand = false;
+class LineTraceLogItem extends TraceLogItem {
 	constructor(
-		public readonly type: "page" | "log",
-		public readonly label: string,
-		public collapsibleState?: vscode.TreeItemCollapsibleState,
+		label: string,
+		index: number,
+		location: Location,
+		opts: RdbgTreeItemOptions = {},
 	) {
-		super(label, collapsibleState);
-	}
-}
-
-class PagenationItem extends RdbgTreeItem {
-	public offset = -1;
-	constructor(
-		public readonly label: string,
-		public collapsibleState?: vscode.TreeItemCollapsibleState,
-	) {
-		super('page', label, collapsibleState);
-	}
-}
-
-class TraceLogItem extends RdbgTreeItem {
-	public index: number = 0;
-	constructor(
-		public readonly label: string,
-		public readonly location: Location,
-		public collapsibleState?: vscode.TreeItemCollapsibleState,
-	) {
-		super('log', label, collapsibleState);
-		this.command = { command: 'rdbg.trace.line.openTargetLog', title: 'open log', arguments: [location] };
+		super(label, index, location, opts);
+		this.command = { command: 'rdbg.trace.line.openTargetLog', title: 'rdbg.trace.line.openTargetLog', arguments: [location] };
 	}
 }

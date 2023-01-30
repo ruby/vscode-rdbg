@@ -7,4 +7,5 @@
     },
     "typescript.tsc.autoDetect": "off",
     "editor.insertSpaces": false,
+	"editor.formatOnSave": true,
 }
