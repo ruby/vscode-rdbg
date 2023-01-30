@@ -93,7 +93,7 @@ export function registerCallTraceProvider(ctx: vscode.ExtensionContext) {
 	);
 }
 
-const pageSize = 5;
+const pageSize = 50;
 
 class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 	public curSelectedIdx: number = 0;
