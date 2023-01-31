@@ -203,6 +203,21 @@
 					"description": "(experimental) Save breakpoints information to '.rdbg.breakpoints' for rdbg command"
 				}
 			}
+		},
+        "commands": [
+			{
+				"command": "vscode-debug-visualizer.visualizer-set-expression",
+				"title": "Visualize Object"
+			}
+		],
+        "menus": {
+			"editor/context": [
+				{
+					"command": "vscode-debug-visualizer.visualizer-set-expression",
+					"when": "editorLangId == ruby",
+					"group": "navigation"
+				}
+			]
 		}
 	},
 	"scripts": {
