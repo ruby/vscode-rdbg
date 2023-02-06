@@ -1,16 +1,18 @@
 import * as vscode from 'vscode';
 import { DebugProtocol } from '@vscode/debugprotocol';
-import { PagenationItem, RdbgTreeItem, RdbgTreeItemOptions, TraceLogItem } from './rdbgTreeItem';
-import { TraceLogsEvent, TraceLogChildrenResponse, TraceLogParentResponse, TraceLogRootResponse, Location, TraceLogParentArguments, TraceLogChildrenArguments, TraceLogRootArguments } from './traceLog';
+import { LoadMoreItem, OmittedItem, PagenationItem, RdbgTreeItem, RdbgTreeItemOptions, TraceLogItem } from './rdbgTreeItem';
+import { TraceLogsEvent, TraceLogChildrenResponse, TraceLogParentResponse, TraceLogRootResponse, Location, TraceLogParentArguments, TraceLogChildrenArguments, TraceLogRootArguments, TraceLogsArguments, TraceLogsResponse, TraceLog, TraceLog2 } from './traceLog';
 import { getPageNationItems, sendDebugCommand } from './utils';
 
 const locationIcon = new vscode.ThemeIcon('location');
 
 export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
+	const decorationProvider = new RdbgDecorationProvider();
 	const treeProvider = new LineTraceLogsTreeProvider();
 	const view = vscode.window.createTreeView('rdbg.trace.line', { treeDataProvider: treeProvider });
 
 	ctx.subscriptions.push(
+		vscode.window.registerFileDecorationProvider(decorationProvider),
 		vscode.commands.registerCommand('rdbg.trace.line.startTrace', async () => {
 			const session = vscode.debug.activeDebugSession;
 			if (session === undefined) {
@@ -89,15 +91,23 @@ export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
 			const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(loc.line - 1, 0, loc.line - 1, 0), preserveFocus: true };
 			await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(loc.path), opts);
 		}),
+
+		vscode.commands.registerCommand('rdbg.trace.line.LoadMoreLogs', () => {
+			treeProvider.refresh();
+		}),
 	);
 }
 
-const pageSize = 50;
+const pageSize = 5;
 
 class LineTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 	public curSelectedIdx: number = 0;
 	public totalCount = 0;
 	private pages: PagenationItem[] = [];
+	private _traceLogs: TraceLog2[] = [];
+	// TODO: how to reset these value
+	private _loadMoreOffset: number = -1;
+	private _minDepth = Infinity;
 
 	refresh() {
 		this.pages = [];
@@ -139,12 +149,13 @@ class LineTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem>
 							{ iconPath: locationIcon }
 						);
 						if (log.hasChild !== undefined) {
-							if (element.isLastPage) {
-								item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
-								item.isLastPage = true;
-							} else {
-								item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-							}
+							// if (element.isLastPage) {
+							// 	item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+							// 	item.isLastPage = true;
+							// } else {
+							// 	item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+							// }
+							item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
 						}
 						return item;
 					});
@@ -178,44 +189,124 @@ class LineTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem>
 						}
 						return item;
 					});
+				case element instanceof OmittedItem:
+					const omitted = element as OmittedItem;
+					const logs = this._traceLogs.slice(omitted.offset, omitted.offset+pageSize);
+					let min = Infinity;
+					// TODO: edge case
+					let end = -1;
+					for (let i=0; i<logs.length; i++) {
+						if (logs[i].depth === this._minDepth) {
+							end = i;
+							break;
+						}
+						if (logs[i].depth < min) {
+							min = logs[i].depth;
+						}
+					}
+					const root =  getRoot(logs.slice(0, end), min);
+					return root;
 				default:
 					return [];
 			}
 		}
-		this.pages = getPageNationItems(pageSize, this.curSelectedIdx);
-		return this.pages;
-	}
-
-	async getParent(element: RdbgTreeItem): Promise<RdbgTreeItem | null | undefined> {
-		const session = vscode.debug.activeDebugSession;
-		if (session === undefined) return void 0;
-
-		if (!(element instanceof LineTraceLogItem)) return void 0;
-
-		const pageNum = Math.floor(element.index / pageSize + 1);
-		const offset = (pageNum - 1) * pageSize;
-		let resp: TraceLogParentResponse;
-		try {
-			const args: TraceLogParentArguments = {
-				index: element.index,
-				type: 'line',
-				offset,
-				pageSize,
-			};
-			resp = await session.customRequest('rdbgInspectorTraceLogParent', args);
-		} catch (error) {
-			return void 0;
+		if (this._traceLogs.length < 1) {
+			let resp: TraceLogsResponse;
+			try {
+				const args: TraceLogsArguments = {
+					type: 'line',
+				};
+				resp = await session.customRequest('rdbgInspectorTraceLogs', args);
+			} catch (error) {
+				return [];
+			}
+			this._traceLogs = resp.logs;
+			const quotient = Math.floor(this._traceLogs.length / pageSize);
+			if (this._traceLogs.length % pageSize === 0) {
+				this._loadMoreOffset = pageSize * (quotient - 1);
+			} else {
+				this._loadMoreOffset = pageSize * quotient;
+			}
+			this._traceLogs.forEach((log, idx) => {
+				log.index = idx;
+				if (log.depth < this._minDepth) {
+					this._minDepth = log.depth;
+				}
+			});
+		} else {
+			this._loadMoreOffset -= pageSize;
+			if (this._loadMoreOffset < 0) {
+				this._loadMoreOffset = 0;
+			}
 		}
-		if (resp.log === null) return this.pages[pageNum - 1];
-
-		const item = new LineTraceLogItem(
-			resp.log.location.name,
-			resp.log.index,
-			resp.log.location,
-			{ iconPath: locationIcon }
-		);
-		return item;
+		const items: RdbgTreeItem[] = [];
+		if (this._loadMoreOffset !== 0) {
+			items.push(new LoadMoreItem());
+		}
+		const logs = this._traceLogs.slice(this._loadMoreOffset);
+		if (logs[0].depth > this._minDepth) {
+			items.push(new OmittedItem(this._loadMoreOffset));
+		}
+		const root = getRoot(logs, this._minDepth);
+		items.push(...root);
+		return items;
 	}
+
+	// async getParent(element: RdbgTreeItem): Promise<RdbgTreeItem | null | undefined> {
+	// 	const session = vscode.debug.activeDebugSession;
+	// 	if (session === undefined) return void 0;
+
+	// 	if (!(element instanceof LineTraceLogItem)) return void 0;
+
+	// 	const pageNum = Math.floor(element.index / pageSize + 1);
+	// 	const offset = (pageNum - 1) * pageSize;
+	// 	let resp: TraceLogParentResponse;
+	// 	try {
+	// 		const args: TraceLogParentArguments = {
+	// 			index: element.index,
+	// 			type: 'line',
+	// 			offset,
+	// 			pageSize,
+	// 		};
+	// 		resp = await session.customRequest('rdbgInspectorTraceLogParent', args);
+	// 	} catch (error) {
+	// 		return void 0;
+	// 	}
+	// 	if (resp.log === null) return this.pages[pageNum - 1];
+
+	// 	const item = new LineTraceLogItem(
+	// 		resp.log.location.name,
+	// 		resp.log.index,
+	// 		resp.log.location,
+	// 		{ iconPath: locationIcon }
+	// 	);
+	// 	return item;
+	// }
+}
+
+function getRoot(logs: TraceLog2[], minDepth: number) {
+	const root: TraceLogItem[] = [];
+	logs.forEach((log, idx) => {
+		if (log.depth === minDepth) {
+			let state = vscode.TreeItemCollapsibleState.None;
+			if (hasChild(logs, idx)) {
+				state = vscode.TreeItemCollapsibleState.Expanded;
+			}
+			const item = new LineTraceLogItem(
+				log.location.name,
+				log.index,
+				log.location,
+				{ iconPath: locationIcon, collapsibleState: state }
+			);
+			root.push(item);
+		}
+	});
+	return root;
+}
+
+function hasChild(logs: TraceLog2[], index: number) {
+	const target = logs[index];
+	return logs[index + 1] && logs[index + 1].depth > target.depth;
 }
 
 class LineTraceLogItem extends TraceLogItem {
@@ -227,5 +318,16 @@ class LineTraceLogItem extends TraceLogItem {
 	) {
 		super(label, index, location, opts);
 		this.command = { command: 'rdbg.trace.line.openTargetLog', title: 'rdbg.trace.line.openTargetLog', arguments: [location] };
+	}
+}
+
+class RdbgDecorationProvider implements vscode.FileDecorationProvider {
+	provideFileDecoration(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<vscode.FileDecoration> {
+		if (uri.toString() !== vscode.Uri.parse('http://example.com').toString()) {
+			return void 0;
+		}
+		return {
+			color: new vscode.ThemeColor('textLink.foreground')
+		};
 	}
 }

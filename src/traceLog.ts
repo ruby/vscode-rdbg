@@ -52,9 +52,25 @@ export interface TraceLogParentArguments {
 	pageSize: number;
 }
 
+export interface TraceLogsArguments {
+	type: 'line' | 'call' | 'exception';
+}
+
+export interface TraceLogsResponse {
+	logs: TraceLog2[];
+}
+
 export interface TraceLog {
 	hasChild?: boolean;
 	location: Location;
 	name: string | null;
+	index: number;
+}
+
+export interface TraceLog2 {
+	hasChild?: boolean;
+	location: Location;
+	name: string | null;
+	depth: number;
 	index: number;
 }

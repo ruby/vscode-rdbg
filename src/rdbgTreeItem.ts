@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import { Location } from './traceLog';
 
-export type RdbgTreeItemOptions = Pick<vscode.TreeItem, 'id' | 'iconPath' | 'collapsibleState' | 'description' | 'tooltip'> & {
+const spinIcon = new vscode.ThemeIcon('triangle-up', new vscode.ThemeColor('textLink.foreground'));
+
+export type RdbgTreeItemOptions = Pick<vscode.TreeItem, 'id' | 'iconPath' | 'collapsibleState' | 'description' | 'tooltip' | 'resourceUri' | 'command'> & {
 	isLastPage?: boolean;
 };
 
@@ -16,6 +18,8 @@ export class RdbgTreeItem extends vscode.TreeItem {
 		this.iconPath = opts.iconPath;
 		this.tooltip = opts.tooltip;
 		this.description = opts.description;
+		this.resourceUri = opts.resourceUri;
+		this.command = opts.command;
 	}
 }
 
@@ -29,6 +33,17 @@ export class PagenationItem extends RdbgTreeItem {
 	}
 }
 
+export class LoadMoreItem extends RdbgTreeItem {
+	constructor() {
+		super('Load More Logs', {
+			resourceUri: vscode.Uri.parse('http://example.com'),
+			collapsibleState: vscode.TreeItemCollapsibleState.None,
+			iconPath: spinIcon,
+			command: { title: 'rdbg.trace.line.LoadMoreLogs', command: 'rdbg.trace.line.LoadMoreLogs' }
+		});
+	}
+}
+
 export class TraceLogItem extends RdbgTreeItem {
 	constructor(
 		label: string,
@@ -38,5 +53,13 @@ export class TraceLogItem extends RdbgTreeItem {
 	) {
 		opts.id = index.toString();
 		super(label, opts);
+	}
+}
+
+export class OmittedItem extends RdbgTreeItem {
+	constructor(
+		public readonly offset: number
+	) {
+		super('..', {collapsibleState: vscode.TreeItemCollapsibleState.Expanded});
 	}
 }

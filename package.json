@@ -256,12 +256,12 @@
 			{
 				"command": "rdbg.trace.call.openPrevLog",
 				"title": "Go back",
-				"icon": "$(arrow-left)"
+				"icon": "$(arrow-up)"
 			},
 			{
 				"command": "rdbg.trace.call.openNextLog",
 				"title": "Go to",
-				"icon": "$(arrow-right)"
+				"icon": "$(arrow-down)"
 			},
 			{
 				"command": "rdbg.trace.line.startTrace",
@@ -276,12 +276,12 @@
 			{
 				"command": "rdbg.trace.line.openPrevLog",
 				"title": "Go back",
-				"icon": "$(arrow-left)"
+				"icon": "$(arrow-up)"
 			},
 			{
 				"command": "rdbg.trace.line.openNextLog",
 				"title": "Go to",
-				"icon": "$(arrow-right)"
+				"icon": "$(arrow-down)"
 			},
 			{
 				"command": "rdbg.trace.exception.startTrace",
@@ -296,12 +296,12 @@
 			{
 				"command": "rdbg.trace.exception.openPrevLog",
 				"title": "Go back",
-				"icon": "$(arrow-left)"
+				"icon": "$(arrow-up)"
 			},
 			{
 				"command": "rdbg.trace.exception.openNextLog",
 				"title": "Go to",
-				"icon": "$(arrow-right)"
+				"icon": "$(arrow-down)"
 			}
 		],
 		"menus": {
