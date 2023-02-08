@@ -20,7 +20,7 @@ export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
 				return;
 			}
 			try {
-				await sendDebugCommand(session, 'trace line');
+				await sendDebugCommand(session, 'trace dap');
 			} catch (err) { }
 
 			vscode.commands.executeCommand('setContext', 'startLineTraceEnabled', false);
@@ -44,9 +44,9 @@ export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
 			switch (event.event) {
 				case 'rdbgInspectorTraceLogsUpdated':
 					const evt = event as TraceLogsEvent;
-					if (evt.body.line) {
-						treeProvider.totalCount = evt.body.line.size;
-						treeProvider.curSelectedIdx = event.body.line.size;
+					if (evt.body.dap) {
+						treeProvider.totalCount = evt.body.dap.size;
+						treeProvider.curSelectedIdx = event.body.dap.size;
 						treeProvider.refresh();
 					}
 			}
@@ -98,7 +98,7 @@ export function registerLineTraceProvider(ctx: vscode.ExtensionContext) {
 	);
 }
 
-const pageSize = 5;
+const pageSize = 20;
 
 class LineTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 	public curSelectedIdx: number = 0;
@@ -126,39 +126,74 @@ class LineTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem>
 
 		if (element) {
 			switch (true) {
+				case element instanceof CallTraceLogItem:
 				case element instanceof LineTraceLogItem:
-					const pageNum = Math.floor((element as LineTraceLogItem).index / pageSize + 1);
-					const offset = (pageNum - 1) * pageSize;
-					let childResp: TraceLogChildrenResponse;
-					try {
-						const args: TraceLogChildrenArguments = {
-							index: (element as LineTraceLogItem).index,
-							type: 'line',
-							offset,
-							pageSize
-						};
-						childResp = await session.customRequest('rdbgInspectorTraceLogChildren', args);
-					} catch (error) {
-						return [];
-					}
-					return childResp.logs.map((log) => {
-						const item = new LineTraceLogItem(
-							log.location.name,
-							log.index,
-							log.location,
-							{ iconPath: locationIcon }
-						);
-						if (log.hasChild !== undefined) {
-							// if (element.isLastPage) {
-							// 	item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
-							// 	item.isLastPage = true;
-							// } else {
-							// 	item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-							// }
-							item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+					// const pageNum = Math.floor((element as LineTraceLogItem).index / pageSize + 1);
+					// const offset = (pageNum - 1) * pageSize;
+					// let childResp: TraceLogChildrenResponse;
+					// try {
+					// 	const args: TraceLogChildrenArguments = {
+					// 		index: (element as LineTraceLogItem).index,
+					// 		type: 'dap',
+					// 		offset: this._loadMoreOffset,
+					// 		pageSize
+					// 	};
+					// 	childResp = await session.customRequest('rdbgInspectorTraceLogChildren', args);
+					// } catch (error) {
+					// 	return [];
+					// }
+					const idx = (element as LineTraceLogItem).index;
+					const subArray = this._traceLogs.slice(idx+1);
+					let minD = Infinity;
+					// TODO: edge case
+					let childEnd = -1;
+					for (let i=0; i<subArray.length; i++) {
+						if (subArray[i].depth <= this._traceLogs[idx].depth) {
+							childEnd = i;
+							break;
 						}
-						return item;
-					});
+						if (subArray[i].depth < minD) {
+							minD = subArray[i].depth;
+						}
+					}
+					console.log(element)
+					const childResp =  getRoot(subArray.slice(0, childEnd), minD);
+					// return childResp.logs.map((log) => {
+					// 	let item: TraceLogItem;
+					// 	if (log.name) {
+					// 		const iconPath = getIconPath(log.name);
+					// 		item = new CallTraceLogItem(
+					// 			log.name.slice(1).trim(),
+					// 			log.index,
+					// 			log.location,
+					// 			{ iconPath: iconPath, description: log.location.name }
+					// 		);
+					// 	} else {
+					// 		item = new LineTraceLogItem(
+					// 			log.location.name,
+					// 			log.index,
+					// 			log.location,
+					// 			{ iconPath: locationIcon }
+					// 		);
+					// 	}
+					// 	// const item = new LineTraceLogItem(
+					// 	// 	log.location.name,
+					// 	// 	log.index,
+					// 	// 	log.location,
+					// 	// 	{ iconPath: locationIcon }
+					// 	// );
+					// 	if (log.hasChild !== undefined) {
+					// 		// if (element.isLastPage) {
+					// 		// 	item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+					// 		// 	item.isLastPage = true;
+					// 		// } else {
+					// 		// 	item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+					// 		// }
+					// 		item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+					// 	}
+					// 	return item;
+					// });
+					return childResp;
 				case element instanceof PagenationItem:
 					const page = element as PagenationItem;
 					let rootResp: TraceLogRootResponse;
@@ -166,7 +201,7 @@ class LineTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem>
 						const args: TraceLogRootArguments = {
 							offset: page.offset,
 							pageSize: pageSize,
-							type: 'line'
+							type: 'dap'
 						};
 						rootResp = await session.customRequest('rdbgInspectorTraceLogRoot', args);
 					} catch (error) {
@@ -191,7 +226,7 @@ class LineTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem>
 					});
 				case element instanceof OmittedItem:
 					const omitted = element as OmittedItem;
-					const logs = this._traceLogs.slice(omitted.offset, omitted.offset+pageSize);
+					const logs = this._traceLogs.slice(omitted.offset);
 					let min = Infinity;
 					// TODO: edge case
 					let end = -1;
@@ -214,7 +249,7 @@ class LineTraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem>
 			let resp: TraceLogsResponse;
 			try {
 				const args: TraceLogsArguments = {
-					type: 'line',
+					type: 'dap',
 				};
 				resp = await session.customRequest('rdbgInspectorTraceLogs', args);
 			} catch (error) {
@@ -292,12 +327,23 @@ function getRoot(logs: TraceLog2[], minDepth: number) {
 			if (hasChild(logs, idx)) {
 				state = vscode.TreeItemCollapsibleState.Expanded;
 			}
-			const item = new LineTraceLogItem(
-				log.location.name,
-				log.index,
-				log.location,
-				{ iconPath: locationIcon, collapsibleState: state }
-			);
+			let item: TraceLogItem;
+			if (log.name) {
+				const iconPath = getIconPath(log.name);
+				item = new CallTraceLogItem(
+					log.name.slice(1).trim(),
+					log.index,
+					log.location,
+					{ iconPath: iconPath, description: log.location.name, collapsibleState: state }
+				);
+			} else {
+				item = new LineTraceLogItem(
+					log.location.name,
+					log.index,
+					log.location,
+					{ iconPath: locationIcon, collapsibleState: state }
+				);
+			}
 			root.push(item);
 		}
 	});
@@ -330,4 +376,29 @@ class RdbgDecorationProvider implements vscode.FileDecorationProvider {
 			color: new vscode.ThemeColor('textLink.foreground')
 		};
 	}
+}
+
+class CallTraceLogItem extends TraceLogItem {
+	constructor(
+		label: string,
+		index: number,
+		location: Location,
+		opts: RdbgTreeItemOptions = {},
+	) {
+		super(label, index, location, opts);
+		this.command = { command: 'rdbg.trace.call.openTargetLog', title: 'rdbg.trace.call.openTargetLog', arguments: [location] };
+	}
+}
+
+const arrowCircleRight = new vscode.ThemeIcon('arrow-circle-right');
+const arrowCircleLeft = new vscode.ThemeIcon('arrow-circle-left');
+
+function getIconPath(name: string) {
+	let iconPath = undefined;
+	if (name.slice(0, 1) === '>') {
+		iconPath = arrowCircleRight;
+	} else {
+		iconPath = arrowCircleLeft;
+	}
+	return iconPath;
 }

@@ -215,12 +215,8 @@
 					"name": "Record And Replay"
 				},
 				{
-					"id": "rdbg.trace.call",
-					"name": "Trace Call"
-				},
-				{
 					"id": "rdbg.trace.line",
-					"name": "Trace Line"
+					"name": "Trace"
 				},
 				{
 					"id": "rdbg.trace.exception",

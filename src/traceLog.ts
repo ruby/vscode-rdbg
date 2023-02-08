@@ -17,6 +17,9 @@ export interface TraceLogsEvent extends vscode.DebugSessionCustomEvent {
 		exception?: {
 			size: number;
 		};
+		dap?: {
+			size: number;
+		};
 	}
 }
 
@@ -25,7 +28,7 @@ export interface TraceLogRootResponse {
 }
 
 export interface TraceLogRootArguments {
-	type: 'line' | 'call' | 'exception';
+	type: 'line' | 'call' | 'exception' | 'dap';
 	offset: number;
 	pageSize: number;
 }
@@ -36,7 +39,7 @@ export interface TraceLogChildrenResponse {
 
 export interface TraceLogChildrenArguments {
 	index: number;
-	type: 'line' | 'call' | 'exception';
+	type: 'line' | 'call' | 'exception' | 'dap';
 	offset: number;
 	pageSize: number;
 }
@@ -47,13 +50,13 @@ export interface TraceLogParentResponse {
 
 export interface TraceLogParentArguments {
 	index: number;
-	type: 'line' | 'call' | 'exception';
+	type: 'line' | 'call' | 'exception' | 'dap';
 	offset: number;
 	pageSize: number;
 }
 
 export interface TraceLogsArguments {
-	type: 'line' | 'call' | 'exception';
+	type: 'line' | 'call' | 'exception' | 'dap';
 }
 
 export interface TraceLogsResponse {
