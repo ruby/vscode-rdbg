@@ -55,7 +55,6 @@ suite('attach', () => {
 			c.debugPort = `localhost:${port}`;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		test('port', async () => {
@@ -65,7 +64,6 @@ suite('attach', () => {
 			c.debugPort = port.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		suite('auto attach', () => {
@@ -86,7 +84,6 @@ suite('attach', () => {
 				c.autoAttach = key;
 				const success = await vscode.debug.startDebugging(undefined, c);
 				assert.ok(success);
-				return new Promise((resolve, reject) => resolve());
 			});
 		});
 	});
@@ -115,7 +112,6 @@ suite('attach', () => {
 			c.debugPort = `localhost:${port}`;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.strictEqual(success, false);
-			return new Promise((resolve, reject) => resolve());
 		});
 	});
 
@@ -235,7 +231,6 @@ suite('launch', () => {
 			c.debugPort = `localhost:${port}`;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		test('port', async () => {
@@ -243,7 +238,6 @@ suite('launch', () => {
 			c.debugPort = port.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		test('env', async () => {
@@ -252,7 +246,6 @@ suite('launch', () => {
 			c.debugPort = port.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		test('v2: localhost:{port}', async () => {
@@ -260,7 +253,6 @@ suite('launch', () => {
 			c.debugPort = `localhost:${port}`;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		test('v2: port', async () => {
@@ -268,7 +260,6 @@ suite('launch', () => {
 			c.debugPort = port.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		test('v2: env', async () => {
@@ -277,7 +268,6 @@ suite('launch', () => {
 			c.debugPort = port.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 	});
 
@@ -306,7 +296,6 @@ suite('launch', () => {
 			c.noDebug = true;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(!success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		test('v2: noDebug is true', async () => {
@@ -315,7 +304,6 @@ suite('launch', () => {
 			c.noDebug = true;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(!success);
-			return new Promise((resolve, reject) => resolve());
 		});
 	});
 
@@ -327,14 +315,12 @@ suite('launch', () => {
 			const c = generateLaunchConfig(testData);
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		test('v2: config.debugPort is undefined', async () => {
 			const c = generateLaunchV2Config(testData);
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 	});
 
@@ -360,7 +346,6 @@ suite('launch', () => {
 			c.debugPort = sockPath;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 
 		test('v2: return false', async () => {
@@ -368,7 +353,6 @@ suite('launch', () => {
 			c.debugPort = sockPath;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
-			return new Promise((resolve, reject) => resolve());
 		});
 	});
 });
@@ -457,4 +441,3 @@ interface LaunchConfiguration extends vscode.DebugConfiguration {
 
 	useTerminal?: boolean
 }
-
