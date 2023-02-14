@@ -272,11 +272,17 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	make_shell_command(cmd: string) {
 		const shell = process.env.SHELL;
-		if (this.support_login(shell)) {
-			return shell + " -l -c '" + cmd + "'";
-		}
-		else {
-			return cmd;
+		switch (true) {
+			case shell && (shell.endsWith("bash") || shell.endsWith("fish")):
+				return shell + " -l -c '" + cmd + "'";
+			case shell && shell.endsWith("zsh"):
+				// As the recommended way, initialization commands for rbenv are written in ".zshrc".
+				// However, it's not loaded on the non-interactive shell.
+				// Thus, we need to run this command as the interactive shell.
+				// FYI: https://zsh.sourceforge.io/Guide/zshguide02.html
+				return shell + " -l -c -i '" + cmd + "'";
+			default:
+				return cmd;
 		}
 	}
 
