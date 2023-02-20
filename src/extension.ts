@@ -87,7 +87,7 @@ export function activate(context: vscode.ExtensionContext) {
 		export_breakpoints(context);
 	}));
 
-  // Check version here?
+	// Check version here?
 	registerTraceProvider(context);
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {
