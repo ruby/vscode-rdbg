@@ -23,16 +23,6 @@ export class RdbgTreeItem extends vscode.TreeItem {
 	}
 }
 
-export class PagenationItem extends RdbgTreeItem {
-	constructor(
-		label: string,
-		public readonly offset: number,
-		opts: RdbgTreeItemOptions = {}
-	) {
-		super(label, opts);
-	}
-}
-
 export class LoadMoreItem extends RdbgTreeItem {
 	constructor() {
 		super('Load More Logs', {
@@ -48,6 +38,7 @@ export class TraceLogItem extends RdbgTreeItem {
 	constructor(
 		label: string,
 		public readonly index: number,
+    public readonly depth: number,
 		public readonly location: Location,
 		opts: RdbgTreeItemOptions = {},
 	) {

@@ -21,7 +21,6 @@ import {
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { registerExecLogsProvider } from './tree';
 import { registerTraceProvider } from './trace';
-import { registerExceptionTraceProvider } from './exceptionTrace';
 
 let outputChannel: vscode.OutputChannel;
 let outputTerminals = new Map<string, vscode.Terminal>();
@@ -91,7 +90,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	registerExecLogsProvider(context);
 	registerTraceProvider(context);
-	// registerExceptionTraceProvider(context);
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {
 		const config = session.configuration;

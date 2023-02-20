@@ -1,26 +1,6 @@
-import * as vscode from 'vscode';
-
 export interface Location {
-	name: string;
 	path: string;
 	line: number;
-}
-
-export interface TraceLogsEvent extends vscode.DebugSessionCustomEvent {
-	body: {
-		call?: {
-			size: number;
-		};
-		line?: {
-			size: number;
-		};
-		exception?: {
-			size: number;
-		};
-		dap?: {
-			size: number;
-		};
-	}
 }
 
 export interface TraceLogRootResponse {
@@ -60,20 +40,15 @@ export interface TraceLogsArguments {
 }
 
 export interface TraceLogsResponse {
-	logs: TraceLog2[];
+	logs: TraceLog[];
 }
 
 export interface TraceLog {
 	hasChild?: boolean;
 	location: Location;
-	name: string | null;
-	index: number;
-}
-
-export interface TraceLog2 {
-	hasChild?: boolean;
-	location: Location;
-	name: string | null;
+	name?: string;
 	depth: number;
-	index: number;
+  threadId: number;
+  returnValue?: string;
+  index: number;
 }

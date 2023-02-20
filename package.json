@@ -37,9 +37,7 @@
 		"onDebug",
 		"workspaceContains:.vscode/rdbg_autoattach.json",
 		"onView:debugReplayer",
-		"onView:rdbg.trace.call",
-		"onView:rdbg.trace.line",
-		"onView:rdbg.trace.exception"
+		"onView:rdbg.trace"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -215,7 +213,7 @@
 					"name": "Record And Replay"
 				},
 				{
-					"id": "rdbg.trace.line",
+					"id": "rdbg.trace",
 					"name": "Trace"
 				},
 				{
@@ -240,62 +238,22 @@
 				"title": "Go To Here"
 			},
 			{
-				"command": "rdbg.trace.call.startTrace",
+				"command": "rdbg.trace.startTrace",
 				"title": "Start Trace",
 				"icon": "$(play-circle)"
 			},
 			{
-				"command": "rdbg.trace.call.stopTrace",
+				"command": "rdbg.trace.stopTrace",
 				"title": "Stop Trace",
 				"icon": "$(stop-circle)"
 			},
 			{
-				"command": "rdbg.trace.call.openPrevLog",
+				"command": "rdbg.trace.openPrevLog",
 				"title": "Go back",
 				"icon": "$(arrow-up)"
 			},
 			{
-				"command": "rdbg.trace.call.openNextLog",
-				"title": "Go to",
-				"icon": "$(arrow-down)"
-			},
-			{
-				"command": "rdbg.trace.line.startTrace",
-				"title": "Start Trace",
-				"icon": "$(play-circle)"
-			},
-			{
-				"command": "rdbg.trace.line.stopTrace",
-				"title": "Stop Trace",
-				"icon": "$(stop-circle)"
-			},
-			{
-				"command": "rdbg.trace.line.openPrevLog",
-				"title": "Go back",
-				"icon": "$(arrow-up)"
-			},
-			{
-				"command": "rdbg.trace.line.openNextLog",
-				"title": "Go to",
-				"icon": "$(arrow-down)"
-			},
-			{
-				"command": "rdbg.trace.exception.startTrace",
-				"title": "Start Trace",
-				"icon": "$(play-circle)"
-			},
-			{
-				"command": "rdbg.trace.exception.stopTrace",
-				"title": "Stop Trace",
-				"icon": "$(stop-circle)"
-			},
-			{
-				"command": "rdbg.trace.exception.openPrevLog",
-				"title": "Go back",
-				"icon": "$(arrow-up)"
-			},
-			{
-				"command": "rdbg.trace.exception.openNextLog",
+				"command": "rdbg.trace.openNextLog",
 				"title": "Go to",
 				"icon": "$(arrow-down)"
 			}
@@ -313,63 +271,23 @@
 					"group": "navigation"
 				},
 				{
-					"command": "rdbg.trace.call.startTrace",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.call&& startCallTraceEnabled",
+					"command": "rdbg.trace.startTrace",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && startTraceEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "rdbg.trace.call.stopTrace",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.call && stopCallTraceEnabled",
+					"command": "rdbg.trace.stopTrace",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && stopTraceEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "rdbg.trace.call.openPrevLog",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.call && stopCallTraceEnabled",
+					"command": "rdbg.trace.openPrevLog",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && stopTraceEnabled",
 					"group": "navigation"
 				},
 				{
-					"command": "rdbg.trace.call.openNextLog",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.call && stopCallTraceEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.trace.line.startTrace",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.line && startLineTraceEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.trace.line.stopTrace",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.line && stopLineTraceEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.trace.line.openPrevLog",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.line && stopLineTraceEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.trace.line.openNextLog",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.line && stopLineTraceEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.trace.exception.startTrace",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.exception && startExceptionTraceEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.trace.exception.stopTrace",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.exception && stopExceptionTraceEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.trace.exception.openPrevLog",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.exception && stopExceptionTraceEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.trace.exception.openNextLog",
-					"when": "debuggersAvailable && inDebugMode && view == rdbg.trace.exception && stopExceptionTraceEnabled",
+					"command": "rdbg.trace.openNextLog",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && stopTraceEnabled",
 					"group": "navigation"
 				}
 			]
