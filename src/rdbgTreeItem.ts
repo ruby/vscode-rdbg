@@ -10,18 +10,18 @@ export type RdbgTreeItemOptions = Pick<vscode.TreeItem, 'id' | 'iconPath' | 'col
 export class RdbgTreeItem extends vscode.TreeItem {
 	isLastPage?: boolean;
   public parent?: RdbgTreeItem;
-	constructor(
-		label: string,
-		opts: RdbgTreeItemOptions = {}
-	) {
-		super(label, opts.collapsibleState);
-		this.id = opts.id;
-		this.iconPath = opts.iconPath;
-		this.tooltip = opts.tooltip;
-		this.description = opts.description;
-		this.resourceUri = opts.resourceUri;
-		this.command = opts.command;
-	}
+  constructor(
+  	label: string,
+  	opts: RdbgTreeItemOptions = {}
+  ) {
+  	super(label, opts.collapsibleState);
+  	this.id = opts.id;
+  	this.iconPath = opts.iconPath;
+  	this.tooltip = opts.tooltip;
+  	this.description = opts.description;
+  	this.resourceUri = opts.resourceUri;
+  	this.command = opts.command;
+  }
 }
 
 export class LoadMoreItem extends RdbgTreeItem {
