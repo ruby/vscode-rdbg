@@ -36,7 +36,6 @@
 		"onLanguage:ruby",
 		"onDebug",
 		"workspaceContains:.vscode/rdbg_autoattach.json",
-		"onView:debugReplayer",
 		"onView:rdbg.trace"
 	],
 	"main": "./out/extension.js",
@@ -209,34 +208,12 @@
 		"views": {
 			"debug": [
 				{
-					"id": "debugReplayer",
-					"name": "Record And Replay"
-				},
-				{
 					"id": "rdbg.trace",
 					"name": "Trace"
-				},
-				{
-					"id": "rdbg.trace.exception",
-					"name": "Trace Exception"
 				}
 			]
 		},
 		"commands": [
-			{
-				"command": "debugReplayer.startRecord",
-				"title": "Start Record",
-				"icon": "$(play-circle)"
-			},
-			{
-				"command": "debugReplayer.stopRecord",
-				"title": "Stop Record",
-				"icon": "$(stop-circle)"
-			},
-			{
-				"command": "debugReplayer.goToHere",
-				"title": "Go To Here"
-			},
 			{
 				"command": "rdbg.trace.startTrace",
 				"title": "Start Trace",
@@ -260,16 +237,6 @@
 		],
 		"menus": {
 			"view/title": [
-				{
-					"command": "debugReplayer.startRecord",
-					"when": "debuggersAvailable && inDebugMode && view == debugReplayer && startRecordEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "debugReplayer.stopRecord",
-					"when": "debuggersAvailable && inDebugMode && view == debugReplayer && stopRecordEnabled",
-					"group": "navigation"
-				},
 				{
 					"command": "rdbg.trace.startTrace",
 					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && startTraceEnabled",

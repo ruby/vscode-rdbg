@@ -9,6 +9,7 @@ export type RdbgTreeItemOptions = Pick<vscode.TreeItem, 'id' | 'iconPath' | 'col
 
 export class RdbgTreeItem extends vscode.TreeItem {
 	isLastPage?: boolean;
+  public parent?: RdbgTreeItem;
 	constructor(
 		label: string,
 		opts: RdbgTreeItemOptions = {}
@@ -29,7 +30,6 @@ export class LoadMoreItem extends RdbgTreeItem {
 			resourceUri: vscode.Uri.parse('http://example.com'),
 			collapsibleState: vscode.TreeItemCollapsibleState.None,
 			iconPath: foldUpIcon,
-			command: { title: 'rdbg.trace.line.LoadMoreLogs', command: 'rdbg.trace.line.LoadMoreLogs' }
 		});
 	}
 }
@@ -49,6 +49,7 @@ export class TraceLogItem extends RdbgTreeItem {
 
 export class OmittedItem extends RdbgTreeItem {
 	constructor(
+    public readonly index: number,
 		public readonly offset: number,
 		public readonly depth: number
 	) {

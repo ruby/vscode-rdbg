@@ -56,38 +56,45 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
 		}),
 
-		// vscode.commands.registerCommand('rdbg.trace.openPrevLog', async () => {
-		// 	if (view.selection.length > 0 && view.selection[0] instanceof LineTraceLogItem) {
-		// 		treeProvider.curSelectedIdx = (view.selection[0] as LineTraceLogItem).index;
-		// 	}
-		// 	treeProvider.curSelectedIdx -= 1;
-		// 	const item = new LineTraceLogItem('', treeProvider.curSelectedIdx, { path: '', line: 0 });
-		// 	await view.reveal(item, { select: true, expand: 3 });
-		// 	const selection = view.selection[0] as LineTraceLogItem;
-		// 	const opts: vscode.TextDocumentShowOptions = { selection: new vscode.Range(selection.location.line - 1, 0, selection.location.line - 1, 0), preserveFocus: true };
-		// 	await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(selection.location.path), opts);
-		// }),
-
-		// vscode.commands.registerCommand('rdbg.trace.openNextLog', async () => {
-		//   if (view.selection.length > 1 && (view.selection[0] instanceof LineTraceLogItem || view.selection[0] instanceof CallTraceLogItem)) {
-		//     const log = treeProvider.getTraceLog(view.selection[0].index);
-		//     const item = new LineTraceLogItem(log);
-		//     await view.reveal(item, { select: true, expand: true });
-		//   }
-		// }),
-
-		view.onDidChangeSelection(async (e) => {
-			if (e.selection.length > 0 && (e.selection[0] instanceof LineTraceLogItem || e.selection[0] instanceof CallTraceLogItem)) {
-				const opts: vscode.TextDocumentShowOptions = {
-					selection: new vscode.Range(e.selection[0].location.line - 1, 0, e.selection[0].location.line - 1, 0),
-					preserveFocus: true 
-				};
-				await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(e.selection[0].location.path), opts);
+		vscode.commands.registerCommand('rdbg.trace.openPrevLog', async () => {
+			if (view.selection.length < 1) {
+				const bottom = treeProvider.getBottomTraceLogItem();
+				await view.reveal(bottom);
+				return;
+			}
+			const log = treeProvider.getPrevLogItem(view.selection[0]);
+			if (log !== undefined) {
+				await view.reveal(log);
 			}
 		}),
 
-		vscode.commands.registerCommand('rdbg.trace.line.LoadMoreLogs', () => {
-			treeProvider.refresh();
+		vscode.commands.registerCommand('rdbg.trace.openNextLog', async () => {
+			if (view.selection.length < 1) {
+				return;
+			}
+			const log = treeProvider.getNextLogItem(view.selection[0]);
+			if (log !== undefined) {
+				await view.reveal(log);
+			}
+		}),
+
+		view.onDidChangeSelection(async (e) => {
+			if (e.selection.length < 1) {
+				return;
+			}
+			switch (true) {
+				case e.selection[0] instanceof LineTraceLogItem || e.selection[0] instanceof CallTraceLogItem:
+					const location = (e.selection[0] as TraceLogItem).location;
+					const opts: vscode.TextDocumentShowOptions = {
+						selection: new vscode.Range(location.line - 1, 0, location.line - 1, 0),
+						preserveFocus: true 
+					};
+					await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(location.path), opts);
+					break;
+				case e.selection[0] instanceof LoadMoreItem:
+					treeProvider.refresh();
+					break;
+			}
 		}),
 	);
 }
@@ -101,22 +108,80 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 	private _traceLogs: TraceLogItem[] = [];
 	private _loadMoreOffset: number = -1;
 	private _minDepth = Infinity;
+  private _omittedItems: OmittedItem[] = [];
 
-	cleanUp() {
-		this._loadMoreOffset = -1;
-		this._minDepth = Infinity;
-	}
+  cleanUp() {
+  	this._loadMoreOffset = -1;
+  	this._minDepth = Infinity;
+  }
 
-	refresh() {
-		this._onDidChangeTreeData.fire();
-	}
+  refresh() {
+  	this._onDidChangeTreeData.fire();
+  }
 
-	getTraceLog(idx: number) {
-		if (this._traceLogs[idx] !== undefined) {
-			this.curSelectedIdx = idx;
-		}
-		return this._traceLogs[this.curSelectedIdx];
-	}
+  private topItem(idx: number) {
+  	return idx === this._loadMoreOffset;
+  }
+
+  private getTopTraceLogItem() {
+  	return this._traceLogs[this._loadMoreOffset];
+  }
+
+  getBottomTraceLogItem() {
+  	return this._traceLogs[this._traceLogs.length - 1];
+  }
+
+  private getTraceLogItem(idx: number) {
+  	return this._traceLogs[idx];
+  }
+
+  getPrevLogItem(selected: RdbgTreeItem) {
+  	let idx: number;
+  	let item: RdbgTreeItem;
+  	switch (true) {
+  		case selected instanceof LineTraceLogItem || selected instanceof CallTraceLogItem:
+  			idx = (selected as TraceLogItem).index;
+  			if (this.topItem(idx)) {
+  				if (selected.parent === undefined) {
+  					this.refresh();
+  					item = this.getTraceLogItem(idx - 1);
+  				} else {
+  					item = selected.parent;
+  				}
+  			} else {
+  				item = this.getTraceLogItem(idx - 1);
+  			}
+  			return item;
+  		case selected instanceof OmittedItem:
+  			idx = (selected as OmittedItem).index;
+  			if (selected.parent === undefined) {
+  				this.refresh();
+  				item = this.getTraceLogItem(idx - 1);
+  			} else {
+  				item = selected.parent;
+  			}
+  			return item;
+  	}
+  }
+
+  getNextLogItem(selected: RdbgTreeItem) {
+  	let idx: number;
+  	let item: RdbgTreeItem;
+  	switch (true) {
+  		case selected instanceof LineTraceLogItem || selected instanceof CallTraceLogItem:
+  			idx = (selected as TraceLogItem).index;
+  			item = this.getTraceLogItem(idx + 1);
+  			return item;
+  		case selected instanceof OmittedItem:
+  			idx = (selected as OmittedItem).index;
+  			item = this.getOmittedItem(idx + 1) || this.getTopTraceLogItem();
+  			return item;
+  	}
+  }
+
+  private getOmittedItem(idx: number) {
+  	return this._omittedItems[idx];
+  }
 
 	private _onDidChangeTreeData: vscode.EventEmitter<RdbgTreeItem | undefined | null | void> = new vscode.EventEmitter<RdbgTreeItem | undefined | null | void>();
 	readonly onDidChangeTreeData: vscode.Event<RdbgTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
@@ -134,6 +199,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 			let childLogs: TraceLogItem[];
 			let childEnd: number;
 			let childMinDepth = Infinity;
+			let children: TraceLogItem[];
 			switch (true) {
 				case element instanceof CallTraceLogItem:
 				case element instanceof LineTraceLogItem:
@@ -148,8 +214,10 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 						}                   
 					}
 					childLogs = subArray.slice(0, childEnd);
-          childMinDepth = this.getMinDepth(childLogs);
-					items.push(...this.getRoot(childLogs, childMinDepth));
+					childMinDepth = this.getMinDepth(childLogs);
+					children = this.listTraceLogItems(childLogs, childMinDepth);
+					this.setParent(children, element);
+					items.push(...children);
 					break;
 				case element instanceof OmittedItem:
 					const omitted = element as OmittedItem;
@@ -163,11 +231,16 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 						}
 					}
 					childLogs = subArray.slice(0, childEnd);
-          childMinDepth = this.getMinDepth(childLogs);
+					childMinDepth = this.getMinDepth(childLogs);
 					if (childLogs[0].depth > childMinDepth) {
-						items.push(new OmittedItem(this._loadMoreOffset, childMinDepth));
+						const o = new OmittedItem(omitted.index + 1, this._loadMoreOffset, childMinDepth);
+						this._omittedItems.push(o);
+						o.parent = omitted;
+						items.push(o);
 					}
-					items.push(...this.getRoot(childLogs, childMinDepth));
+					children = this.listTraceLogItems(childLogs, childMinDepth);
+					this.setParent(children, element);
+					items.push(...children);
 					break;
 			}
 			return items;
@@ -200,15 +273,18 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 				this._loadMoreOffset = 0;
 			}
 		}
+		this._omittedItems = [];
 		const items: RdbgTreeItem[] = [];
 		if (this._loadMoreOffset !== 0) {
 			items.push(new LoadMoreItem());
 		}
 		const logs = this._traceLogs.slice(this._loadMoreOffset);
 		if (logs[0].depth > this._minDepth) {
-			items.push(new OmittedItem(this._loadMoreOffset, this._minDepth));
+			const omitted = new OmittedItem(0, this._loadMoreOffset, this._minDepth);
+			this._omittedItems.push(omitted);
+			items.push(omitted);
 		}
-		const root = this.getRoot(logs, this._minDepth);
+		const root = this.listTraceLogItems(logs, this._minDepth);
 		items.push(...root);
 		return items;
 	}
@@ -241,37 +317,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		return min;
 	}
 
-	// 	async getParent(element: RdbgTreeItem): Promise<RdbgTreeItem | null | undefined> {
-	// 		const session = vscode.debug.activeDebugSession;
-	// 		if (session === undefined) return void 0;
-
-	// 		if (!(element instanceof LineTraceLogItem)) return void 0;
-
-	// 		const pageNum = Math.floor(element.index / pageSize + 1);
-	// 		const offset = (pageNum - 1) * pageSize;
-	// 		let resp: TraceLogParentResponse;
-	// 		try {
-	// 			const args: TraceLogParentArguments = {
-	// 				index: element.index,
-	// 				type: 'line',
-	// 				offset,
-	// 				pageSize,
-	// 			};
-	// 			resp = await session.customRequest('rdbgInspectorTraceLogParent', args);
-	// 		} catch (error) {
-	// 			return void 0;
-	// 		}
-	// 		if (resp.log === null) return this.pages[pageNum - 1];
-
-	// 		const item = new LineTraceLogItem(
-	// 			resp.log.location.name,
-	// 			resp.log.index,
-	// 			resp.log.location,
-	// 			{ iconPath: locationIcon }
-	// 		);
-	// 		return item;
-	// 	}
-	private getRoot(logs: TraceLogItem[], depth: number) {
+	private listTraceLogItems(logs: TraceLogItem[], depth: number) {
 		const root: TraceLogItem[] = [];
 		for (const log of logs) {
 			if (log.depth === depth) {
@@ -281,36 +327,24 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		return root;
 	}
 
-  private hasChild(logs: TraceLog[], index: number) {
-    const target = logs[index];
-    return logs[index + 1] && logs[index + 1].depth > target.depth;
-  }
+	private setParent(children: TraceLogItem[], parent: RdbgTreeItem) {
+		for (const child of children) {
+			child.parent = parent;
+		}
+	}
+
+	private hasChild(logs: TraceLog[], index: number) {
+		const target = logs[index];
+		return logs[index + 1] && logs[index + 1].depth > target.depth;
+	}
+
+	async getParent(element: RdbgTreeItem): Promise<RdbgTreeItem | null | undefined> {
+		const session = vscode.debug.activeDebugSession;
+		if (session === undefined) return void 0;
+
+		return element.parent;
+	}
 }
-
-// function getRoot(logs: TraceLog[], minDepth: number) {
-// 	const root: TraceLogItem[] = [];
-// 	logs.forEach((log, idx) => {
-// 		if (log.depth === minDepth) {
-// 			let state = vscode.TreeItemCollapsibleState.None;
-// 			if (hasChild(logs, idx)) {
-// 				state = vscode.TreeItemCollapsibleState.Expanded;
-// 			}
-// 			let item: TraceLogItem;
-// 			if (log.name) {
-// 				item = new CallTraceLogItem(log, state);
-// 			} else {
-// 				item = new LineTraceLogItem(log, state);
-// 			}
-// 			root.push(item);
-// 		}
-// 	});
-// 	return root;
-// }
-
-// function hasChild(logs: TraceLog[], index: number) {
-// 	const target = logs[index];
-// 	return logs[index + 1] && logs[index + 1].depth > target.depth;
-// }
 
 class LineTraceLogItem extends TraceLogItem {
 	constructor(

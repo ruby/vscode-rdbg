@@ -19,7 +19,6 @@ import {
 } from 'vscode';
 
 import { DebugProtocol } from '@vscode/debugprotocol';
-import { registerExecLogsProvider } from './tree';
 import { registerTraceProvider } from './trace';
 
 let outputChannel: vscode.OutputChannel;
@@ -88,7 +87,7 @@ export function activate(context: vscode.ExtensionContext) {
 		export_breakpoints(context);
 	}));
 
-	registerExecLogsProvider(context);
+  // Check version here?
 	registerTraceProvider(context);
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {
