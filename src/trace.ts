@@ -9,8 +9,23 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 	const decorationProvider = new RdbgDecorationProvider();
 	const treeProvider = new TraceLogsTreeProvider();
 	const view = vscode.window.createTreeView('rdbg.trace', { treeDataProvider: treeProvider });
+	const inlayHintsProvider = new RdbgInlayHintsProvider(view);
 
 	ctx.subscriptions.push(
+		vscode.languages.registerInlayHintsProvider(
+			[
+				{
+					"language": "ruby"
+				},
+				{
+					"language": "haml"
+				},
+				{
+					"language": "slim"
+				}
+			],
+			inlayHintsProvider
+		),
 		vscode.window.registerFileDecorationProvider(decorationProvider),
 		vscode.commands.registerCommand('rdbg.trace.startTrace', async () => {
 			const session = vscode.debug.activeDebugSession;
@@ -82,6 +97,7 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			if (e.selection.length < 1) {
 				return;
 			}
+			inlayHintsProvider.refresh();
 			switch (true) {
 				case e.selection[0] instanceof LineTraceLogItem || e.selection[0] instanceof CallTraceLogItem:
 					const location = (e.selection[0] as TraceLogItem).location;
@@ -153,7 +169,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
   			}
   			return item;
   		case selected instanceof OmittedItem:
-  			idx = (selected as OmittedItem).index;
+  			idx = this._loadMoreOffset;
   			if (selected.parent === undefined) {
   				this.refresh();
   				item = this.getTraceLogItem(idx - 1);
@@ -371,18 +387,49 @@ class RdbgDecorationProvider implements vscode.FileDecorationProvider {
 const arrowCircleRight = new vscode.ThemeIcon('arrow-circle-right');
 const arrowCircleLeft = new vscode.ThemeIcon('arrow-circle-left');
 class CallTraceLogItem extends TraceLogItem {
-	constructor(
-		log: TraceLog,
-		idx: number,
-		state?: vscode.TreeItemCollapsibleState,
-	) {
-		let iconPath: vscode.ThemeIcon;
-		if (log.returnValue) {
-			iconPath = arrowCircleRight;
-		} else {
-			iconPath = arrowCircleLeft;
+  public readonly returnValue: string | undefined;
+  constructor(
+  	log: TraceLog,
+  	idx: number,
+  	state?: vscode.TreeItemCollapsibleState,
+  ) {
+  	let iconPath: vscode.ThemeIcon;
+  	if (log.returnValue) {
+  		iconPath = arrowCircleLeft;
+  	} else {
+  		iconPath = arrowCircleRight;
+  	}
+  	const opts: RdbgTreeItemOptions = { iconPath: iconPath, description: log.location.path, collapsibleState: state, };
+  	super(log.name || 'Unknown frame name', idx, log.depth, log.location, opts);
+  	this.returnValue = log.returnValue;
+  }
+}
+
+class RdbgInlayHintsProvider implements vscode.InlayHintsProvider {
+  private readonly _singleSpace = ' ';
+  private readonly _indent = this._singleSpace.repeat(5)
+  private readonly _arrow = '=>';
+  constructor(
+    private readonly _treeView: vscode.TreeView<RdbgTreeItem>
+  ) {}
+  private _onDidChangeInlayHints: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
+	readonly onDidChangeInlayHints: vscode.Event<void> = this._onDidChangeInlayHints.event;
+	provideInlayHints(document: vscode.TextDocument, range: vscode.Range, token: vscode.CancellationToken): vscode.ProviderResult<vscode.InlayHint[]> {
+		const hints: vscode.InlayHint[] = []
+		if (this._treeView.selection.length < 1) {
+			return hints;
 		}
-		const opts: RdbgTreeItemOptions = { iconPath: iconPath, description: log.location.path, collapsibleState: state, };
-		super(log.name || 'Unknown frame name', idx, log.depth, log.location, opts);
+		const selection = this._treeView.selection[0];
+		if (selection instanceof CallTraceLogItem && selection.returnValue !== undefined) {
+			const line = selection.location.line - 1
+			const text = document.lineAt(line);
+			const label = this._indent + this._arrow + this._singleSpace + selection.returnValue;
+			const hint = new vscode.InlayHint(text.range.end, label, vscode.InlayHintKind.Parameter);
+			hints.push(hint);
+		}
+		return hints;
+	}
+	refresh() {
+  	this._onDidChangeInlayHints.fire();
 	}
 }
