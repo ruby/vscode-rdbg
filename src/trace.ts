@@ -407,7 +407,7 @@ class CallTraceLogItem extends TraceLogItem {
 
 class RdbgInlayHintsProvider implements vscode.InlayHintsProvider {
   private readonly _singleSpace = ' ';
-  private readonly _indent = this._singleSpace.repeat(5)
+  private readonly _indent = this._singleSpace.repeat(5);
   private readonly _arrow = '=>';
   constructor(
     private readonly _treeView: vscode.TreeView<RdbgTreeItem>
@@ -415,13 +415,13 @@ class RdbgInlayHintsProvider implements vscode.InlayHintsProvider {
   private _onDidChangeInlayHints: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
 	readonly onDidChangeInlayHints: vscode.Event<void> = this._onDidChangeInlayHints.event;
 	provideInlayHints(document: vscode.TextDocument, range: vscode.Range, token: vscode.CancellationToken): vscode.ProviderResult<vscode.InlayHint[]> {
-		const hints: vscode.InlayHint[] = []
+		const hints: vscode.InlayHint[] = [];
 		if (this._treeView.selection.length < 1) {
 			return hints;
 		}
 		const selection = this._treeView.selection[0];
 		if (selection instanceof CallTraceLogItem && selection.returnValue !== undefined) {
-			const line = selection.location.line - 1
+			const line = selection.location.line - 1;
 			const text = document.lineAt(line);
 			const label = this._indent + this._arrow + this._singleSpace + selection.returnValue;
 			const hint = new vscode.InlayHint(text.range.end, label, vscode.InlayHintKind.Parameter);
