@@ -16,7 +16,7 @@ export interface TraceLog {
 	location: Location;
 	name?: string;
 	depth: number;
-  threadId: number;
-  returnValue?: string;
-  index: number;
+	threadId: number;
+	returnValue?: string;
+	index: number;
 }
