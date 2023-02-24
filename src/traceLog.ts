@@ -3,8 +3,23 @@ export interface Location {
 	line: number;
 }
 
-export interface TraceLogsArguments {
-	type: 'line' | 'call' | 'exception' | 'dap';
+export interface RdbgTraceInspectorArguments {
+  command: 'enable' | 'disable' | 'logs'
+}
+
+export interface RdbgTraceInspectorEnableArguments extends RdbgTraceInspectorArguments {
+  command: 'enable'
+  arguments: {
+    type: ('line' | 'call' | 'return')[];
+  }
+}
+
+export interface RdbgTraceInspectorDisableArguments extends RdbgTraceInspectorArguments {
+  command: 'disable'
+}
+
+export interface RdbgTraceInspectorLogsArguments extends RdbgTraceInspectorArguments {
+  command: 'logs'
 }
 
 export interface TraceLogsResponse {

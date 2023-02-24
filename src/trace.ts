@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { LoadMoreItem, OmittedItem, RdbgTreeItem, RdbgTreeItemOptions, TraceLogItem } from './rdbgTreeItem';
-import { TraceLogsArguments, TraceLogsResponse, TraceLog } from './traceLog';
-import { sendDebugCommand } from './utils';
+import { TraceLogsResponse, TraceLog, RdbgTraceInspectorLogsArguments, RdbgTraceInspectorEnableArguments, RdbgTraceInspectorDisableArguments } from './traceLog';
 
 const locationIcon = new vscode.ThemeIcon('location');
 
@@ -34,7 +33,13 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 				return;
 			}
 			try {
-				await session.customRequest('rdbgInspectorTraceOn', {});
+				const args: RdbgTraceInspectorEnableArguments = {
+					command: 'enable',
+					arguments: {
+						type: []
+					}
+				};
+				await session.customRequest('rdbgTraceInspector', args);
 			} catch (err) { }
 			vscode.commands.executeCommand('setContext', 'startTraceEnabled', false);
 			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', true);
@@ -49,7 +54,10 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
 			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
 			try {
-				await sendDebugCommand(session, 'trace off');
+				const args: RdbgTraceInspectorDisableArguments = {
+					command: 'disable',
+				};
+				await session.customRequest('rdbgTraceInspector', args);
 			} catch (err) { }
 		}),
 
@@ -264,10 +272,10 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		if (this._traceLogs.length < 1) {
 			let resp: TraceLogsResponse;
 			try {
-				const args: TraceLogsArguments = {
-					type: 'dap',
+				const args: RdbgTraceInspectorLogsArguments = {
+					command: 'logs'
 				};
-				resp = await session.customRequest('rdbgInspectorTraceLogs', args);
+				resp = await session.customRequest('rdbgTraceInspector', args);
 			} catch (error) {
 				return [];
 			}
@@ -408,7 +416,7 @@ class CallTraceLogItem extends TraceLogItem {
 class RdbgInlayHintsProvider implements vscode.InlayHintsProvider {
   private readonly _singleSpace = ' ';
   private readonly _indent = this._singleSpace.repeat(5);
-  private readonly _arrow = '=>';
+  private readonly _arrow = '#=>';
   constructor(
     private readonly _treeView: vscode.TreeView<RdbgTreeItem>
   ) {}
