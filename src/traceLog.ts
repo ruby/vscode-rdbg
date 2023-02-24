@@ -4,22 +4,22 @@ export interface Location {
 }
 
 export interface RdbgTraceInspectorArguments {
-  command: 'enable' | 'disable' | 'logs'
+  command: 'enable' | 'disable' | 'logs';
 }
 
 export interface RdbgTraceInspectorEnableArguments extends RdbgTraceInspectorArguments {
-  command: 'enable'
+  command: 'enable';
   arguments: {
     type: ('line' | 'call' | 'return')[];
   }
 }
 
 export interface RdbgTraceInspectorDisableArguments extends RdbgTraceInspectorArguments {
-  command: 'disable'
+  command: 'disable';
 }
 
 export interface RdbgTraceInspectorLogsArguments extends RdbgTraceInspectorArguments {
-  command: 'logs'
+  command: 'logs';
 }
 
 export interface TraceLogsResponse {
