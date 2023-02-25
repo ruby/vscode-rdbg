@@ -27,7 +27,7 @@ export class RdbgTreeItem extends vscode.TreeItem {
 export class LoadMoreItem extends RdbgTreeItem {
 	constructor() {
 		super('Load More Logs', {
-			resourceUri: vscode.Uri.parse('http://example.com'),
+			resourceUri: vscode.Uri.parse('http://example.com?item=load'),
 			collapsibleState: vscode.TreeItemCollapsibleState.None,
 			iconPath: foldUpIcon,
 		});
@@ -40,12 +40,14 @@ export class TraceLogItem extends RdbgTreeItem {
 		public readonly index: number,
     public readonly depth: number,
 		public readonly location: Location,
-    threadId: number,
+    public readonly threadId: number,
 		opts: RdbgTreeItemOptions = {},
 	) {
-		opts.id = index.toString();
+    const idx = index.toString();
+    opts.id = idx;
+    opts.tooltip = location.path;
+    opts.resourceUri = vscode.Uri.parse('http://example.com?item=trace&index=' + idx);
 		super(label, opts);
-    this.label = 'th:' + threadId + ' ' + this.label;
 	}
 }
 
