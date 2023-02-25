@@ -258,7 +258,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 			}
 		}
 		this._omittedItems = [];
-    // Do not await createTree
+    // Do not await
 		return this.createTree();
 	}
 
@@ -332,6 +332,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 					childMinDepth = this.getMinDepth(childLogs);
 					traceItem = this.listTraceLogItems(childLogs, childMinDepth);
 					push.apply(children, traceItem);
+          // Do not await
 					this.setParentChild(children, item);
 					break;
 				case item instanceof OmittedItem:
@@ -354,6 +355,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 					}
 					traceItem = this.listTraceLogItems(childLogs, childMinDepth);
 					push.apply(children, traceItem);
+          // Do not await
 					this.setParentChild(children, item);
 					break;
 			}
@@ -376,7 +378,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		return root;
 	}
 
-  private setParentChild(children: RdbgTreeItem[], parent: RdbgTreeItem) {
+  private async setParentChild(children: RdbgTreeItem[], parent: RdbgTreeItem) {
     parent.children = children;
 		for (const child of children) {
 			child.parent = parent;
@@ -403,7 +405,7 @@ class LineTraceLogItem extends TraceLogItem {
 		state?: vscode.TreeItemCollapsibleState,
 	) {
 		const opts: RdbgTreeItemOptions = { iconPath: locationIcon, collapsibleState: state };
-		super(log.location.path, idx, log.depth, log.location, opts);
+		super(log.location.path, idx, log.depth, log.location, log.threadId, opts);
 	}
 }
 
@@ -434,7 +436,7 @@ class CallTraceLogItem extends TraceLogItem {
   		iconPath = arrowCircleRight;
   	}
   	const opts: RdbgTreeItemOptions = { iconPath: iconPath, description: log.location.path, collapsibleState: state, };
-  	super(log.name || 'Unknown frame name', idx, log.depth, log.location, opts);
+  	super(log.name || 'Unknown frame name', idx, log.depth, log.location, log.threadId, opts);
   	this.returnValue = log.returnValue;
   }
 }

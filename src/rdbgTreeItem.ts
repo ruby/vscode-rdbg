@@ -40,10 +40,12 @@ export class TraceLogItem extends RdbgTreeItem {
 		public readonly index: number,
     public readonly depth: number,
 		public readonly location: Location,
+    threadId: number,
 		opts: RdbgTreeItemOptions = {},
 	) {
 		opts.id = index.toString();
 		super(label, opts);
+    this.label = 'th:' + threadId + ' ' + this.label;
 	}
 }
 
