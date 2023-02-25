@@ -8,8 +8,8 @@ export type RdbgTreeItemOptions = Pick<vscode.TreeItem, 'id' | 'iconPath' | 'col
 };
 
 export class RdbgTreeItem extends vscode.TreeItem {
-	isLastPage?: boolean;
   public parent?: RdbgTreeItem;
+  public children?: RdbgTreeItem[];
   constructor(
   	label: string,
   	opts: RdbgTreeItemOptions = {}

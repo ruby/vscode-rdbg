@@ -26,10 +26,11 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			inlayHintsProvider
 		),
 		vscode.window.registerFileDecorationProvider(decorationProvider),
+
 		vscode.commands.registerCommand('rdbg.trace.startTrace', async () => {
 			const session = vscode.debug.activeDebugSession;
 			if (session === undefined) {
-				vscode.window.showErrorMessage('Failed to get active debug session');
+				await vscode.window.showErrorMessage('Failed to get active debug session');
 				return;
 			}
 			try {
@@ -41,18 +42,18 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 				};
 				await session.customRequest('rdbgTraceInspector', args);
 			} catch (err) { }
-			vscode.commands.executeCommand('setContext', 'startTraceEnabled', false);
-			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', true);
+			await vscode.commands.executeCommand('setContext', 'startTraceEnabled', false);
+			await vscode.commands.executeCommand('setContext', 'stopTraceEnabled', true);
 		}),
 
 		vscode.commands.registerCommand('rdbg.trace.stopTrace', async () => {
 			const session = vscode.debug.activeDebugSession;
 			if (session === undefined) {
-				vscode.window.showErrorMessage('Failed to get active debug session');
+				await vscode.window.showErrorMessage('Failed to get active debug session');
 				return;
 			}
-			vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
-			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
+			await vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
+			await vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
 			try {
 				const args: RdbgTraceInspectorDisableArguments = {
 					command: 'disable',
@@ -68,15 +69,15 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			}
 		}),
 
-		vscode.debug.onDidStartDebugSession(() => {
-			vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
-			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
+		vscode.debug.onDidStartDebugSession(async () => {
+			await vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
+			await vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
 		}),
 
-		vscode.debug.onDidTerminateDebugSession(() => {
+		vscode.debug.onDidTerminateDebugSession(async () => {
 			treeProvider.cleanUp();
-			vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
-			vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
+			await vscode.commands.executeCommand('setContext', 'startTraceEnabled', true);
+			await vscode.commands.executeCommand('setContext', 'stopTraceEnabled', false);
 		}),
 
 		vscode.commands.registerCommand('rdbg.trace.openPrevLog', async () => {
@@ -125,10 +126,9 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 
 const initRowCount = 5;
 const loadingRowCount = 3;
+const push = Array.prototype.push;
 
 class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
-	public curSelectedIdx: number = 0;
-	public totalCount = 0;
 	private _traceLogs: TraceLogItem[] = [];
 	private _loadMoreOffset: number = -1;
 	private _minDepth = Infinity;
@@ -137,6 +137,15 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
   cleanUp() {
   	this._loadMoreOffset = -1;
   	this._minDepth = Infinity;
+    this.clearArray(this._traceLogs);
+    this.clearArray(this._omittedItems);
+    this.refresh();
+  }
+
+  private clearArray(ary: any[]) {
+    while(ary.length > 0) {
+      ary.pop();
+    }
   }
 
   refresh() {
@@ -213,61 +222,12 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		return element;
 	}
 
-	async getChildren(element?: RdbgTreeItem): Promise<RdbgTreeItem[]> {
+	async getChildren(element?: RdbgTreeItem): Promise<RdbgTreeItem[] | undefined> {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) return [];
 
 		if (element) {
-			const items: RdbgTreeItem[] = [];
-			let subArray: TraceLogItem[];
-			let childLogs: TraceLogItem[];
-			let childEnd: number;
-			let childMinDepth = Infinity;
-			let children: TraceLogItem[];
-			switch (true) {
-				case element instanceof CallTraceLogItem:
-				case element instanceof LineTraceLogItem:
-					const idx = (element as LineTraceLogItem).index;
-					subArray = this._traceLogs.slice(idx + 1);
-					childEnd = subArray.length;
-					// TODO: edge case
-					for (let i = 0; i < subArray.length; i++) {
-						if (subArray[i].depth <= this._traceLogs[idx].depth) {
-							childEnd = i;
-							break;
-						}                   
-					}
-					childLogs = subArray.slice(0, childEnd);
-					childMinDepth = this.getMinDepth(childLogs);
-					children = this.listTraceLogItems(childLogs, childMinDepth);
-					this.setParent(children, element);
-					items.push(...children);
-					break;
-				case element instanceof OmittedItem:
-					const omitted = element as OmittedItem;
-					subArray = this._traceLogs.slice(omitted.offset);
-					childEnd = subArray.length;
-					// TODO: edge case
-					for (let i = 0; i < subArray.length; i++) {
-						if (subArray[i].depth === omitted.depth) {
-							childEnd = i;
-							break;
-						}
-					}
-					childLogs = subArray.slice(0, childEnd);
-					childMinDepth = this.getMinDepth(childLogs);
-					if (childLogs[0].depth > childMinDepth) {
-						const o = new OmittedItem(omitted.index + 1, this._loadMoreOffset, childMinDepth);
-						this._omittedItems.push(o);
-						o.parent = omitted;
-						items.push(o);
-					}
-					children = this.listTraceLogItems(childLogs, childMinDepth);
-					this.setParent(children, element);
-					items.push(...children);
-					break;
-			}
-			return items;
+			return element.children;
 		}
 		if (this._traceLogs.length < 1) {
 			let resp: TraceLogsResponse;
@@ -279,10 +239,10 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 			} catch (error) {
 				return [];
 			}
-			if (resp.logs && resp.logs.length < 1) {
+			if (resp.logs === undefined || resp.logs.length < 1) {
 				return [];
 			}
-			this._traceLogs = this.toTraceLogItems(resp.logs);
+			this._traceLogs = await this.toTraceLogItems(resp.logs);
 			let quotient = Math.floor(this._traceLogs.length / initRowCount);
 			let remainder = this._traceLogs.length % initRowCount;
 			if (quotient === 0) {
@@ -298,22 +258,11 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 			}
 		}
 		this._omittedItems = [];
-		const items: RdbgTreeItem[] = [];
-		if (this._loadMoreOffset !== 0) {
-			items.push(new LoadMoreItem());
-		}
-		const logs = this._traceLogs.slice(this._loadMoreOffset);
-		if (logs[0].depth > this._minDepth) {
-			const omitted = new OmittedItem(0, this._loadMoreOffset, this._minDepth);
-			this._omittedItems.push(omitted);
-			items.push(omitted);
-		}
-		const root = this.listTraceLogItems(logs, this._minDepth);
-		items.push(...root);
-		return items;
+    // Do not await createTree
+		return this.createTree();
 	}
 
-	private toTraceLogItems(logs: TraceLog[]) {
+	private async toTraceLogItems(logs: TraceLog[]) {
 		const items: TraceLogItem[] = [];
 		logs.forEach((log, idx) => {
 			let state = vscode.TreeItemCollapsibleState.None;
@@ -341,6 +290,82 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		return min;
 	}
 
+  private async createTree() {
+    const items: RdbgTreeItem[] = [];
+		if (this._loadMoreOffset !== 0) {
+			items.push(new LoadMoreItem());
+		}
+		const logs = this._traceLogs.slice(this._loadMoreOffset);
+		if (logs[0].depth > this._minDepth) {
+			const omitted = new OmittedItem(0, this._loadMoreOffset, this._minDepth);
+			this._omittedItems.push(omitted);
+			items.push(omitted);
+		}
+		const root = this.listTraceLogItems(logs, this._minDepth);
+		items.push(...root);
+    const stack = items.concat();
+    while (true) {
+      const item = stack.pop();
+      if (item === undefined) {
+        break;
+      }
+      const children: RdbgTreeItem[] = [];
+			let subArray: TraceLogItem[];
+			let childLogs: TraceLogItem[];
+			let childEnd: number;
+			let childMinDepth = Infinity;
+			let traceItem: TraceLogItem[];
+      switch (true) {
+				case item instanceof CallTraceLogItem:
+				case item instanceof LineTraceLogItem:
+					const idx = (item as TraceLogItem).index;
+					subArray = this._traceLogs.slice(idx + 1);
+					childEnd = subArray.length;
+					// TODO: edge case
+					for (let i = 0; i < subArray.length; i++) {
+						if (subArray[i].depth <= this._traceLogs[idx].depth) {
+							childEnd = i;
+							break;
+						}                   
+					}
+					childLogs = subArray.slice(0, childEnd);
+					childMinDepth = this.getMinDepth(childLogs);
+					traceItem = this.listTraceLogItems(childLogs, childMinDepth);
+					push.apply(children, traceItem);
+					this.setParentChild(children, item);
+					break;
+				case item instanceof OmittedItem:
+					const omitted = item as OmittedItem;
+					subArray = this._traceLogs.slice(omitted.offset);
+					childEnd = subArray.length;
+					// TODO: edge case
+					for (let i = 0; i < subArray.length; i++) {
+						if (subArray[i].depth === omitted.depth) {
+							childEnd = i;
+							break;
+						}
+					}
+					childLogs = subArray.slice(0, childEnd);
+					childMinDepth = this.getMinDepth(childLogs);
+					if (childLogs[0].depth > childMinDepth) {
+						const o = new OmittedItem(omitted.index + 1, this._loadMoreOffset, childMinDepth);
+						this._omittedItems.push(o);
+						children.push(o);
+					}
+					traceItem = this.listTraceLogItems(childLogs, childMinDepth);
+					push.apply(children, traceItem);
+					this.setParentChild(children, item);
+					break;
+			}
+      for (const child of children) {
+        if (child.collapsibleState !== vscode.TreeItemCollapsibleState.None) {
+          stack.push(child);
+        }
+      }
+    }
+    return items;
+  }
+
 	private listTraceLogItems(logs: TraceLogItem[], depth: number) {
 		const root: TraceLogItem[] = [];
 		for (const log of logs) {
@@ -351,7 +376,8 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		return root;
 	}
 
-	private setParent(children: TraceLogItem[], parent: RdbgTreeItem) {
+  private setParentChild(children: RdbgTreeItem[], parent: RdbgTreeItem) {
+    parent.children = children;
 		for (const child of children) {
 			child.parent = parent;
 		}
