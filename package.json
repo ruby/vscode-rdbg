@@ -215,16 +215,6 @@
 		},
 		"commands": [
 			{
-				"command": "rdbg.trace.startTrace",
-				"title": "Start Trace",
-				"icon": "$(play-circle)"
-			},
-			{
-				"command": "rdbg.trace.stopTrace",
-				"title": "Stop Trace",
-				"icon": "$(stop-circle)"
-			},
-			{
 				"command": "rdbg.trace.openPrevLog",
 				"title": "Go back",
 				"icon": "$(arrow-up)"
@@ -238,23 +228,13 @@
 		"menus": {
 			"view/title": [
 				{
-					"command": "rdbg.trace.startTrace",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && startTraceEnabled",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.trace.stopTrace",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && stopTraceEnabled",
-					"group": "navigation"
-				},
-				{
 					"command": "rdbg.trace.openPrevLog",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && stopTraceEnabled",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace",
 					"group": "navigation"
 				},
 				{
 					"command": "rdbg.trace.openNextLog",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && stopTraceEnabled",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace",
 					"group": "navigation"
 				}
 			]

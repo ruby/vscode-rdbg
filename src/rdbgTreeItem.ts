@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Location } from './traceLog';
+import { Location, RdbgTraceInspectorDisableArguments, RdbgTraceInspectorEnableArguments } from './traceLog';
 
 const foldUpIcon = new vscode.ThemeIcon('fold-up', new vscode.ThemeColor('textLink.foreground'));
 
@@ -8,12 +8,12 @@ export type RdbgTreeItemOptions = Pick<vscode.TreeItem, 'id' | 'iconPath' | 'col
 };
 
 export class RdbgTreeItem extends vscode.TreeItem {
-  public parent?: RdbgTreeItem;
-  public children?: RdbgTreeItem[];
-  constructor(
+	public parent?: RdbgTreeItem;
+	public children?: RdbgTreeItem[];
+	constructor(
   	label: string,
   	opts: RdbgTreeItemOptions = {}
-  ) {
+	) {
   	super(label, opts.collapsibleState);
   	this.id = opts.id;
   	this.iconPath = opts.iconPath;
@@ -21,7 +21,7 @@ export class RdbgTreeItem extends vscode.TreeItem {
   	this.description = opts.description;
   	this.resourceUri = opts.resourceUri;
   	this.command = opts.command;
-  }
+	}
 }
 
 export class LoadMoreItem extends RdbgTreeItem {
@@ -41,12 +41,12 @@ export class TraceLogItem extends RdbgTreeItem {
     public readonly depth: number,
 		public readonly location: Location,
     public readonly threadId: number,
-		opts: RdbgTreeItemOptions = {},
+    opts: RdbgTreeItemOptions = {},
 	) {
-    const idx = index.toString();
-    opts.id = idx;
-    opts.tooltip = location.path;
-    opts.resourceUri = vscode.Uri.parse('http://example.com?item=trace&index=' + idx);
+		const idx = index.toString();
+		opts.id = idx;
+		opts.tooltip = location.path;
+		opts.resourceUri = vscode.Uri.parse('http://example.com?item=trace&index=' + idx);
 		super(label, opts);
 	}
 }
@@ -58,5 +58,56 @@ export class OmittedItem extends RdbgTreeItem {
 		public readonly depth: number
 	) {
 		super('..', { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
+	}
+}
+
+export class RootLogItem extends RdbgTreeItem {
+	constructor(
+	){
+		super('Trace Logs', { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
+	}
+}
+
+const playCircleIcon = new vscode.ThemeIcon('play-circle');
+const stopCircleIcon = new vscode.ThemeIcon('stop-circle');
+export class ToggleTreeItem extends RdbgTreeItem {
+	private _enabled = false;
+	constructor(
+	){
+		super('Start Trace', {
+			collapsibleState: vscode.TreeItemCollapsibleState.None,
+			iconPath: playCircleIcon
+		});
+	}
+
+	async toggle() {
+		const session = vscode.debug.activeDebugSession;
+		if (session === undefined) {
+			return;
+		}
+		if (this._enabled) {
+      this.iconPath = playCircleIcon;
+			this.label = 'Start Trace';
+			try {
+				const args: RdbgTraceInspectorDisableArguments = {
+					command: 'disable',
+				};
+				await session.customRequest('rdbgTraceInspector', args);
+			} catch (err) { }
+			this._enabled = true;
+		} else {
+      this.iconPath = stopCircleIcon;
+			this.label = 'Stop Trace';
+			try {
+				const args: RdbgTraceInspectorEnableArguments = {
+          command: 'enable',
+          arguments: {
+						type: []
+					}
+				};
+				await session.customRequest('rdbgTraceInspector', args);
+			} catch (err) { }
+			this._enabled = false;
+		}
 	}
 }
