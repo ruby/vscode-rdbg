@@ -77,8 +77,10 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			if (item === undefined) {
 				return;
 			}
-			item.toggle();
-			treeProvider.refresh();
+      if (treeProvider._pickItems !== undefined) {
+        item.toggle(treeProvider._pickItems);
+        treeProvider.refresh();
+      }
 		}),
 
 		vscode.commands.registerCommand('rdbg.changePickItemState', (e) => {
@@ -117,7 +119,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 	private _minDepth = Infinity;
 	private _omittedItems: OmittedItem[] = [];
 	private _toggleItem: ToggleTreeItem | undefined;
-	private _pickItems: TraceEventRootItem | undefined;
+	public _pickItems: TraceEventRootItem | undefined;
 
 	cleanUp() {
   	this._loadMoreOffset = -1;
