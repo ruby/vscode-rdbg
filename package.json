@@ -289,27 +289,27 @@
             "view/item/context": [
                 {
                     "command": "rdbg.trace.disableLineEvent",
-                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && lineEventEnabled == true"
+                    "when": "view == rdbg.trace"
                 },
                 {
                     "command": "rdbg.trace.enableLineEvent",
-                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && lineEventEnabled == false"
+                    "when": "view == rdbg.trace"
                 },
                 {
                     "command": "rdbg.trace.disableCallEvent",
-                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && callEventEnabled == true"
+                    "when": "view == rdbg.trace"
                 },
                 {
                     "command": "rdbg.trace.enableCallEvent",
-                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && callEventEnabled == false"
+                    "when": "view == rdbg.trace"
                 },
                 {
                     "command": "rdbg.trace.disableReturnEvent",
-                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && returnEventEnabled == true"
+                    "when": "view == rdbg.trace"
                 },
                 {
                     "command": "rdbg.trace.enableReturnEvent",
-                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && returnEventEnabled == false"
+                    "when": "view == rdbg.trace"
                 }
             ]
 		}

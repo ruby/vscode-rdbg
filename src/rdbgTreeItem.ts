@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Location, RdbgTraceInspectorDisableArguments, RdbgTraceInspectorEnableArguments } from './traceLog';
+import { Location, RdbgTraceInspectorDisableArguments, RdbgTraceInspectorEnableArguments, TraceEventKind, TraceEventKindState } from './traceLog';
 
 const foldUpIcon = new vscode.ThemeIcon('fold-up', new vscode.ThemeColor('textLink.foreground'));
 
@@ -85,7 +85,7 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		});
 	}
 
-	async toggle(items: any[]) {
+	async toggle(state: TraceEventKindState) {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) {
 			return;
@@ -103,24 +103,16 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		} else {
 			this.iconPath = stopCircleIcon;
 			this.label = 'Stop Trace';
-      const events: ('line' | 'call' | 'return')[] = [];
-      for (const item of items) {
-        if (item.enabled) {
-          let evt: ('line' | 'call' | 'return');
-          switch (item.label) {
-            case 'Line':
-              evt = 'line'
-              break;
-            case 'Call':
-              evt = 'call'
-              break;
-            default:
-              evt = 'return'
-              break;
-          }
-          events.push(evt);
-        }
-      }
+			const events: TraceEventKind[] = [];
+			if (state.call) {
+				events.push('call');
+			}
+			if (state.line) {
+				events.push('line');
+			}
+			if (state.return) {
+				events.push('return');
+			}
 			try {
 				const args: RdbgTraceInspectorEnableArguments = {
 					command: 'enable',

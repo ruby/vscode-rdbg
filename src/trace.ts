@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { LoadMoreItem, OmittedItem, RdbgTreeItem, RdbgTreeItemOptions, RootLogItem, ToggleTreeItem, TraceLogItem } from './rdbgTreeItem';
-import { TraceLogsResponse, TraceLog, RdbgTraceInspectorLogsArguments } from './traceLog';
+import { TraceLogsResponse, TraceLog, RdbgTraceInspectorLogsArguments, TraceEventKind, TraceEventKindState } from './traceLog';
 
 const locationIcon = new vscode.ThemeIcon('location');
 
@@ -9,6 +9,11 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 	const decorationProvider = new RdbgDecorationProvider(treeProvider);
 	const view = vscode.window.createTreeView('rdbg.trace', { treeDataProvider: treeProvider });
 	const inlayHintsProvider = new RdbgInlayHintsProvider(view);
+	const eventState: TraceEventKindState = {
+		line: false,
+		call: false,
+		return: false
+	};
 
 	ctx.subscriptions.push(
 		vscode.languages.registerInlayHintsProvider(
@@ -36,9 +41,12 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 		}),
 
 		vscode.debug.onDidStartDebugSession(async () => {
-      vscode.commands.executeCommand('setContext', 'lineEventEnabled', true);
-      vscode.commands.executeCommand('setContext', 'callEventEnabled', true);
-      vscode.commands.executeCommand('setContext', 'returnEventEnabled', true);
+			vscode.commands.executeCommand('setContext', 'lineEventEnabled', true);
+			vscode.commands.executeCommand('setContext', 'callEventEnabled', true);
+			vscode.commands.executeCommand('setContext', 'returnEventEnabled', true);
+			eventState.call = true;
+			eventState.line = true;
+			eventState.return = true;
 			treeProvider.initTreeView();
 		}),
 
@@ -75,37 +83,44 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			treeProvider.loadMoreTraceLogs();
 		}),
 
-		vscode.commands.registerCommand('rdbg.toggleTrace', () => {
+		vscode.commands.registerCommand('rdbg.toggleTrace', async () => {
 			const item = treeProvider.toggleTreeItem;
 			if (item === undefined) {
 				return;
 			}
+			await item.toggle(eventState);
+			treeProvider.refresh();
 		}),
 
-    vscode.commands.registerCommand('rdbg.trace.disableLineEvent', () => {
-      vscode.commands.executeCommand('setContext', 'lineEventEnabled', false);
-    }),
+		vscode.commands.registerCommand('rdbg.trace.disableLineEvent', () => {
+			eventState.line = false;
+			vscode.commands.executeCommand('setContext', 'lineEventEnabled', false);
+		}),
 
-    vscode.commands.registerCommand('rdbg.trace.enableLineEvent', () => {
-      vscode.commands.executeCommand('setContext', 'lineEventEnabled', true);
-    }),
+		vscode.commands.registerCommand('rdbg.trace.enableLineEvent', () => {
+			eventState.line = true;
+			vscode.commands.executeCommand('setContext', 'lineEventEnabled', true);
+		}),
 
-    vscode.commands.registerCommand('rdbg.trace.disableCallEvent', () => {
-      vscode.commands.executeCommand('setContext', 'callEventEnabled', false);
-    }),
+		vscode.commands.registerCommand('rdbg.trace.disableCallEvent', () => {
+			eventState.call = false;
+			vscode.commands.executeCommand('setContext', 'callEventEnabled', false);
+		}),
 
-    vscode.commands.registerCommand('rdbg.trace.enableCallEvent', () => {
-      vscode.commands.executeCommand('setContext', 'callEventEnabled', true);
-    }),
+		vscode.commands.registerCommand('rdbg.trace.enableCallEvent', () => {
+			eventState.call = true;
+			vscode.commands.executeCommand('setContext', 'callEventEnabled', true);
+		}),
 
-    vscode.commands.registerCommand('rdbg.trace.disableReturnEvent', () => {
-      vscode.commands.executeCommand('setContext', 'returnEventEnabled', false);
-    }),
+		vscode.commands.registerCommand('rdbg.trace.disableReturnEvent', () => {
+			eventState.return = false;
+			vscode.commands.executeCommand('setContext', 'returnEventEnabled', false);
+		}),
 
-    vscode.commands.registerCommand('rdbg.trace.enableReturnEvent', () => {
-      vscode.commands.executeCommand('setContext', 'returnEventEnabled', true);
-
-    }),
+		vscode.commands.registerCommand('rdbg.trace.enableReturnEvent', () => {
+			eventState.return = true;
+			vscode.commands.executeCommand('setContext', 'returnEventEnabled', true);
+		}),
 
 		view.onDidChangeSelection(async (e) => {
 			if (e.selection.length < 1) {

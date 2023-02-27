@@ -7,9 +7,17 @@ export interface RdbgTraceInspectorArguments {
   command: 'enable' | 'disable' | 'logs';
 }
 
+export type TraceEventKind = 'line' | 'call' | 'return';
+
+export interface TraceEventKindState {
+  line: boolean;
+  call: boolean;
+  return: boolean;
+}
+
 export interface RdbgTraceInspectorEnableArguments extends RdbgTraceInspectorArguments {
   command: 'enable';
-    events: ('line' | 'call' | 'return')[];
+    events: TraceEventKind[];
 }
 
 export interface RdbgTraceInspectorDisableArguments extends RdbgTraceInspectorArguments {
