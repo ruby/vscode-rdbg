@@ -3,8 +3,8 @@ import { Location, RdbgTraceInspectorDisableArguments, RdbgTraceInspectorEnableA
 
 const foldUpIcon = new vscode.ThemeIcon('fold-up', new vscode.ThemeColor('textLink.foreground'));
 
-export type RdbgTreeItemOptions = Pick<vscode.TreeItem, 'id' | 'iconPath' | 'collapsibleState' | 'description' | 'tooltip' | 'resourceUri' | 'command'> & {
-	isLastPage?: boolean;
+export type RdbgTreeItemOptions = Pick<vscode.TreeItem, 'id' | 'iconPath' | 'collapsibleState' | 'description' | 'tooltip' | 'resourceUri'> & {
+	command?: string;
 };
 
 export class RdbgTreeItem extends vscode.TreeItem {
@@ -20,13 +20,17 @@ export class RdbgTreeItem extends vscode.TreeItem {
   	this.tooltip = opts.tooltip;
   	this.description = opts.description;
   	this.resourceUri = opts.resourceUri;
-  	this.command = opts.command;
+		if (opts.command) {
+			const command = 'rdbg.' + opts.command;
+			this.command = { title: command, command };
+		}
 	}
 }
 
 export class LoadMoreItem extends RdbgTreeItem {
 	constructor() {
 		super('Load More Logs', {
+			command: 'loadMoreLogs',
 			resourceUri: vscode.Uri.parse('http://example.com?item=load'),
 			collapsibleState: vscode.TreeItemCollapsibleState.None,
 			iconPath: foldUpIcon,
@@ -75,6 +79,7 @@ export class ToggleTreeItem extends RdbgTreeItem {
 	constructor(
 	){
 		super('Start Trace', {
+			command: 'toggleTrace',
 			collapsibleState: vscode.TreeItemCollapsibleState.None,
 			iconPath: playCircleIcon
 		});
@@ -86,7 +91,7 @@ export class ToggleTreeItem extends RdbgTreeItem {
 			return;
 		}
 		if (this._enabled) {
-      this.iconPath = playCircleIcon;
+			this.iconPath = playCircleIcon;
 			this.label = 'Start Trace';
 			try {
 				const args: RdbgTraceInspectorDisableArguments = {
@@ -94,20 +99,20 @@ export class ToggleTreeItem extends RdbgTreeItem {
 				};
 				await session.customRequest('rdbgTraceInspector', args);
 			} catch (err) { }
-			this._enabled = true;
+			this._enabled = false;
 		} else {
-      this.iconPath = stopCircleIcon;
+			this.iconPath = stopCircleIcon;
 			this.label = 'Stop Trace';
 			try {
 				const args: RdbgTraceInspectorEnableArguments = {
-          command: 'enable',
-          arguments: {
+					command: 'enable',
+					arguments: {
 						type: []
 					}
 				};
 				await session.customRequest('rdbgTraceInspector', args);
 			} catch (err) { }
-			this._enabled = false;
+			this._enabled = true;
 		}
 	}
 }

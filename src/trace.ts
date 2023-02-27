@@ -35,7 +35,7 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 		}),
 
 		vscode.debug.onDidStartDebugSession(async () => {
-			treeProvider.refresh();
+			treeProvider.initTreeView();
 		}),
 
 		vscode.debug.onDidTerminateDebugSession(async () => {
@@ -43,12 +43,15 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 		}),
 
 		vscode.commands.registerCommand('rdbg.trace.openPrevLog', async () => {
-			if (view.selection.length < 1) {
-				const bottom = treeProvider.getBottomTraceLogItem();
-				await view.reveal(bottom);
-				return;
+			switch (true) {
+				case view.selection.length < 1:
+				case view.selection[0] instanceof ToggleTreeItem:
+				case view.selection[0] instanceof RootLogItem:
+					const bottom = treeProvider.getBottomTraceLogItem();
+					await view.reveal(bottom);
+					return;
 			}
-			const log = treeProvider.getPrevLogItem(view.selection[0]);
+			const log = await treeProvider.getPrevLogItem(view.selection[0]);
 			if (log !== undefined) {
 				await view.reveal(log);
 			}
@@ -64,6 +67,19 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			}
 		}),
 
+		vscode.commands.registerCommand('rdbg.loadMoreLogs', () => {
+			treeProvider.loadMoreTraceLogs();
+		}),
+
+		vscode.commands.registerCommand('rdbg.toggleTrace', () => {
+			const item = treeProvider.toggleTreeItem;
+			if (item === undefined) {
+				return;
+			}
+			item.toggle();
+			treeProvider.refresh();
+		}),
+
 		view.onDidChangeSelection(async (e) => {
 			if (e.selection.length < 1) {
 				return;
@@ -77,18 +93,6 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 						preserveFocus: true 
 					};
 					await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(location.path), opts);
-					break;
-				case e.selection[0] instanceof LoadMoreItem:
-					treeProvider.loadMoreTraceLogs();
-          treeProvider.refresh();
-					break;
-				case e.selection[0] instanceof ToggleTreeItem:
-					const item = treeProvider.toggleTreeItem;
-					if (item === undefined) {
-						return;
-					}
-					item.toggle();
-					treeProvider.refresh();
 					break;
 			}
 		}),
@@ -160,6 +164,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		if (this._loadMoreOffset < 0) {
 			this._loadMoreOffset = 0;
 		}
+		this.refresh();
 	}
 
 	private topItem(idx: number) {
@@ -178,15 +183,16 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
   	return this._traceLogs[idx];
 	}
 
-	getPrevLogItem(selected: RdbgTreeItem) {
+	async getPrevLogItem(selected: RdbgTreeItem) {
   	let idx: number;
   	let item: RdbgTreeItem | undefined;
   	switch (true) {
-  		case selected instanceof LineTraceLogItem || selected instanceof CallTraceLogItem:
+  		case selected instanceof LineTraceLogItem:
+			case selected instanceof CallTraceLogItem:
   			idx = (selected as TraceLogItem).index;
   			if (this.topItem(idx)) {
   				if (selected.parent instanceof RootLogItem) {
-  					this.refresh();
+  					await vscode.commands.executeCommand('rdbg.loadMoreLogs');
   					item = this.getTraceLogItem(idx - 1);
   				} else {
   					item = selected.parent;
@@ -197,8 +203,8 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
   			return item;
   		case selected instanceof OmittedItem:
   			idx = this._loadMoreOffset;
-  			if (selected.parent === this._toggleItem) {
-  				this.refresh();
+  			if (selected.parent instanceof RootLogItem) {
+  				await vscode.commands.executeCommand('rdbg.loadMoreLogs');
   				item = this.getTraceLogItem(idx - 1);
   			} else {
   				item = selected.parent;
@@ -222,6 +228,11 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
   	}
 	}
 
+	initTreeView() {
+		this._toggleItem = new ToggleTreeItem();
+		this.refresh();
+	}
+
 	private getOmittedItem(idx: number) {
   	return this._omittedItems[idx];
 	}
@@ -238,10 +249,6 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 
 		if (element) {
 			return element.children;
-		}
-		if (this._toggleItem === undefined) {
-			this._toggleItem = new ToggleTreeItem();
-			return [this._toggleItem];
 		}
 		this.clearArray(this._omittedItems);
 		// Do not await
@@ -281,10 +288,10 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		if (this._toggleItem !== undefined) {
 			items.push(this._toggleItem);
 		}
-    if (this._traceLogs.length > 0) {
-      const root = new RootLogItem();
-      items.push(root);
-    }
+		if (this._traceLogs.length > 0) {
+			const root = new RootLogItem();
+			items.push(root);
+		}
 		const stack = items.concat();
 		while (true) {
 			const item = stack.pop();
