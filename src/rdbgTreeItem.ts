@@ -85,7 +85,7 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		});
 	}
 
-	async toggle(items: TraceEventPickItem[]) {
+	async toggle(items: any[]) {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) {
 			return;
@@ -130,51 +130,5 @@ export class ToggleTreeItem extends RdbgTreeItem {
 			} catch (err) { }
 			this._enabled = true;
 		}
-	}
-}
-
-const passFilledIcon = new vscode.ThemeIcon('pass-filled');
-const circleLargeOutlineIcon = new vscode.ThemeIcon('circle-large-outline');
-export class TraceEventPickItem extends RdbgTreeItem {
-	public enabled = true;
-	constructor(
-		label: string
-	){
-		super(label, {
-			collapsibleState: vscode.TreeItemCollapsibleState.None,
-			iconPath: passFilledIcon,
-			command: {
-				command: 'changePickItemState',
-			} 
-		});
-    if (this.command) {
-		this.command.arguments = [this];
-    }
-	}
-
-	changeState() {
-		if (this.enabled) {
-			this.disable();
-		} else {
-			this.enable();
-		}
-	}
-
-	private enable() {
-		this.iconPath = passFilledIcon;
-		this.enabled = true;
-	}
-
-	private disable() {
-		this.iconPath =circleLargeOutlineIcon;
-		this.enabled = false;
-	}
-}
-
-export class TraceEventRootItem extends RdbgTreeItem {
-  public children?: TraceEventPickItem[];
-	constructor(
-	){
-		super('Trace Events', { collapsibleState: vscode.TreeItemCollapsibleState.Collapsed });
 	}
 }
