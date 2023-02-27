@@ -77,8 +77,8 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			if (item === undefined) {
 				return;
 			}
-      if (treeProvider._pickItems !== undefined) {
-        item.toggle(treeProvider._pickItems);
+      if (treeProvider._pickItems && treeProvider._pickItems.children) {
+        item.toggle(treeProvider._pickItems.children);
         treeProvider.refresh();
       }
 		}),

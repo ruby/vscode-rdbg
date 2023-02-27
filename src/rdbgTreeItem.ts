@@ -85,7 +85,7 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		});
 	}
 
-	async toggle(items: vscode.QuickPickItem[]) {
+	async toggle(items: TraceEventPickItem[]) {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) {
 			return;
@@ -105,7 +105,7 @@ export class ToggleTreeItem extends RdbgTreeItem {
 			this.label = 'Stop Trace';
       const events: ('line' | 'call' | 'return')[] = [];
       for (const item of items) {
-        if (item.picked) {
+        if (item.enabled) {
           let evt: ('line' | 'call' | 'return');
           switch (item.label) {
             case 'Line':
@@ -172,6 +172,7 @@ export class TraceEventPickItem extends RdbgTreeItem {
 }
 
 export class TraceEventRootItem extends RdbgTreeItem {
+  public children?: TraceEventPickItem[];
 	constructor(
 	){
 		super('Trace Events', { collapsibleState: vscode.TreeItemCollapsibleState.Collapsed });
