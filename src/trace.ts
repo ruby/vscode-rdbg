@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { LoadMoreItem, OmittedItem, RdbgTreeItem, RdbgTreeItemOptions, RootLogItem, ToggleTreeItem, TraceLogItem } from './rdbgTreeItem';
-import { TraceLogsResponse, TraceLog, RdbgTraceInspectorLogsArguments, RdbgTraceInspectorEnableArguments, RdbgTraceInspectorDisableArguments } from './traceLog';
+import { TraceLogsResponse, TraceLog, RdbgTraceInspectorLogsArguments } from './traceLog';
 
 const locationIcon = new vscode.ThemeIcon('location');
 
@@ -29,8 +29,9 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 
 		vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
 			switch (event.event) {
-				case 'rdbgInspectorTraceLogsUpdated':
+				case 'rdbgTraceInspector':
 					treeProvider.updateTraceLogs();
+					break;
 			}
 		}),
 
