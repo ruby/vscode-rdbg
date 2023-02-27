@@ -4,7 +4,7 @@ import { Location, RdbgTraceInspectorDisableArguments, RdbgTraceInspectorEnableA
 const foldUpIcon = new vscode.ThemeIcon('fold-up', new vscode.ThemeColor('textLink.foreground'));
 
 export type RdbgTreeItemOptions = Pick<vscode.TreeItem, 'id' | 'iconPath' | 'collapsibleState' | 'description' | 'tooltip' | 'resourceUri'> & {
-	command?: string;
+	command?: {command: string, arguments?: any[]};
 };
 
 export class RdbgTreeItem extends vscode.TreeItem {
@@ -21,8 +21,8 @@ export class RdbgTreeItem extends vscode.TreeItem {
   	this.description = opts.description;
   	this.resourceUri = opts.resourceUri;
 		if (opts.command) {
-			const command = 'rdbg.' + opts.command;
-			this.command = { title: command, command };
+			const command = 'rdbg.' + opts.command.command;
+			this.command = { title: command, command, arguments: opts.command.arguments };
 		}
 	}
 }
@@ -30,7 +30,7 @@ export class RdbgTreeItem extends vscode.TreeItem {
 export class LoadMoreItem extends RdbgTreeItem {
 	constructor() {
 		super('Load More Logs', {
-			command: 'loadMoreLogs',
+			command: { command: 'loadMoreLogs' },
 			resourceUri: vscode.Uri.parse('http://example.com?item=load'),
 			collapsibleState: vscode.TreeItemCollapsibleState.None,
 			iconPath: foldUpIcon,
@@ -79,7 +79,7 @@ export class ToggleTreeItem extends RdbgTreeItem {
 	constructor(
 	){
 		super('Start Trace', {
-			command: 'toggleTrace',
+			command: { command: 'toggleTrace' },
 			collapsibleState: vscode.TreeItemCollapsibleState.None,
 			iconPath: playCircleIcon
 		});
@@ -114,5 +114,50 @@ export class ToggleTreeItem extends RdbgTreeItem {
 			} catch (err) { }
 			this._enabled = true;
 		}
+	}
+}
+
+const passFilledIcon = new vscode.ThemeIcon('pass-filled');
+const circleLargeOutlineIcon = new vscode.ThemeIcon('circle-large-outline');
+export class TraceEventPickItem extends RdbgTreeItem {
+	public enabled = true;
+	constructor(
+		label: string
+	){
+		super(label, {
+			collapsibleState: vscode.TreeItemCollapsibleState.None,
+			iconPath: passFilledIcon,
+			command: {
+				command: 'changePickItemState',
+			} 
+		});
+    if (this.command) {
+		this.command.arguments = [this];
+    }
+	}
+
+	changeState() {
+		if (this.enabled) {
+			this.disable();
+		} else {
+			this.enable();
+		}
+	}
+
+	private enable() {
+		this.iconPath = passFilledIcon;
+		this.enabled = true;
+	}
+
+	private disable() {
+		this.iconPath =circleLargeOutlineIcon;
+		this.enabled = false;
+	}
+}
+
+export class TraceEventRootItem extends RdbgTreeItem {
+	constructor(
+	){
+		super('Trace Events', { collapsibleState: vscode.TreeItemCollapsibleState.Collapsed });
 	}
 }

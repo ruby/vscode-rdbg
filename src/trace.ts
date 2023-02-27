@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LoadMoreItem, OmittedItem, RdbgTreeItem, RdbgTreeItemOptions, RootLogItem, ToggleTreeItem, TraceLogItem } from './rdbgTreeItem';
+import { LoadMoreItem, OmittedItem, RdbgTreeItem, RdbgTreeItemOptions, RootLogItem, ToggleTreeItem, TraceEventPickItem, TraceEventRootItem, TraceLogItem } from './rdbgTreeItem';
 import { TraceLogsResponse, TraceLog, RdbgTraceInspectorLogsArguments } from './traceLog';
 
 const locationIcon = new vscode.ThemeIcon('location');
@@ -81,6 +81,13 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 			treeProvider.refresh();
 		}),
 
+		vscode.commands.registerCommand('rdbg.changePickItemState', (e) => {
+      if (e instanceof TraceEventPickItem) {
+        e.changeState();
+        treeProvider.refresh();
+      }
+		}),
+
 		view.onDidChangeSelection(async (e) => {
 			if (e.selection.length < 1) {
 				return;
@@ -110,6 +117,7 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 	private _minDepth = Infinity;
 	private _omittedItems: OmittedItem[] = [];
 	private _toggleItem: ToggleTreeItem | undefined;
+	private _pickItems: TraceEventRootItem | undefined;
 
 	cleanUp() {
   	this._loadMoreOffset = -1;
@@ -231,6 +239,12 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 
 	initTreeView() {
 		this._toggleItem = new ToggleTreeItem();
+		this._pickItems = new TraceEventRootItem();
+    const children = []
+    for (const event of ['Line', 'Call', 'Return Value']) {
+      children.push(new TraceEventPickItem(event));
+    }
+    this._pickItems.children = children;
 		this.refresh();
 	}
 
@@ -289,6 +303,9 @@ class TraceLogsTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
 		if (this._toggleItem !== undefined) {
 			items.push(this._toggleItem);
 		}
+    if (this._pickItems !== undefined) {
+      items.push(this._pickItems)
+    }
 		if (this._traceLogs.length > 0) {
 			const root = new RootLogItem();
 			items.push(root);
