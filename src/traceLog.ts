@@ -9,9 +9,7 @@ export interface RdbgTraceInspectorArguments {
 
 export interface RdbgTraceInspectorEnableArguments extends RdbgTraceInspectorArguments {
   command: 'enable';
-  arguments: {
-    type: ('line' | 'call' | 'return')[];
-  }
+    events: ('line' | 'call' | 'return')[];
 }
 
 export interface RdbgTraceInspectorDisableArguments extends RdbgTraceInspectorArguments {

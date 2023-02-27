@@ -85,7 +85,7 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		});
 	}
 
-	async toggle() {
+	async toggle(items: vscode.QuickPickItem[]) {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) {
 			return;
@@ -103,12 +103,28 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		} else {
 			this.iconPath = stopCircleIcon;
 			this.label = 'Stop Trace';
+      const events: ('line' | 'call' | 'return')[] = [];
+      for (const item of items) {
+        if (item.picked) {
+          let evt: ('line' | 'call' | 'return');
+          switch (item.label) {
+            case 'Line':
+              evt = 'line'
+              break;
+            case 'Call':
+              evt = 'call'
+              break;
+            default:
+              evt = 'return'
+              break;
+          }
+          events.push(evt);
+        }
+      }
 			try {
 				const args: RdbgTraceInspectorEnableArguments = {
 					command: 'enable',
-					arguments: {
-						type: []
-					}
+					events
 				};
 				await session.customRequest('rdbgTraceInspector', args);
 			} catch (err) { }
