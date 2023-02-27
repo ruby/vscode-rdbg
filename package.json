@@ -223,7 +223,31 @@
 				"command": "rdbg.trace.openNextLog",
 				"title": "Go to",
 				"icon": "$(arrow-down)"
-			}
+			},
+            {
+                "command": "rdbg.trace.disableLineEvent",
+                "title": "✓ line event"
+            },
+            {
+                "command": "rdbg.trace.enableLineEvent",
+                "title": "line event"
+            },
+            {
+                "command": "rdbg.trace.disableCallEvent",
+                "title": "✓ call event"
+            },
+            {
+                "command": "rdbg.trace.enableCallEvent",
+                "title": "call event"
+            },
+            {
+                "command": "rdbg.trace.disableReturnEvent",
+                "title": "✓ return event"
+            },
+            {
+                "command": "rdbg.trace.enableReturnEvent",
+                "title": "return event"
+            }
 		],
 		"menus": {
 			"view/title": [
@@ -236,8 +260,58 @@
 					"command": "rdbg.trace.openNextLog",
 					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace",
 					"group": "navigation"
-				}
-			]
+				},
+                {
+                    "command": "rdbg.trace.disableLineEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && lineEventEnabled == true"
+                },
+                {
+                    "command": "rdbg.trace.enableLineEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && lineEventEnabled == false"
+                },
+                {
+                    "command": "rdbg.trace.disableCallEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && callEventEnabled == true"
+                },
+                {
+                    "command": "rdbg.trace.enableCallEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && callEventEnabled == false"
+                },
+                {
+                    "command": "rdbg.trace.disableReturnEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && returnEventEnabled == true"
+                },
+                {
+                    "command": "rdbg.trace.enableReturnEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && returnEventEnabled == false"
+                }
+			],
+            "view/item/context": [
+                {
+                    "command": "rdbg.trace.disableLineEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && lineEventEnabled == true"
+                },
+                {
+                    "command": "rdbg.trace.enableLineEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && lineEventEnabled == false"
+                },
+                {
+                    "command": "rdbg.trace.disableCallEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && callEventEnabled == true"
+                },
+                {
+                    "command": "rdbg.trace.enableCallEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && callEventEnabled == false"
+                },
+                {
+                    "command": "rdbg.trace.disableReturnEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && returnEventEnabled == true"
+                },
+                {
+                    "command": "rdbg.trace.enableReturnEvent",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && returnEventEnabled == false"
+                }
+            ]
 		}
 	},
 	"scripts": {

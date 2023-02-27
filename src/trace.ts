@@ -36,6 +36,9 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
 		}),
 
 		vscode.debug.onDidStartDebugSession(async () => {
+      vscode.commands.executeCommand('setContext', 'lineEventEnabled', true);
+      vscode.commands.executeCommand('setContext', 'callEventEnabled', true);
+      vscode.commands.executeCommand('setContext', 'returnEventEnabled', true);
 			treeProvider.initTreeView();
 		}),
 
@@ -89,6 +92,31 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext) {
         treeProvider.refresh();
       }
 		}),
+
+    vscode.commands.registerCommand('rdbg.trace.disableLineEvent', () => {
+      vscode.commands.executeCommand('setContext', 'lineEventEnabled', false);
+    }),
+
+    vscode.commands.registerCommand('rdbg.trace.enableLineEvent', () => {
+      vscode.commands.executeCommand('setContext', 'lineEventEnabled', true);
+    }),
+
+    vscode.commands.registerCommand('rdbg.trace.disableCallEvent', () => {
+      vscode.commands.executeCommand('setContext', 'callEventEnabled', false);
+    }),
+
+    vscode.commands.registerCommand('rdbg.trace.enableCallEvent', () => {
+      vscode.commands.executeCommand('setContext', 'callEventEnabled', true);
+    }),
+
+    vscode.commands.registerCommand('rdbg.trace.disableReturnEvent', () => {
+      vscode.commands.executeCommand('setContext', 'returnEventEnabled', false);
+    }),
+
+    vscode.commands.registerCommand('rdbg.trace.enableReturnEvent', () => {
+      vscode.commands.executeCommand('setContext', 'returnEventEnabled', true);
+
+    }),
 
 		view.onDidChangeSelection(async (e) => {
 			if (e.selection.length < 1) {
