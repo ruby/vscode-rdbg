@@ -373,7 +373,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	async get_sock_path(config: LaunchConfiguration): Promise<string | undefined> {
+	get_sock_path(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
@@ -405,7 +405,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		});
 	}
 
-	async get_tcp_port_file(config: LaunchConfiguration): Promise<string | undefined> {
+	get_tcp_port_file(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --util=gen-portpath");
@@ -430,7 +430,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		});
 	}
 
-	async get_version(config: LaunchConfiguration): Promise<string | null> {
+	get_version(config: LaunchConfiguration): Promise<string | null> {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
 			const command = this.make_shell_command(rdbg + " --version");
@@ -773,7 +773,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		blue: 34
 	};
 
-	private async runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
+	private runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
 		pp(`Running: ${cmd} ${args?.join(' ')}`);
 		let connectionReady = false;
 		let sockPath = '';
@@ -814,7 +814,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	private readonly TCPRegex = /DEBUGGER:\sDebugger\scan\sattach\svia\s.+\((.+):(\d+)\)/;
 
-	private async runDebuggeeWithTCP(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
+	private runDebuggeeWithTCP(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
 		pp(`Running: ${cmd} ${args?.join(' ')}`);
 		let connectionReady = false;
 		let host = '';
