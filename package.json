@@ -222,7 +222,7 @@
 		"@types/vscode": "^1.75.1",
 		"@typescript-eslint/eslint-plugin": "^5.52.0",
 		"@typescript-eslint/parser": "^5.47.1",
-		"@vscode/debugprotocol": "^1.57.0",
+		"@vscode/debugprotocol": "^1.59.0",
 		"@vscode/test-electron": "^2.2.3",
 		"eslint": "^8.34.0",
 		"glob": "^8.1.0",
