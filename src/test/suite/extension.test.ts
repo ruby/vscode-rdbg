@@ -26,6 +26,7 @@ suite('attach', () => {
 						const res: DebugProtocol.Response = {
 							seq: req.seq,
 							type: 'response',
+							// eslint-disable-next-line @typescript-eslint/naming-convention
 							request_seq: req.seq,
 							success: true,
 							command: req.command,
@@ -132,6 +133,7 @@ suite('attach', () => {
 						const res: DebugProtocol.Response = {
 							seq: req.seq,
 							type: 'response',
+							// eslint-disable-next-line @typescript-eslint/naming-convention
 							request_seq: req.seq,
 							success: true,
 							command: req.command,

@@ -9,17 +9,59 @@
         "@typescript-eslint"
     ],
     "rules": {
-        "@typescript-eslint/naming-convention": ["warn", {
-            "format": ["camelCase", "snake_case"],
-            "selector": ["variableLike"],
-            "leadingUnderscore": "allow"
-        }],
+        "@typescript-eslint/naming-convention": [
+            "warn",
+            {
+                "selector": "default",
+                "format": [
+                    "camelCase",
+                    "PascalCase",
+                    "UPPER_CASE"
+                ],
+                "leadingUnderscore": "allow",
+                "trailingUnderscore": "allow"
+            },
+            {
+                "selector": "typeLike",
+                "format": [
+                    "PascalCase"
+                ]
+            },
+            {
+                "selector": "typeParameter",
+                "format": [
+                    "PascalCase"
+                ],
+                "prefix": [
+                    "T"
+                ]
+            },
+            {
+                "selector": "interface",
+                "format": [
+                    "PascalCase"
+                ],
+                "custom": {
+                    "regex": "^I[A-Z]",
+                    "match": false
+                }
+            }
+        ],
         "@typescript-eslint/semi": "warn",
         "@typescript-eslint/type-annotation-spacing": "warn",
         "no-unused-expressions": "error",
         "no-throw-literal": "warn",
         "semi": "off",
-        "indent": ["warn", "tab", { "SwitchCase": 1 }],
-        "object-curly-spacing": ["warn", "always"]
+        "indent": [
+            "warn",
+            "tab",
+            {
+                "SwitchCase": 1
+            }
+        ],
+        "object-curly-spacing": [
+            "warn",
+            "always"
+        ]
     }
 }
