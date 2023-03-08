@@ -71,6 +71,10 @@
                 "caughtErrorsIgnorePattern": "^_"
             }
         ],
-        "eqeqeq": "warn"
+        "eqeqeq": "warn",
+        "quotes": [
+            "warn",
+            "double"
+        ]
     }
 }

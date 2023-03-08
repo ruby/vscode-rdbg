@@ -1,29 +1,29 @@
-import * as assert from 'assert';
+import * as assert from "assert";
 
 // You can import and use all API from the 'vscode' module
 // as well as import your extension to test it
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-import * as net from 'net';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { DebugProtocol } from '@vscode/debugprotocol';
+import * as net from "net";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import { DebugProtocol } from "@vscode/debugprotocol";
 
-const twoCrlf = '\r\n\r\n';
+const twoCrlf = "\r\n\r\n";
 
-suite('attach', () => {
-	suite('tcp: success', () => {
+suite("attach", () => {
+	suite("tcp: success", () => {
 		let server: net.Server;
 		setup(() => {
 			server = net.createServer((sock) => {
-				sock.on('data', (data: Buffer) => {
+				sock.on("data", (data: Buffer) => {
 					const rawReq = data.toString().split(twoCrlf);
 					try {
 						const req = JSON.parse(rawReq[1]) as DebugProtocol.Request;
 						const res: DebugProtocol.Response = {
 							seq: req.seq,
-							type: 'response',
+							type: "response",
 							// eslint-disable-next-line @typescript-eslint/naming-convention
 							request_seq: req.seq,
 							success: true,
@@ -39,7 +39,7 @@ suite('attach', () => {
 				});
 			});
 			server.listen(0, () => {
-				console.log('server bound');
+				console.log("server bound");
 			});
 		});
 
@@ -47,7 +47,7 @@ suite('attach', () => {
 			server.close();
 		});
 
-		test('localhost:{port}', async () => {
+		test("localhost:{port}", async () => {
 			const addr = server.address() as net.AddressInfo;
 			const port = addr.port;
 			const c = generateAttachConfig();
@@ -56,7 +56,7 @@ suite('attach', () => {
 			assert.ok(success);
 		});
 
-		test('port', async () => {
+		test("port", async () => {
 			const addr = server.address() as net.AddressInfo;
 			const port = addr.port;
 			const c = generateAttachConfig();
@@ -65,7 +65,7 @@ suite('attach', () => {
 			assert.ok(success);
 		});
 
-		suite('auto attach', () => {
+		suite("auto attach", () => {
 			const key = Math.random().toString();
 			suiteSetup(() => {
 				process.env.RUBY_DEBUG_AUTOATTACH = key;
@@ -75,7 +75,7 @@ suite('attach', () => {
 				process.env.RUBY_DEBUG_AUTOATTACH = undefined;
 			});
 
-			test('success', async () => {
+			test("success", async () => {
 				const addr = server.address() as net.AddressInfo;
 				const port = addr.port;
 				const c = generateAttachConfig();
@@ -87,16 +87,16 @@ suite('attach', () => {
 		});
 	});
 
-	suite('tcp: fail', () => {
+	suite("tcp: fail", () => {
 		let server: net.Server;
 		setup(() => {
 			server = net.createServer((sock) => {
-				sock.on('data', (_data: Buffer) => {
+				sock.on("data", (_data: Buffer) => {
 					sock.end();
 				});
 			});
 			server.listen(0, () => {
-				console.log('server bound');
+				console.log("server bound");
 			});
 		});
 
@@ -104,7 +104,7 @@ suite('attach', () => {
 			server.close();
 		});
 
-		test('return false', async () => {
+		test("return false", async () => {
 			const addr = server.address() as net.AddressInfo;
 			const port = addr.port;
 			const c = generateAttachConfig();
@@ -114,23 +114,23 @@ suite('attach', () => {
 		});
 	});
 
-	suite('unix domain socket: success', () => {
+	suite("unix domain socket: success", () => {
 		let server: net.Server | undefined;
 		let tempDir: string | undefined;
 		let sockPath: string | undefined;
 		setup(function () {
-			if (process.platform === 'win32') this.skip();
+			if (process.platform === "win32") this.skip();
 
-			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
-			sockPath = tempDir + '/' + Date.now().toString() + '.sock';
+			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-rdbg-test-"));
+			sockPath = tempDir + "/" + Date.now().toString() + ".sock";
 			server = net.createServer((sock) => {
-				sock.on('data', (data: Buffer) => {
+				sock.on("data", (data: Buffer) => {
 					const rawReq = data.toString().split(twoCrlf);
 					try {
 						const req = JSON.parse(rawReq[1]) as DebugProtocol.Request;
 						const res: DebugProtocol.Response = {
 							seq: req.seq,
-							type: 'response',
+							type: "response",
 							// eslint-disable-next-line @typescript-eslint/naming-convention
 							request_seq: req.seq,
 							success: true,
@@ -146,7 +146,7 @@ suite('attach', () => {
 				});
 			});
 			server.listen(sockPath, () => {
-				console.log('server bound');
+				console.log("server bound");
 			});
 		});
 
@@ -155,7 +155,7 @@ suite('attach', () => {
 			if (tempDir) fs.rmdirSync(tempDir);
 		});
 
-		test('return true', async () => {
+		test("return true", async () => {
 			return new Promise((resolve, reject) => {
 				if (server === undefined || sockPath === undefined) return reject();
 				const c = generateAttachConfig();
@@ -168,22 +168,22 @@ suite('attach', () => {
 		});
 	});
 
-	suite('unix domain socket: fail', () => {
+	suite("unix domain socket: fail", () => {
 		let server: net.Server | undefined;
 		let tempDir: string | undefined;
 		let sockPath: string | undefined;
 		setup(function () {
-			if (process.platform === 'win32') this.skip();
+			if (process.platform === "win32") this.skip();
 
-			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
-			sockPath = tempDir + '/' + Date.now().toString() + '.sock';
+			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-rdbg-test-"));
+			sockPath = tempDir + "/" + Date.now().toString() + ".sock";
 			server = net.createServer((sock) => {
-				sock.on('data', (_data: Buffer) => {
+				sock.on("data", (_data: Buffer) => {
 					sock.end();
 				});
 			});
 			server.listen(sockPath, () => {
-				console.log('server bound');
+				console.log("server bound");
 			});
 		});
 
@@ -192,7 +192,7 @@ suite('attach', () => {
 			if (tempDir) fs.rmdirSync(tempDir);
 		});
 
-		test('return false', async () => {
+		test("return false", async () => {
 			return new Promise((resolve, reject) => {
 				if (server === undefined || sockPath === undefined) return reject();
 				const c = generateAttachConfig();
@@ -206,41 +206,41 @@ suite('attach', () => {
 	});
 });
 
-suite('launch', () => {
-	suite('tcp: success', () => {
-		const projectRoot = path.join(__dirname, '..', '..', '..');
-		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
+suite("launch", () => {
+	suite("tcp: success", () => {
+		const projectRoot = path.join(__dirname, "..", "..", "..");
+		const testData = path.join(projectRoot, "src", "test", "testdata", "test.rb");
 
 		let port: number;
 		setup(() => {
 			const server = net.createServer((sock) => {
-				sock.on('data', (_data: Buffer) => {
+				sock.on("data", (_data: Buffer) => {
 					sock.end();
 				});
 			});
 			server.listen(0, () => {
-				console.log('server bound');
+				console.log("server bound");
 			});
 			const addr = server.address() as net.AddressInfo;
 			port = addr.port;
 			server.close();
 		});
 
-		test('localhost:{port}', async () => {
+		test("localhost:{port}", async () => {
 			const c = generateLaunchConfig(testData);
 			c.debugPort = `localhost:${port}`;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 
-		test('port', async () => {
+		test("port", async () => {
 			const c = generateLaunchConfig(testData);
 			c.debugPort = port.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 
-		test('env', async () => {
+		test("env", async () => {
 			const c = generateLaunchConfig(testData);
 			c.env = { "SAMPLE": "sample" };
 			c.debugPort = port.toString();
@@ -248,21 +248,21 @@ suite('launch', () => {
 			assert.ok(success);
 		});
 
-		test('v2: localhost:{port}', async () => {
+		test("v2: localhost:{port}", async () => {
 			const c = generateLaunchV2Config(testData);
 			c.debugPort = `localhost:${port}`;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 
-		test('v2: port', async () => {
+		test("v2: port", async () => {
 			const c = generateLaunchV2Config(testData);
 			c.debugPort = port.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 
-		test('v2: env', async () => {
+		test("v2: env", async () => {
 			const c = generateLaunchV2Config(testData);
 			c.env = { "SAMPLE": "sample" };
 			c.debugPort = port.toString();
@@ -271,26 +271,26 @@ suite('launch', () => {
 		});
 	});
 
-	suite('tcp: fail', () => {
-		const projectRoot = path.join(__dirname, '..', '..', '..');
-		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
+	suite("tcp: fail", () => {
+		const projectRoot = path.join(__dirname, "..", "..", "..");
+		const testData = path.join(projectRoot, "src", "test", "testdata", "test.rb");
 
 		let port: number;
 		setup(() => {
 			const server = net.createServer((sock) => {
-				sock.on('data', (_data: Buffer) => {
+				sock.on("data", (_data: Buffer) => {
 					sock.end();
 				});
 			});
 			server.listen(0, () => {
-				console.log('server bound');
+				console.log("server bound");
 			});
 			const addr = server.address() as net.AddressInfo;
 			port = addr.port;
 			server.close();
 		});
 
-		test('noDebug is true', async () => {
+		test("noDebug is true", async () => {
 			const c = generateLaunchConfig(testData);
 			c.debugPort = port.toString();
 			c.noDebug = true;
@@ -298,7 +298,7 @@ suite('launch', () => {
 			assert.ok(!success);
 		});
 
-		test('v2: noDebug is true', async () => {
+		test("v2: noDebug is true", async () => {
 			const c = generateLaunchV2Config(testData);
 			c.debugPort = port.toString();
 			c.noDebug = true;
@@ -307,33 +307,33 @@ suite('launch', () => {
 		});
 	});
 
-	suite('default: success', () => {
-		const projectRoot = path.join(__dirname, '..', '..', '..');
-		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
+	suite("default: success", () => {
+		const projectRoot = path.join(__dirname, "..", "..", "..");
+		const testData = path.join(projectRoot, "src", "test", "testdata", "test.rb");
 
-		test('config.debugPort is undefined', async () => {
+		test("config.debugPort is undefined", async () => {
 			const c = generateLaunchConfig(testData);
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 
-		test('v2: config.debugPort is undefined', async () => {
+		test("v2: config.debugPort is undefined", async () => {
 			const c = generateLaunchV2Config(testData);
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 	});
 
-	suite('unix domain socket: fail', () => {
-		const projectRoot = path.join(__dirname, '..', '..', '..');
-		const testData = path.join(projectRoot, 'src', 'test', 'testdata', 'test.rb');
+	suite("unix domain socket: fail", () => {
+		const projectRoot = path.join(__dirname, "..", "..", "..");
+		const testData = path.join(projectRoot, "src", "test", "testdata", "test.rb");
 		let tempDir: string | undefined;
 		let sockPath: string | undefined;
 		setup(function () {
-			if (process.platform === 'win32') this.skip();
+			if (process.platform === "win32") this.skip();
 
-			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
-			sockPath = tempDir + '/' + Date.now().toString() + '.sock';
+			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-rdbg-test-"));
+			sockPath = tempDir + "/" + Date.now().toString() + ".sock";
 		});
 
 		teardown(async () => {
@@ -341,14 +341,14 @@ suite('launch', () => {
 			if (tempDir) fs.rmdirSync(tempDir);
 		});
 
-		test('return false', async () => {
+		test("return false", async () => {
 			const c = generateLaunchConfig(testData);
 			c.debugPort = sockPath;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 
-		test('v2: return false', async () => {
+		test("v2: return false", async () => {
 			const c = generateLaunchV2Config(testData);
 			c.debugPort = sockPath;
 			const success = await vscode.debug.startDebugging(undefined, c);
@@ -371,22 +371,22 @@ async function waitToRemoveFile(tempDir: string) {
 
 function generateAttachConfig(): AttachConfiguration {
 	return {
-		type: 'rdbg',
-		name: '',
-		request: 'attach',
+		type: "rdbg",
+		name: "",
+		request: "attach",
 	};
 }
 
 function generateLaunchConfig(script: string): LaunchConfiguration {
 	const config: LaunchConfiguration = {
-		type: 'rdbg',
-		name: '',
-		request: 'launch',
+		type: "rdbg",
+		name: "",
+		request: "launch",
 		useTerminal: true,
 		script,
 		waitLaunchTime: 10000,
 	};
-	if (process.platform === 'darwin' && process.env.RUBY_DEBUG_TEST_PATH) {
+	if (process.platform === "darwin" && process.env.RUBY_DEBUG_TEST_PATH) {
 		config.command = process.env.RUBY_DEBUG_TEST_PATH;
 	}
 	return config;
@@ -394,23 +394,23 @@ function generateLaunchConfig(script: string): LaunchConfiguration {
 
 function generateLaunchV2Config(script: string): LaunchConfiguration {
 	const config: LaunchConfiguration = {
-		type: 'rdbg',
-		name: '',
-		request: 'launch',
+		type: "rdbg",
+		name: "",
+		request: "launch",
 		script,
 	};
-	if (process.platform === 'darwin' && process.env.RUBY_DEBUG_TEST_PATH) {
+	if (process.platform === "darwin" && process.env.RUBY_DEBUG_TEST_PATH) {
 		config.command = process.env.RUBY_DEBUG_TEST_PATH;
 	}
-	if (process.platform === 'win32') {
+	if (process.platform === "win32") {
 		config.waitLaunchTime = 10000;
 	}
 	return config;
 }
 
 interface AttachConfiguration extends vscode.DebugConfiguration {
-	type: 'rdbg';
-	request: 'attach';
+	type: "rdbg";
+	request: "attach";
 	rdbgPath?: string;
 	debugPort?: string;
 	cwd?: string;
@@ -420,8 +420,8 @@ interface AttachConfiguration extends vscode.DebugConfiguration {
 }
 
 interface LaunchConfiguration extends vscode.DebugConfiguration {
-	type: 'rdbg';
-	request: 'launch';
+	type: "rdbg";
+	request: "launch";
 
 	script: string;
 
