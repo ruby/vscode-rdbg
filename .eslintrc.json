@@ -75,6 +75,7 @@
         "quotes": [
             "warn",
             "double"
-        ]
+        ],
+        "prefer-const": "warn"
     }
 }

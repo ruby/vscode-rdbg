@@ -21,7 +21,7 @@ import {
 import { DebugProtocol } from "@vscode/debugprotocol";
 
 let outputChannel: vscode.OutputChannel;
-let outputTerminals = new Map<string, vscode.Terminal>();
+const outputTerminals = new Map<string, vscode.Terminal>();
 let lastExecCommand: string | undefined;
 let lastProgram: string | undefined;
 
@@ -55,7 +55,7 @@ function pp(obj: any) {
 
 function exportBreakpoints() {
 	if (vscode.workspace.getConfiguration("rdbg").get("saveBreakpoints")) {
-		let wspath = workspaceFolder();
+		const wspath = workspaceFolder();
 
 		if (wspath) {
 			var bpLines = "";
@@ -139,7 +139,7 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 				outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
 			},
 			onWillStopSession(): void {
-				let outputTerminal = outputTerminals.get(session.id);
+				const outputTerminal = outputTerminals.get(session.id);
 				if (outputTerminal) {
 					outputTerminal.show();
 					outputTerminals.delete(session.id);
@@ -225,7 +225,7 @@ class StopDebugAdapter implements vscode.DebugAdapter {
 
 const findRDBGTerminal = (): vscode.Terminal | undefined => {
 	let terminal: vscode.Terminal | undefined;
-	let currentTerminals: vscode.Terminal[] = Array.from(outputTerminals.values());
+	const currentTerminals: vscode.Terminal[] = Array.from(outputTerminals.values());
 	for (const t of vscode.window.terminals) {
 		if (t.name === terminalName && !t.exitStatus && !currentTerminals.includes(t)) {
 			terminal = t;
@@ -297,7 +297,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				if (err || stderr) {
 					reject(err ?? stderr);
 				} else {
-					let socks: Array<string> = [];
+					const socks: Array<string> = [];
 					if (stdout.length > 0) {
 						for (const line of stdout.split("\n")) {
 							if (line.length > 0) {
@@ -656,7 +656,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		const useBundlerFlag = (config.useBundler !== undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
 		const useBundler = useBundlerFlag && fs.existsSync(workspaceFolder() + "/Gemfile");
 		const rubyCommand = config.command ? config.command : (useBundler ? "bundle exec ruby" : "ruby");
-		let execArgs = config.script + " " + (config.args ? config.args.join(" ") : "");
+		const execArgs = config.script + " " + (config.args ? config.args.join(" ") : "");
 		let execCommand: string | undefined = rubyCommand + " " + execArgs;
 
 		if (config.askParameters) {
