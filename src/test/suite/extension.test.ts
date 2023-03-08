@@ -4,13 +4,11 @@ import * as assert from 'assert';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 
-import * as child_process from 'child_process';
 import * as net from 'net';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { DebugProtocol } from '@vscode/debugprotocol';
-import * as myExtension from '../../extension';
 
 const twoCrlf = '\r\n\r\n';
 
@@ -93,7 +91,7 @@ suite('attach', () => {
 		let server: net.Server;
 		setup(() => {
 			server = net.createServer((sock) => {
-				sock.on('data', (data: Buffer) => {
+				sock.on('data', (_data: Buffer) => {
 					sock.end();
 				});
 			});
@@ -180,7 +178,7 @@ suite('attach', () => {
 			tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-rdbg-test-'));
 			sockPath = tempDir + '/' + Date.now().toString() + '.sock';
 			server = net.createServer((sock) => {
-				sock.on('data', (data: Buffer) => {
+				sock.on('data', (_data: Buffer) => {
 					sock.end();
 				});
 			});
@@ -216,7 +214,7 @@ suite('launch', () => {
 		let port: number;
 		setup(() => {
 			const server = net.createServer((sock) => {
-				sock.on('data', (data: Buffer) => {
+				sock.on('data', (_data: Buffer) => {
 					sock.end();
 				});
 			});
@@ -280,7 +278,7 @@ suite('launch', () => {
 		let port: number;
 		setup(() => {
 			const server = net.createServer((sock) => {
-				sock.on('data', (data: Buffer) => {
+				sock.on('data', (_data: Buffer) => {
 					sock.end();
 				});
 			});

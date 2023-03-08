@@ -53,7 +53,7 @@ function pp(obj: any) {
 	outputChannel.appendLine(JSON.stringify(obj));
 }
 
-function exportBreakpoints(context: vscode.ExtensionContext) {
+function exportBreakpoints() {
 	if (vscode.workspace.getConfiguration("rdbg").get("saveBreakpoints")) {
 		let wspath = workspaceFolder();
 
@@ -68,7 +68,7 @@ function exportBreakpoints(context: vscode.ExtensionContext) {
 				}
 			}
 			const bpPath = path.join(wspath, ".rdbgrc.breakpoints");
-			fs.writeFile(bpPath, bpLines, e => { });
+			fs.writeFile(bpPath, bpLines, () => { });
 			outputChannel.appendLine("Written: " + bpPath);
 		}
 	}
@@ -82,8 +82,8 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('rdbg', new RdbgDebugAdapterTrackerFactory()));
 
 	//
-	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(e => {
-		exportBreakpoints(context);
+	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(() => {
+		exportBreakpoints();
 	}));
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {
@@ -162,7 +162,7 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 }
 
 class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvider {
-	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
+	resolveDebugConfiguration(_folder: WorkspaceFolder | undefined, config: DebugConfiguration, _token?: CancellationToken): ProviderResult<DebugConfiguration> {
 		if (config.script || config.request == 'attach') {
 			return config;
 		}
@@ -187,7 +187,7 @@ class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvi
 		};
 	};
 
-	provideDebugConfigurations(folder: WorkspaceFolder | undefined): ProviderResult<DebugConfiguration[]> {
+	provideDebugConfigurations(_folder: WorkspaceFolder | undefined): ProviderResult<DebugConfiguration[]> {
 		return [
 			{
 				type: 'rdbg',
@@ -210,7 +210,7 @@ class StopDebugAdapter implements vscode.DebugAdapter {
 	private sendMessage = new vscode.EventEmitter<any>();
 	readonly onDidSendMessage: vscode.Event<any> = this.sendMessage.event;
 
-	handleMessage(message: any): void {
+	handleMessage(): void {
 		const ev = {
 			type: 'event',
 			seq: 1,
@@ -236,7 +236,7 @@ const findRDBGTerminal = (): vscode.Terminal | undefined => {
 };
 
 class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
-	createDebugAdapterDescriptor(session: DebugSession, executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
+	createDebugAdapterDescriptor(session: DebugSession, _executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
 		// session.configuration.internalConsoleOptions = "neverOpen"; // TODO: doesn't affect...
 		const c = session.configuration;
 
@@ -415,10 +415,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			});
 			let path: string;
 
-			p.on('error', e => {
+			p.on('error', () => {
 				resolve(undefined);
 			});
-			p.on('exit', (code) => {
+			p.on('exit', () => {
 				resolve(path);
 			});
 			p.stderr?.on('data', err => {
@@ -493,7 +493,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	}
 
 	async sleepMs(waitMs: number) {
-		await new Promise((resolve, reject) => {
+		await new Promise((resolve, _reject) => {
 			setTimeout(() => {
 				resolve(0);
 			}, waitMs); // ms

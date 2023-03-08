@@ -34,7 +34,7 @@ describe('breakpoint', () => {
 				await bar.waitForBreakPoint();
 				await assertLocation(expected, view);
 				await bar.stop();
-				return new Promise((resolve, reject) => resolve());
+				return new Promise((resolve, _reject) => resolve());
 			});
 
 			it('debug console', async () => {
@@ -52,7 +52,7 @@ describe('breakpoint', () => {
 				await bar.waitForBreakPoint();
 				await assertLocation(3, view);
 				await bar.stop();
-				return new Promise((resolve, reject) => resolve());
+				return new Promise((resolve, _reject) => resolve());
 			});
 		});
 
@@ -78,7 +78,7 @@ describe('breakpoint', () => {
 				await bar.waitForBreakPoint();
 				await assertLocation(4, view);
 				await bar.stop();
-				return new Promise((resolve, reject) => resolve());
+				return new Promise((resolve, _reject) => resolve());
 			});
 
 			it('debug console', async () => {
@@ -99,7 +99,7 @@ describe('breakpoint', () => {
 				await bar.waitForBreakPoint();
 				await assertLocation(4, view);
 				await bar.stop();
-				return new Promise((resolve, reject) => resolve());
+				return new Promise((resolve, _reject) => resolve());
 			});
 		});
 	});
@@ -136,7 +136,7 @@ describe('breakpoint', () => {
 			await bar.waitForBreakPoint();
 			await assertLocation(8, view);
 			await bar.stop();
-			return new Promise((resolve, reject) => resolve());
+			return new Promise((resolve, _reject) => resolve());
 		});
 
 		it('debug console', async () => {
@@ -154,7 +154,7 @@ describe('breakpoint', () => {
 			await bar.waitForBreakPoint();
 			await assertLocation(8, view);
 			await bar.stop();
-			return new Promise((resolve, reject) => resolve());
+			return new Promise((resolve, _reject) => resolve());
 		});
 	});
 });
@@ -185,7 +185,7 @@ describe('step', () => {
 			await bar.stepInto();
 			await assertLocation(4, view);
 			await bar.stop();
-			return new Promise((resolve, reject) => resolve());
+			return new Promise((resolve, _reject) => resolve());
 		});
 
 		it('debug console', async () => {
@@ -201,7 +201,7 @@ describe('step', () => {
 			await assertEvaluate('(rdbg:#debugger) s', ',s', debugView);
 			await assertLocation(3, view);
 			await bar.stop();
-			return new Promise((resolve, reject) => resolve());
+			return new Promise((resolve, _reject) => resolve());
 		});
 	});
 });
@@ -232,7 +232,7 @@ describe('next', () => {
 			await bar.stepOver();
 			await assertLocation(4, view);
 			await bar.stop();
-			return new Promise((resolve, reject) => resolve());
+			return new Promise((resolve, _reject) => resolve());
 		});
 
 		it('debug console', async () => {
@@ -249,7 +249,7 @@ describe('next', () => {
 			await view.click();
 			await assertLocation(3, view);
 			await bar.stop();
-			return new Promise((resolve, reject) => resolve());
+			return new Promise((resolve, _reject) => resolve());
 		});
 	});
 });
@@ -282,7 +282,7 @@ describe('eval', () => {
 			await assertLocation(3, view);
 			await assertEvaluate('2', 'b', debugView);
 			await bar.stop();
-			return new Promise((resolve, reject) => resolve());
+			return new Promise((resolve, _reject) => resolve());
 		});
 	});
 });
@@ -307,7 +307,7 @@ describe('binding.break', () => {
 		await bar.continue();
 		await assertLocation(8, view);
 		await bar.stop();
-		return new Promise((resolve, reject) => resolve());
+		return new Promise((resolve, _reject) => resolve());
 	});
 });
 
