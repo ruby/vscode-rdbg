@@ -104,10 +104,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const folders = vscode.workspace.workspaceFolders;
 
-	if (folders != undefined && folders.length > 0) {
+	if (folders !== undefined && folders.length > 0) {
 		const autoAttachConfigP = (c: AttachConfiguration): boolean => {
-			if (c.type == "rdbg" && c.request == "attach" && c.autoAttach) {
-				if (c.autoAttach == process.env.RUBY_DEBUG_AUTOATTACH) {
+			if (c.type === "rdbg" && c.request === "attach" && c.autoAttach) {
+				if (c.autoAttach === process.env.RUBY_DEBUG_AUTOATTACH) {
 					return true;
 				}
 
@@ -163,7 +163,7 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 
 class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvider {
 	resolveDebugConfiguration(_folder: WorkspaceFolder | undefined, config: DebugConfiguration, _token?: CancellationToken): ProviderResult<DebugConfiguration> {
-		if (config.script || config.request == 'attach') {
+		if (config.script || config.request === 'attach') {
 			return config;
 		}
 
@@ -173,7 +173,7 @@ class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvi
 			});
 
 		// launch without configuration
-		if (vscode.window.activeTextEditor?.document.languageId != 'ruby')
+		if (vscode.window.activeTextEditor?.document.languageId !== 'ruby')
 			return vscode.window.showInformationMessage("Select a ruby file to debug").then(_ => {
 				return null;
 			});
@@ -240,7 +240,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		// session.configuration.internalConsoleOptions = "neverOpen"; // TODO: doesn't affect...
 		const c = session.configuration;
 
-		if (c.request == 'attach') {
+		if (c.request === 'attach') {
 			return this.attach(session);
 		}
 		else {
@@ -388,7 +388,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				resolve(undefined);
 			});
 			p.on('exit', (code) => {
-				if (code != 0) {
+				if (code !== 0) {
 					this.showError("exit code is " + code);
 					resolve(undefined);
 				}
@@ -445,7 +445,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				resolve(null);
 			});
 			p.on('exit', (code) => {
-				if (code != 0) {
+				if (code !== 0) {
 					this.showError(command + ": exit code is " + code);
 					resolve(null);
 				}
@@ -546,7 +546,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 			if (process.platform === 'win32' && tcpPort === 0) {
 				tcpPort = this.getRandomPort();
-			} else if (tcpPort != undefined) {
+			} else if (tcpPort !== undefined) {
 				tcpPortFile = await this.getTcpPortFile(config);
 			}
 		} else if (process.platform === 'win32') {
@@ -631,7 +631,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			}
 		}
-		else if (tcpPort != undefined) {
+		else if (tcpPort !== undefined) {
 			if (tcpPortFile) {
 				if (await this.waitFile(tcpPortFile, config.waitLaunchTime)) {
 					const portStr = fs.readFileSync(tcpPortFile);
