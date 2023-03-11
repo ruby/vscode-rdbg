@@ -1,8 +1,8 @@
-import * as child_process from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as net from 'net';
-import * as vscode from 'vscode';
+import * as child_process from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import * as net from "net";
+import * as vscode from "vscode";
 
 import {
 	CancellationToken,
@@ -16,18 +16,18 @@ import {
 	ProviderResult,
 	WorkspaceFolder,
 	ThemeIcon
-} from 'vscode';
+} from "vscode";
 
-import { DebugProtocol } from '@vscode/debugprotocol';
+import { DebugProtocol } from "@vscode/debugprotocol";
 
 let outputChannel: vscode.OutputChannel;
-let outputTerminals = new Map<string, vscode.Terminal>();
-let last_exec_command: string | undefined;
-let last_program: string | undefined;
+const outputTerminals = new Map<string, vscode.Terminal>();
+let lastExecCommand: string | undefined;
+let lastProgram: string | undefined;
 
-const terminalName: string = 'Ruby Debug Terminal';
+const terminalName: string = "Ruby Debug Terminal";
 
-function workspace_folder(): string | undefined {
+function workspaceFolder(): string | undefined {
 	if (vscode.workspace.workspaceFolders) {
 		for (const ws of vscode.workspace.workspaceFolders) {
 			return ws.uri.fsPath;
@@ -35,16 +35,16 @@ function workspace_folder(): string | undefined {
 	}
 }
 
-function custom_path(working_directory: string): string {
-	if (path.isAbsolute(working_directory)) {
-		return working_directory;
+function customPath(workingDirectory: string): string {
+	if (path.isAbsolute(workingDirectory)) {
+		return workingDirectory;
 	} else {
-		const wspath = workspace_folder();
+		const wspath = workspaceFolder();
 
 		if (wspath) {
-			return path.join(wspath, working_directory);
+			return path.join(wspath, workingDirectory);
 		} else {
-			return working_directory;
+			return workingDirectory;
 		}
 	}
 }
@@ -53,49 +53,49 @@ function pp(obj: any) {
 	outputChannel.appendLine(JSON.stringify(obj));
 }
 
-function export_breakpoints(context: vscode.ExtensionContext) {
+function exportBreakpoints() {
 	if (vscode.workspace.getConfiguration("rdbg").get("saveBreakpoints")) {
-		let wspath = workspace_folder();
+		const wspath = workspaceFolder();
 
 		if (wspath) {
-			var bp_lines = "";
+			var bpLines = "";
 			for (const bp of vscode.debug.breakpoints) {
 				if (bp instanceof vscode.SourceBreakpoint && bp.enabled) {
 					// outputChannel.appendLine(JSON.stringify(bp));
-					const start_line = bp.location.range.start.line + 1;
+					const startLine = bp.location.range.start.line + 1;
 					const path = bp.location.uri.path;
-					bp_lines = bp_lines + "break " + path + ":" + start_line + "\n";
+					bpLines = bpLines + "break " + path + ":" + startLine + "\n";
 				}
 			}
-			const bp_path = path.join(wspath, ".rdbgrc.breakpoints");
-			fs.writeFile(bp_path, bp_lines, e => { });
-			outputChannel.appendLine("Written: " + bp_path);
+			const bpPath = path.join(wspath, ".rdbgrc.breakpoints");
+			fs.writeFile(bpPath, bpLines, () => { });
+			outputChannel.appendLine("Written: " + bpPath);
 		}
 	}
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	outputChannel = vscode.window.createOutputChannel('rdbg');
+	outputChannel = vscode.window.createOutputChannel("rdbg");
 
-	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('rdbg', new RdbgInitialConfigurationProvider()));
-	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('rdbg', new RdbgAdapterDescriptorFactory()));
-	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('rdbg', new RdbgDebugAdapterTrackerFactory()));
+	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider("rdbg", new RdbgInitialConfigurationProvider()));
+	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory("rdbg", new RdbgAdapterDescriptorFactory()));
+	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory("rdbg", new RdbgDebugAdapterTrackerFactory()));
 
 	//
-	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(e => {
-		export_breakpoints(context);
+	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(() => {
+		exportBreakpoints();
 	}));
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {
 		const config = session.configuration;
-		if (config.request !== 'launch' || config.useTerminal || config.noDebug) return;
+		if (config.request !== "launch" || config.useTerminal || config.noDebug) return;
 
 		const args: DebugProtocol.EvaluateArguments = {
-			expression: ',eval $stdout.sync=true',
-			context: 'repl'
+			expression: ",eval $stdout.sync=true",
+			context: "repl"
 		};
 		try {
-			await session.customRequest('evaluate', args);
+			await session.customRequest("evaluate", args);
 		} catch (err) {
 			// We need to ignore the error because this request will be failed if the version of rdbg is older than 1.7. The `,command` API is introduced from version 1.7.
 			pp(err);
@@ -104,10 +104,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const folders = vscode.workspace.workspaceFolders;
 
-	if (folders != undefined && folders.length > 0) {
-		const auto_attach_config_p = (c: AttachConfiguration): boolean => {
-			if (c.type == "rdbg" && c.request == "attach" && c.autoAttach) {
-				if (c.autoAttach == process.env.RUBY_DEBUG_AUTOATTACH) {
+	if (folders !== undefined && folders.length > 0) {
+		const autoAttachConfigP = (c: AttachConfiguration): boolean => {
+			if (c.type === "rdbg" && c.request === "attach" && c.autoAttach) {
+				if (c.autoAttach === process.env.RUBY_DEBUG_AUTOATTACH) {
 					return true;
 				}
 
@@ -116,12 +116,12 @@ export function activate(context: vscode.ExtensionContext) {
 			return false;
 		};
 
-		const json_path = path.join(folders[0].uri.fsPath, ".vscode/rdbg_autoattach.json");
-		if (fs.existsSync(json_path)) {
-			const c: AttachConfiguration = JSON.parse(fs.readFileSync(json_path, 'utf8'));
+		const jsonPath = path.join(folders[0].uri.fsPath, ".vscode/rdbg_autoattach.json");
+		if (fs.existsSync(jsonPath)) {
+			const c: AttachConfiguration = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
 
-			if (auto_attach_config_p(c)) {
-				fs.unlinkSync(json_path);
+			if (autoAttachConfigP(c)) {
+				fs.unlinkSync(jsonPath);
 				vscode.debug.startDebugging(folders[0], c);
 				return;
 			}
@@ -139,7 +139,7 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 				outputChannel.appendLine("[Start session]\n" + JSON.stringify(session));
 			},
 			onWillStopSession(): void {
-				let outputTerminal = outputTerminals.get(session.id);
+				const outputTerminal = outputTerminals.get(session.id);
 				if (outputTerminal) {
 					outputTerminal.show();
 					outputTerminals.delete(session.id);
@@ -162,8 +162,8 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 }
 
 class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvider {
-	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
-		if (config.script || config.request == 'attach') {
+	resolveDebugConfiguration(_folder: WorkspaceFolder | undefined, config: DebugConfiguration, _token?: CancellationToken): ProviderResult<DebugConfiguration> {
+		if (config.script || config.request === "attach") {
 			return config;
 		}
 
@@ -173,34 +173,34 @@ class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvi
 			});
 
 		// launch without configuration
-		if (vscode.window.activeTextEditor?.document.languageId != 'ruby')
+		if (vscode.window.activeTextEditor?.document.languageId !== "ruby")
 			return vscode.window.showInformationMessage("Select a ruby file to debug").then(_ => {
 				return null;
 			});
 
 		return {
-			type: 'rdbg',
-			name: 'Launch',
-			request: 'launch',
-			script: '${file}',
+			type: "rdbg",
+			name: "Launch",
+			request: "launch",
+			script: "${file}",
 			askParameters: true,
 		};
 	};
 
-	provideDebugConfigurations(folder: WorkspaceFolder | undefined): ProviderResult<DebugConfiguration[]> {
+	provideDebugConfigurations(_folder: WorkspaceFolder | undefined): ProviderResult<DebugConfiguration[]> {
 		return [
 			{
-				type: 'rdbg',
-				name: 'Debug current file with rdbg',
-				request: 'launch',
-				script: '${file}',
+				type: "rdbg",
+				name: "Debug current file with rdbg",
+				request: "launch",
+				script: "${file}",
 				args: [],
 				askParameters: true,
 			},
 			{
-				type: 'rdbg',
-				name: 'Attach with rdbg',
-				request: 'attach',
+				type: "rdbg",
+				name: "Attach with rdbg",
+				request: "attach",
 			}
 		];
 	};
@@ -210,11 +210,11 @@ class StopDebugAdapter implements vscode.DebugAdapter {
 	private sendMessage = new vscode.EventEmitter<any>();
 	readonly onDidSendMessage: vscode.Event<any> = this.sendMessage.event;
 
-	handleMessage(message: any): void {
+	handleMessage(): void {
 		const ev = {
-			type: 'event',
+			type: "event",
 			seq: 1,
-			event: 'terminated',
+			event: "terminated",
 		};
 		this.sendMessage.fire(ev);
 	}
@@ -225,7 +225,7 @@ class StopDebugAdapter implements vscode.DebugAdapter {
 
 const findRDBGTerminal = (): vscode.Terminal | undefined => {
 	let terminal: vscode.Terminal | undefined;
-	let currentTerminals: vscode.Terminal[] = Array.from(outputTerminals.values());
+	const currentTerminals: vscode.Terminal[] = Array.from(outputTerminals.values());
 	for (const t of vscode.window.terminals) {
 		if (t.name === terminalName && !t.exitStatus && !currentTerminals.includes(t)) {
 			terminal = t;
@@ -236,32 +236,32 @@ const findRDBGTerminal = (): vscode.Terminal | undefined => {
 };
 
 class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
-	createDebugAdapterDescriptor(session: DebugSession, executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
+	createDebugAdapterDescriptor(session: DebugSession, _executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
 		// session.configuration.internalConsoleOptions = "neverOpen"; // TODO: doesn't affect...
 		const c = session.configuration;
 
-		if (c.request == 'attach') {
+		if (c.request === "attach") {
 			return this.attach(session);
 		}
 		else {
 			// launch
 			if (c.useTerminal || c.noDebug) {
-				return this.launch_on_terminal(session);
+				return this.launchOnTerminal(session);
 			}
 			else {
-				return this.launch_on_console(session);
+				return this.launchOnConsole(session);
 			}
 		}
 	}
 
-	show_error(msg: string): void {
+	showError(msg: string): void {
 		outputChannel.appendLine("Error: " + msg);
 		outputChannel.appendLine("Make sure to install rdbg command (`gem install debug`).\n" +
 			"If you are using bundler, write `gem 'debug'` in your Gemfile.");
 		outputChannel.show();
 	}
 
-	support_login(shell: string | undefined) {
+	supportLogin(shell: string | undefined) {
 		if (shell && (shell.endsWith("bash") || shell.endsWith("zsh") || shell.endsWith("fish"))) {
 			return true;
 		}
@@ -270,7 +270,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	make_shell_command(cmd: string) {
+	makeShellCommand(cmd: string) {
 		const shell = process.env.SHELL;
 		switch (true) {
 			case shell && (shell.endsWith("bash") || shell.endsWith("fish")):
@@ -286,18 +286,18 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	async get_sock_list(config: AttachConfiguration): Promise<string[]> {
+	async getSockList(config: AttachConfiguration): Promise<string[]> {
 		const rdbg = config.rdbgPath || "rdbg";
-		const cmd = this.make_shell_command(rdbg + ' --util=list-socks');
+		const cmd = this.makeShellCommand(rdbg + " --util=list-socks");
 		return new Promise((resolve, reject) => {
 			child_process.exec(cmd, {
-				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
+				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
 				env: { ...process.env, ...config.env }
 			}, (err, stdout, stderr) => {
 				if (err || stderr) {
 					reject(err ?? stderr);
 				} else {
-					let socks: Array<string> = [];
+					const socks: Array<string> = [];
 					if (stdout.length > 0) {
 						for (const line of stdout.split("\n")) {
 							if (line.length > 0) {
@@ -311,7 +311,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		});
 	}
 
-	parse_port(port: string): [string | undefined, number | undefined, string | undefined] {
+	parsePort(port: string): [string | undefined, number | undefined, string | undefined] {
 		var m;
 
 		if (port.match(/^\d+$/)) {
@@ -329,7 +329,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		const config = session.configuration as AttachConfiguration;
 		let port: number | undefined;
 		let host: string | undefined;
-		let sock_path: string | undefined;
+		let sockPath: string | undefined;
 
 		if (config.noDebug) {
 			vscode.window.showErrorMessage("Can not attach \"Without debugging\".");
@@ -337,10 +337,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 
 		if (config.debugPort) {
-			[host, port, sock_path] = this.parse_port(config.debugPort);
+			[host, port, sockPath] = this.parsePort(config.debugPort);
 		}
 		else {
-			const list = await this.get_sock_list(config);
+			const list = await this.getSockList(config);
 			outputChannel.appendLine(JSON.stringify(list));
 
 			switch (list.length) {
@@ -348,12 +348,12 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					vscode.window.showErrorMessage("Can not find attachable Ruby process.");
 					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 				case 1:
-					sock_path = list[0];
+					sockPath = list[0];
 					break;
 				default:
 					const sock = await vscode.window.showQuickPick(list);
 					if (sock) {
-						sock_path = sock;
+						sockPath = sock;
 					}
 					else {
 						return new DebugAdapterInlineImplementation(new StopDebugAdapter);
@@ -361,8 +361,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			}
 		}
 
-		if (sock_path) {
-			return new DebugAdapterNamedPipeServer(sock_path);
+		if (sockPath) {
+			return new DebugAdapterNamedPipeServer(sockPath);
 		}
 		else if (port) {
 			return new vscode.DebugAdapterServer(port, host);
@@ -373,90 +373,90 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	get_sock_path(config: LaunchConfiguration): Promise<string | undefined> {
+	getSockPath(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
-			const command = this.make_shell_command(rdbg + " --util=gen-sockpath");
+			const command = this.makeShellCommand(rdbg + " --util=gen-sockpath");
 			const p = child_process.exec(command, {
-				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
+				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
 				env: { ...process.env, ...config.env }
 			});
 			let path: string;
 
-			p.on('error', e => {
-				this.show_error(e.message);
+			p.on("error", e => {
+				this.showError(e.message);
 				resolve(undefined);
 			});
-			p.on('exit', (code) => {
-				if (code != 0) {
-					this.show_error("exit code is " + code);
+			p.on("exit", (code) => {
+				if (code !== 0) {
+					this.showError("exit code is " + code);
 					resolve(undefined);
 				}
 				else {
 					resolve(path);
 				}
 			});
-			p.stderr?.on('data', err => {
+			p.stderr?.on("data", err => {
 				outputChannel.appendLine(err);
 			});
-			p.stdout?.on('data', out => {
+			p.stdout?.on("data", out => {
 				path = out.trim();
 			});
 		});
 	}
 
-	get_tcp_port_file(config: LaunchConfiguration): Promise<string | undefined> {
+	getTcpPortFile(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
-			const command = this.make_shell_command(rdbg + " --util=gen-portpath");
+			const command = this.makeShellCommand(rdbg + " --util=gen-portpath");
 			const p = child_process.exec(command, {
-				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
+				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
 				env: { ...process.env, ...config.env }
 			});
 			let path: string;
 
-			p.on('error', e => {
+			p.on("error", () => {
 				resolve(undefined);
 			});
-			p.on('exit', (code) => {
+			p.on("exit", () => {
 				resolve(path);
 			});
-			p.stderr?.on('data', err => {
+			p.stderr?.on("data", err => {
 				outputChannel.appendLine(err);
 			});
-			p.stdout?.on('data', out => {
+			p.stdout?.on("data", out => {
 				path = out.trim();
 			});
 		});
 	}
 
-	get_version(config: LaunchConfiguration): Promise<string | null> {
+	getVersion(config: LaunchConfiguration): Promise<string | null> {
 		return new Promise((resolve) => {
 			const rdbg = config.rdbgPath || "rdbg";
-			const command = this.make_shell_command(rdbg + " --version");
+			const command = this.makeShellCommand(rdbg + " --version");
 			const p = child_process.exec(command, {
-				cwd: config.cwd ? custom_path(config.cwd) : workspace_folder(),
+				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
 				env: { ...process.env, ...config.env }
 			});
 			let version: string;
 
-			p.on('error', e => {
-				this.show_error(e.message);
+			p.on("error", e => {
+				this.showError(e.message);
 				resolve(null);
 			});
-			p.on('exit', (code) => {
-				if (code != 0) {
-					this.show_error(command + ": exit code is " + code);
+			p.on("exit", (code) => {
+				if (code !== 0) {
+					this.showError(command + ": exit code is " + code);
 					resolve(null);
 				}
 				else {
 					resolve(version);
 				}
 			});
-			p.stderr?.on('data', err => {
+			p.stderr?.on("data", err => {
 				outputChannel.appendLine(err);
 			});
-			p.stdout?.on('data', out => {
+			p.stdout?.on("data", out => {
 				version = out.trim();
 			});
 		});
@@ -473,12 +473,12 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	env_prefix(env?: { [key: string]: string }): string {
+	envPrefix(env?: { [key: string]: string }): string {
 		if (env) {
 			let prefix = "";
-			if (process.platform === 'win32') {
+			if (process.platform === "win32") {
 				for (const key in env) {
-					prefix += '$Env:' + key + "='" + env[key] + "'; ";
+					prefix += "$Env:" + key + "='" + env[key] + "'; ";
 				}
 			} else {
 				for (const key in env) {
@@ -492,30 +492,30 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	async sleep_ms(wait_ms: number) {
-		await new Promise((resolve, reject) => {
+	async sleepMs(waitMs: number) {
+		await new Promise((resolve, _reject) => {
 			setTimeout(() => {
 				resolve(0);
-			}, wait_ms); // ms
+			}, waitMs); // ms
 		});
 	}
 
-	async wait_file(path: string, wait_ms: number | undefined): Promise<boolean> {
+	async waitFile(path: string, waitMs: number | undefined): Promise<boolean> {
 		let iterations: number = 50;
-		if (wait_ms) {
-			iterations = wait_ms / 100;
+		if (waitMs) {
+			iterations = waitMs / 100;
 		}
 
 		// check sock-path
-		const start_time = Date.now();
+		const startTime = Date.now();
 		let i = 0;
 		while (!fs.existsSync(path)) {
 			i++;
 			if (i > iterations) {
-				vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - start_time) + " ms). Please install debug.gem.");
+				vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - startTime) + " ms). Please install debug.gem.");
 				return false;
 			}
-			await this.sleep_ms(100);
+			await this.sleepMs(100);
 		}
 		return true;
 	}
@@ -529,40 +529,40 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		return port;
 	}
 
-	async launch_on_terminal(session: DebugSession): Promise<DebugAdapterDescriptor> {
+	async launchOnTerminal(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
 		const rdbg = config.rdbgPath || "rdbg";
 
 		// outputChannel.appendLine(JSON.stringify(session));
 
 		// setup debugPort
-		let sock_path: string | undefined;
-		let tcp_host: string | undefined;
-		let tcp_port: number | undefined;
-		let tcp_port_file: string | undefined;
+		let sockPath: string | undefined;
+		let tcpHost: string | undefined;
+		let tcpPort: number | undefined;
+		let tcpPortFile: string | undefined;
 
 		if (config.debugPort) {
-			[tcp_host, tcp_port, sock_path] = this.parse_port(config.debugPort);
+			[tcpHost, tcpPort, sockPath] = this.parsePort(config.debugPort);
 
-			if (process.platform === 'win32' && tcp_port === 0) {
-				tcp_port = this.getRandomPort();
-			} else if (tcp_port != undefined) {
-				tcp_port_file = await this.get_tcp_port_file(config);
+			if (process.platform === "win32" && tcpPort === 0) {
+				tcpPort = this.getRandomPort();
+			} else if (tcpPort !== undefined) {
+				tcpPortFile = await this.getTcpPortFile(config);
 			}
-		} else if (process.platform === 'win32') {
+		} else if (process.platform === "win32") {
 			// default
-			tcp_host = "localhost";
-			tcp_port = this.getRandomPort();
+			tcpHost = "localhost";
+			tcpPort = this.getRandomPort();
 		} else {
-			sock_path = await this.get_sock_path(config);
-			if (!sock_path) {
+			sockPath = await this.getSockPath(config);
+			if (!sockPath) {
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			}
-			if (fs.existsSync(sock_path)) {
-				vscode.window.showErrorMessage("already exists: " + sock_path);
+			if (fs.existsSync(sockPath)) {
+				vscode.window.showErrorMessage("already exists: " + sockPath);
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			}
-			outputChannel.appendLine("sock-path: <" + sock_path + ">");
+			outputChannel.appendLine("sock-path: <" + sockPath + ">");
 		}
 
 		// setup terminal
@@ -570,21 +570,21 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 		if (!outputTerminal) {
 			const shell = process.env.SHELL;
-			const shell_args = this.support_login(shell) ? ['-l'] : undefined;
+			const shellArgs = this.supportLogin(shell) ? ["-l"] : undefined;
 
 			outputTerminal = vscode.window.createTerminal({
 				name: terminalName,
 				shellPath: shell,
-				shellArgs: shell_args,
+				shellArgs: shellArgs,
 				message: `Created by vscode-rdbg at ${new Date()}`,
 				iconPath: new ThemeIcon("ruby")
 			});
 		}
 		outputTerminals.set(session.id, outputTerminal);
 
-		let exec_command = '';
+		let execCommand = "";
 		try {
-			exec_command = await this.getExecCommands(config);
+			execCommand = await this.getExecCommands(config);
 		} catch (error) {
 			if (error instanceof InvalidExecCommandError) {
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
@@ -592,18 +592,18 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			throw error;
 		}
 
-		let cmdline = this.env_prefix(config.env);
+		let cmdline = this.envPrefix(config.env);
 
 		if (config.noDebug) {
-			cmdline += exec_command;
+			cmdline += execCommand;
 		} else {
-			let rdbg_args: string[];
-			if (tcp_host !== undefined && tcp_port !== undefined) {
-				rdbg_args = this.getTCPRdbgArgs(exec_command, tcp_host, tcp_port, tcp_port_file);
+			let rdbgArgs: string[];
+			if (tcpHost !== undefined && tcpPort !== undefined) {
+				rdbgArgs = this.getTCPRdbgArgs(execCommand, tcpHost, tcpPort, tcpPortFile);
 			} else {
-				rdbg_args = this.getUnixRdbgArgs(exec_command, sock_path);
+				rdbgArgs = this.getUnixRdbgArgs(execCommand, sockPath);
 			}
-			cmdline += rdbg + ' ' + rdbg_args.join(' ');
+			cmdline += rdbg + " " + rdbgArgs.join(" ");
 		}
 
 		if (outputTerminal) {
@@ -611,8 +611,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 			if (config.cwd) {
 				// Ensure we are in the requested working directory
-				const cd_command = "cd " + custom_path(config.cwd);
-				outputTerminal.sendText(cd_command);
+				const cdCommand = "cd " + customPath(config.cwd);
+				outputTerminal.sendText(cdCommand);
 			}
 
 			outputTerminal.sendText(cmdline);
@@ -623,29 +623,29 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 
 		// use NamedPipe
-		if (sock_path) {
-			if (await this.wait_file(sock_path, config.waitLaunchTime)) {
-				return new DebugAdapterNamedPipeServer(sock_path);
+		if (sockPath) {
+			if (await this.waitFile(sockPath, config.waitLaunchTime)) {
+				return new DebugAdapterNamedPipeServer(sockPath);
 			}
 			else {
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			}
 		}
-		else if (tcp_port != undefined) {
-			if (tcp_port_file) {
-				if (await this.wait_file(tcp_port_file, config.waitLaunchTime)) {
-					const port_str = fs.readFileSync(tcp_port_file);
-					tcp_port = parseInt(port_str.toString());
+		else if (tcpPort !== undefined) {
+			if (tcpPortFile) {
+				if (await this.waitFile(tcpPortFile, config.waitLaunchTime)) {
+					const portStr = fs.readFileSync(tcpPortFile);
+					tcpPort = parseInt(portStr.toString());
 				}
 				else {
 					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 				}
 			}
 			else {
-				const wait_ms = config.waitLaunchTime ? config.waitLaunchTime : 5000 /* 5 sec */;
-				await this.sleep_ms(wait_ms);
+				const waitMs = config.waitLaunchTime ? config.waitLaunchTime : 5000 /* 5 sec */;
+				await this.sleepMs(waitMs);
 			}
-			return new vscode.DebugAdapterServer(tcp_port, tcp_host);
+			return new vscode.DebugAdapterServer(tcpPort, tcpHost);
 		}
 
 		// failed
@@ -654,66 +654,66 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	async getExecCommands(config: LaunchConfiguration) {
 		const useBundlerFlag = (config.useBundler !== undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
-		const useBundler = useBundlerFlag && fs.existsSync(workspace_folder() + '/Gemfile');
-		const ruby_command = config.command ? config.command : (useBundler ? 'bundle exec ruby' : 'ruby');
-		let exec_args = config.script + " " + (config.args ? config.args.join(' ') : '');
-		let exec_command: string | undefined = ruby_command + ' ' + exec_args;
+		const useBundler = useBundlerFlag && fs.existsSync(workspaceFolder() + "/Gemfile");
+		const rubyCommand = config.command ? config.command : (useBundler ? "bundle exec ruby" : "ruby");
+		const execArgs = config.script + " " + (config.args ? config.args.join(" ") : "");
+		let execCommand: string | undefined = rubyCommand + " " + execArgs;
 
 		if (config.askParameters) {
-			if (last_exec_command && last_program === config.script) {
-				exec_command = last_exec_command;
+			if (lastExecCommand && lastProgram === config.script) {
+				execCommand = lastExecCommand;
 			}
 
-			exec_command = await vscode.window.showInputBox({
+			execCommand = await vscode.window.showInputBox({
 				"title": "Debug command line",
-				"value": exec_command
+				"value": execCommand
 			});
 		}
-		if (exec_command === undefined || exec_command.length <= 0) {
+		if (execCommand === undefined || execCommand.length <= 0) {
 			throw new InvalidExecCommandError();
 		}
 		// Save the history of command and script to use next time in `config.askParameters`.
-		last_exec_command = exec_command;
-		last_program = config.script;
+		lastExecCommand = execCommand;
+		lastProgram = config.script;
 
-		return exec_command;
+		return execCommand;
 	}
 
-	getTCPRdbgArgs(execCommand: string, host: string, port: number, port_path?: string) {
-		const rdbg_args: string[] = [];
-		rdbg_args.push('--command', '--open', '--stop-at-load');
-		rdbg_args.push("--host=" + host);
+	getTCPRdbgArgs(execCommand: string, host: string, port: number, portPath?: string) {
+		const rdbgArgs: string[] = [];
+		rdbgArgs.push("--command", "--open", "--stop-at-load");
+		rdbgArgs.push("--host=" + host);
 		let portArg = port.toString();
-		if (port_path) {
-			portArg += ":" + port_path;
+		if (portPath) {
+			portArg += ":" + portPath;
 		}
-		rdbg_args.push("--port=" + portArg);
-		rdbg_args.push('--');
-		rdbg_args.push(...execCommand.trim().split(' '));
-		return rdbg_args;
+		rdbgArgs.push("--port=" + portArg);
+		rdbgArgs.push("--");
+		rdbgArgs.push(...execCommand.trim().split(" "));
+		return rdbgArgs;
 	}
 
-	getUnixRdbgArgs(exec_command: string, sockPath?: string) {
-		const rdbg_args: string[] = [];
-		rdbg_args.push('--command', '--open', '--stop-at-load');
+	getUnixRdbgArgs(execCommand: string, sockPath?: string) {
+		const rdbgArgs: string[] = [];
+		rdbgArgs.push("--command", "--open", "--stop-at-load");
 		if (sockPath) {
-			rdbg_args.push("--sock-path=" + sockPath);
+			rdbgArgs.push("--sock-path=" + sockPath);
 		}
-		rdbg_args.push('--');
-		rdbg_args.push(...exec_command.trim().split(' '));
-		return rdbg_args;
+		rdbgArgs.push("--");
+		rdbgArgs.push(...execCommand.trim().split(" "));
+		return rdbgArgs;
 	}
 
-	async launch_on_console(session: DebugSession): Promise<DebugAdapterDescriptor> {
+	async launchOnConsole(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
 		const rdbg = config.rdbgPath || "rdbg";
 		const debugConsole = vscode.debug.activeDebugConsole;
 
 		// outputChannel.appendLine(JSON.stringify(session));
 
-		let exec_command = '';
+		let execCommand = "";
 		try {
-			exec_command = await this.getExecCommands(config);
+			execCommand = await this.getExecCommands(config);
 		} catch (error) {
 			if (error instanceof InvalidExecCommandError) {
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
@@ -722,42 +722,42 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 		const options: child_process.SpawnOptionsWithoutStdio = {
 			env: { ...process.env, ...config.env },
-			cwd: custom_path(config.cwd || ''),
+			cwd: customPath(config.cwd || ""),
 		};
-		if (process.platform === 'win32') options.shell = 'powershell';
+		if (process.platform === "win32") options.shell = "powershell";
 
-		let sock_path: string | undefined = undefined;
-		let tcp_host: string | undefined = undefined;
-		let tcp_port: number | undefined = undefined;
+		let sockPath: string | undefined = undefined;
+		let tcpHost: string | undefined = undefined;
+		let tcpPort: number | undefined = undefined;
 
 		if (config.debugPort) {
-			[tcp_host, tcp_port, sock_path] = this.parse_port(config.debugPort);
+			[tcpHost, tcpPort, sockPath] = this.parsePort(config.debugPort);
 		}
-		else if (process.platform === 'win32') {
+		else if (process.platform === "win32") {
 			// default
-			tcp_host = "localhost";
-			tcp_port = 0;
+			tcpHost = "localhost";
+			tcpPort = 0;
 		}
 
-		if (tcp_host !== undefined && tcp_port !== undefined) {
-			const rdbg_args = this.getTCPRdbgArgs(exec_command, tcp_host, tcp_port);
+		if (tcpHost !== undefined && tcpPort !== undefined) {
+			const rdbgArgs = this.getTCPRdbgArgs(execCommand, tcpHost, tcpPort);
 			try {
-				[, tcp_port] = await this.runDebuggeeWithTCP(debugConsole, rdbg, rdbg_args, options);
+				[, tcpPort] = await this.runDebuggeeWithTCP(debugConsole, rdbg, rdbgArgs, options);
 			} catch (error: any) {
 				vscode.window.showErrorMessage(error.message);
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 			}
-			return new vscode.DebugAdapterServer(tcp_port, tcp_host);
+			return new vscode.DebugAdapterServer(tcpPort, tcpHost);
 		}
-		const rdbg_args = this.getUnixRdbgArgs(exec_command, sock_path);
+		const rdbgArgs = this.getUnixRdbgArgs(execCommand, sockPath);
 		try {
-			sock_path = await this.runDebuggeeWithUnix(debugConsole, rdbg, rdbg_args, options);
+			sockPath = await this.runDebuggeeWithUnix(debugConsole, rdbg, rdbgArgs, options);
 		} catch (error: any) {
 			vscode.window.showErrorMessage(error.message);
 			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 		}
-		if (await this.wait_file(sock_path, config.waitLaunchTime)) {
-			return new DebugAdapterNamedPipeServer(sock_path);
+		if (await this.waitFile(sockPath, config.waitLaunchTime)) {
+			return new DebugAdapterNamedPipeServer(sockPath);
 		}
 		// failed
 		return new DebugAdapterInlineImplementation(new StopDebugAdapter);
@@ -774,19 +774,19 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	};
 
 	private runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
-		pp(`Running: ${cmd} ${args?.join(' ')}`);
+		pp(`Running: ${cmd} ${args?.join(" ")}`);
 		let connectionReady = false;
-		let sockPath = '';
-		let stderr = '';
+		let sockPath = "";
+		let stderr = "";
 		return new Promise<string>((resolve, reject) => {
 			const debugProcess = child_process.spawn(cmd, args, options);
-			debugProcess.stderr.on('data', (chunk) => {
+			debugProcess.stderr.on("data", (chunk) => {
 				const msg: string = chunk.toString();
 				stderr += msg;
-				if (stderr.includes('Error')) {
+				if (stderr.includes("Error")) {
 					reject(new Error(stderr));
 				}
-				if (stderr.includes('DEBUGGER: wait for debugger connection...')) {
+				if (stderr.includes("DEBUGGER: wait for debugger connection...")) {
 					connectionReady = true;
 				}
 				const found = stderr.match(this.unixDomainRegex);
@@ -799,14 +799,14 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					resolve(sockPath);
 				}
 			});
-			debugProcess.stdout.on('data', (chunk) => {
+			debugProcess.stdout.on("data", (chunk) => {
 				debugConsole.append(this.colorMessage(chunk.toString(), this.colors.blue));
 			});
-			debugProcess.on('error', (err) => {
+			debugProcess.on("error", (err) => {
 				debugConsole.append(err.message);
 				reject(err);
 			});
-			debugProcess.on('exit', (code) => {
+			debugProcess.on("exit", (code) => {
 				reject(new Error(`Couldn't start debug session. The debuggee process exited with code ${code}`));
 			});
 		});
@@ -815,20 +815,20 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	private readonly TCPRegex = /DEBUGGER:\sDebugger\scan\sattach\svia\s.+\((.+):(\d+)\)/;
 
 	private runDebuggeeWithTCP(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
-		pp(`Running: ${cmd} ${args?.join(' ')}`);
+		pp(`Running: ${cmd} ${args?.join(" ")}`);
 		let connectionReady = false;
-		let host = '';
+		let host = "";
 		let port = -1;
-		let stderr = '';
+		let stderr = "";
 		return new Promise<[string, number]>((resolve, reject) => {
 			const debugProcess = child_process.spawn(cmd, args, options);
-			debugProcess.stderr.on('data', (chunk) => {
+			debugProcess.stderr.on("data", (chunk) => {
 				const msg: string = chunk.toString();
 				stderr += msg;
-				if (stderr.includes('Error')) {
+				if (stderr.includes("Error")) {
 					reject(new Error(stderr));
 				}
-				if (stderr.includes('DEBUGGER: wait for debugger connection...')) {
+				if (stderr.includes("DEBUGGER: wait for debugger connection...")) {
 					connectionReady = true;
 				}
 				const found = stderr.match(this.TCPRegex);
@@ -842,14 +842,14 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					resolve([host, port]);
 				}
 			});
-			debugProcess.stdout.on('data', (chunk) => {
+			debugProcess.stdout.on("data", (chunk) => {
 				debugConsole.append(this.colorMessage(chunk.toString(), this.colors.blue));
 			});
-			debugProcess.on('error', (err) => {
+			debugProcess.on("error", (err) => {
 				debugConsole.append(err.message);
 				reject(err);
 			});
-			debugProcess.on('exit', (code) => {
+			debugProcess.on("exit", (code) => {
 				reject(new Error(`Couldn't start debug session. The debuggee process exited with code ${code}`));
 			});
 		});
@@ -859,8 +859,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 class InvalidExecCommandError extends Error { }
 
 interface AttachConfiguration extends DebugConfiguration {
-	type: 'rdbg';
-	request: 'attach';
+	type: "rdbg";
+	request: "attach";
 	rdbgPath?: string;
 	env?: { [key: string]: string };
 	debugPort?: string;
@@ -871,8 +871,8 @@ interface AttachConfiguration extends DebugConfiguration {
 }
 
 interface LaunchConfiguration extends DebugConfiguration {
-	type: 'rdbg';
-	request: 'launch';
+	type: "rdbg";
+	request: "launch";
 
 	script: string;
 
