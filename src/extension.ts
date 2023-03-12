@@ -492,12 +492,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	async sleepMs(waitMs: number) {
-		await new Promise((resolve, _reject) => {
-			setTimeout(() => {
-				resolve(0);
-			}, waitMs); // ms
-		});
+	sleepMs(waitMs: number) {
+		return new Promise((resolve) => setTimeout(resolve, waitMs));
 	}
 
 	async waitFile(path: string, waitMs: number | undefined): Promise<boolean> {
