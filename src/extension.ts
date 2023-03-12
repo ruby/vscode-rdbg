@@ -500,24 +500,37 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		});
 	}
 
+	async waitTcpPortFile(path: string, waitMs: number | undefined) {
+		return this.waitUntil(()=> {
+			return fs.existsSync(path) && fs.readFileSync(path).toString().length > 0;
+		}, waitMs);
+	}
+
 	async waitFile(path: string, waitMs: number | undefined): Promise<boolean> {
+		return this.waitUntil(()=> {
+			return fs.existsSync(path);
+		}, waitMs);
+	}
+
+	async waitUntil(condition: () => boolean, waitMs: number | undefined) {
 		let iterations: number = 50;
 		if (waitMs) {
 			iterations = waitMs / 100;
 		}
 
-		// check sock-path
 		const startTime = Date.now();
 		let i = 0;
-		while (!fs.existsSync(path)) {
+		while (true) {
 			i++;
 			if (i > iterations) {
 				vscode.window.showErrorMessage("Couldn't start debug session (wait for " + (Date.now() - startTime) + " ms). Please install debug.gem.");
 				return false;
 			}
+			if (condition()) {
+				return true;
+			}
 			await this.sleepMs(100);
 		}
-		return true;
 	}
 
 	getRandomPort() {
@@ -633,7 +646,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 		else if (tcpPort !== undefined) {
 			if (tcpPortFile) {
-				if (await this.waitFile(tcpPortFile, config.waitLaunchTime)) {
+				if (await this.waitTcpPortFile(tcpPortFile, config.waitLaunchTime)) {
 					const portStr = fs.readFileSync(tcpPortFile);
 					tcpPort = parseInt(portStr.toString());
 				}
