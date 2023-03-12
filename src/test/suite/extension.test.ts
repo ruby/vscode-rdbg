@@ -336,9 +336,14 @@ suite("launch", () => {
 			sockPath = tempDir + "/" + Date.now().toString() + ".sock";
 		});
 
-		teardown(async () => {
-			if (tempDir) await waitToRemoveFile(tempDir);
-			if (tempDir) fs.rmdirSync(tempDir);
+		teardown(() => {
+			/*
+				The socket file will be deleted after server process is finished in Socket#unix_server_loop,
+				but sometimes it is not deleted and remain.
+				Then, test is failed such as https://github.com/ruby/vscode-rdbg/actions/runs/4350570271/jobs/7601404118\#step:9:80.
+				That's why we need to remove directory forcibly here.
+			*/
+			if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });;
 		});
 
 		test("return false", async () => {
@@ -356,18 +361,6 @@ suite("launch", () => {
 		});
 	});
 });
-
-function sleep(seconds: number) {
-	return new Promise((resolve) => setTimeout(resolve, seconds));
-}
-
-async function waitToRemoveFile(tempDir: string) {
-	while (true) {
-		const files = fs.readdirSync(tempDir);
-		if (files.length === 0) break;
-		await sleep(100);
-	}
-}
 
 function generateAttachConfig(): AttachConfiguration {
 	return {
