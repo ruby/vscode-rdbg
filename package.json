@@ -220,7 +220,7 @@
 		"@types/glob": "^8.1.0",
 		"@types/mocha": "^10.0.1",
 		"@types/node": "^18.14.6",
-		"@types/vscode": "^1.75.1",
+		"@types/vscode": "^1.76.0",
 		"@typescript-eslint/eslint-plugin": "^5.52.0",
 		"@typescript-eslint/parser": "^5.47.1",
 		"@vscode/debugprotocol": "^1.59.0",
