@@ -345,6 +345,6 @@
 		"glob": "^8.1.0",
 		"mocha": "^10.2.0",
 		"typescript": "^4.9.5",
-		"vscode-extension-tester": "^5.4.0"
+		"vscode-extension-tester": "^5.5.1"
 	}
 }
