@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Location } from "./traceLog";
+import { Location } from "./protocol";
 
 const foldUpIcon = new vscode.ThemeIcon("fold-up", new vscode.ThemeColor("textLink.foreground"));
 

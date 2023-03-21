@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { LoadMoreItem, OmittedItem, RdbgTreeItem, RdbgTreeItemOptions, RootLogItem, ThreadIdItem, ToggleTreeItem, TraceLogItem } from "./rdbgTreeItem";
-import { TraceLogsResponse, TraceLog, RdbgTraceInspectorLogsArguments, TraceEventKind, TraceEventKindState, RdbgTraceInspectorDisableArguments, RdbgTraceInspectorEnableArguments } from "./traceLog";
+import { TraceLogsResponse, TraceLog, RdbgTraceInspectorLogsArguments, TraceEventKind, TraceEventKindState, RdbgTraceInspectorDisableArguments, RdbgTraceInspectorEnableArguments } from "./protocol";
 import { customRequest } from "./utils";
 
 const locationIcon = new vscode.ThemeIcon("location");
