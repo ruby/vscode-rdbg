@@ -87,7 +87,7 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		kind: string
 	){
 		super(label, {
-			command: { command: kind + ".toggleTrace" },
+			command: { command: kind + ".toggle" },
 			collapsibleState: vscode.TreeItemCollapsibleState.None,
 			iconPath: playCircleIcon
 		});

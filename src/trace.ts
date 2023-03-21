@@ -73,7 +73,7 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext, emitter: vsc
 			treeProvider.loadMoreTraceLogs(threadId);
 		}),
 
-		vscode.commands.registerCommand("rdbg.trace.toggleTrace", async () => {
+		vscode.commands.registerCommand("rdbg.trace.toggle", async () => {
 			const item = treeProvider.toggleTreeItem;
 			if (item === undefined) {
 				return;
