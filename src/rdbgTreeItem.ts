@@ -11,7 +11,7 @@ export class RdbgTreeItem extends vscode.TreeItem {
 	public parent?: RdbgTreeItem;
 	public children?: RdbgTreeItem[];
 	constructor(
-		label: string,
+		label: string | vscode.TreeItemLabel,
 		opts: RdbgTreeItemOptions = {}
 	) {
 		super(label, opts.collapsibleState);
@@ -38,13 +38,12 @@ export class LoadMoreItem extends RdbgTreeItem {
 	}
 }
 
-export class TraceLogItem extends RdbgTreeItem {
+export class BaseLogItem extends RdbgTreeItem {
 	constructor(
-		label: string,
+		label: string | vscode.TreeItemLabel,
 		public readonly index: number,
 		public readonly depth: number,
 		public readonly location: Location,
-		public readonly threadId: number,
 		opts: RdbgTreeItemOptions = {},
 	) {
 		opts.tooltip = location.path + ":" + location.line.toString();
@@ -57,7 +56,7 @@ export class OmittedItem extends RdbgTreeItem {
 		public readonly index: number,
 		public readonly offset: number,
 		public readonly depth: number,
-		public readonly threadId: number,
+		public readonly threadId?: number,
 	) {
 		super("..", { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
 	}
@@ -65,8 +64,9 @@ export class OmittedItem extends RdbgTreeItem {
 
 export class RootLogItem extends RdbgTreeItem {
 	constructor(
+		kind: string
 	){
-		super("Trace Logs", { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
+		super(kind + " Logs", { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
 	}
 }
 

@@ -22,6 +22,7 @@ import {
 
 import { DebugProtocol } from "@vscode/debugprotocol";
 import { registerTraceProvider } from "./trace";
+import { registerRecordProvider } from "./record";
 
 const asyncExec = promisify(child_process.exec);
 
@@ -144,26 +145,33 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	let disposables: vscode.Disposable[];
+	let disposables: vscode.Disposable[] = [];
 	context.subscriptions.push(
 		vscode.debug.onDidStartDebugSession((session) => {
-			const enabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgTraceInspector");
-			if (!enabled) return;
-
-			const config = session.configuration as LaunchConfiguration;
-			adapterDescriptorFactory.getVersion(config).then((strVer) => {
-				if (strVer === null) return;
-				const version = adapterDescriptorFactory.vernum(strVer);
-				// checks the version of debug.gem is 1.8.0 or higher.
-				if (version >= 1008000) {
-					disposables = registerTraceProvider(context, stopppedEvtEmitter);
-				}
-			});
+			const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgTraceInspector");
+			const recordEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgRecordInspector");
+			if (traceEnabled || recordEnabled) {
+				const config = session.configuration as LaunchConfiguration;
+				adapterDescriptorFactory.getVersion(config).then((strVer) => {
+					if (strVer === null) return;
+					const version = adapterDescriptorFactory.vernum(strVer);
+					// checks the version of debug.gem is 1.8.0 or higher.
+					if (version >= 1007000) {
+						if (traceEnabled) {
+							disposables = disposables.concat(registerTraceProvider(context, stopppedEvtEmitter));
+						}
+						if (recordEnabled) {
+							disposables = disposables.concat(registerRecordProvider(stopppedEvtEmitter));
+						}
+					}
+				});
+			}
 		}),
 
 		vscode.debug.onDidTerminateDebugSession(() => {
-			for (const disp of disposables) {
-				disp.dispose();
+			while(disposables.length > 0) {
+				const disp = disposables.pop();
+				disp?.dispose();
 			}
 		})
 	);

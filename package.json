@@ -36,7 +36,8 @@
 		"onLanguage:ruby",
 		"onDebug",
 		"workspaceContains:.vscode/rdbg_autoattach.json",
-		"onView:rdbg.trace"
+		"onView:rdbg.trace",
+		"onView:rdbg.record"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -209,6 +210,12 @@
 					"default": false,
 					"description": "(experimental) Enable RdbgTraceInspector view. RdbgTraceInspector visualizes the trace log in Tree View. This feature will work in the version of debug.gem is 1.8.0 or higher."
 				},
+				"rdbg.enableRdbgRecordInspector": {
+					"type": "boolean",
+					"//": "The default value will be changed to true after 1.8.0 is released",
+					"default": false,
+					"description": "(experimental) Enable RdbgRecordInspector view. RdbgRecordInspector visualizes the trace log in Tree View. This feature will work in the version of debug.gem is 1.8.0 or higher."
+				},
 				"rdbg.rubyVersionManager": {
 					"type": "string",
 					"enum": [
@@ -229,6 +236,11 @@
 					"id": "rdbg.trace",
 					"name": "Trace",
 					"when": "traceInspectorEnabled == true"
+				},
+				{
+					"id": "rdbg.record",
+					"name": "Record And Replay",
+					"when": "recordInspectorEnabled == true"
 				}
 			]
 		},
@@ -266,6 +278,16 @@
 			{
 				"command": "rdbg.trace.enableReturnEvent",
 				"title": "return event"
+			},
+			{
+				"command": "rdbg.record.openPrevLog",
+				"title": "Go back to the previous log",
+				"icon": "$(arrow-up)"
+			},
+			{
+				"command": "rdbg.record.openNextLog",
+				"title": "Go to the next trace log",
+				"icon": "$(arrow-down)"
 			}
 		],
 		"menus": {
@@ -303,6 +325,16 @@
 				{
 					"command": "rdbg.trace.enableReturnEvent",
 					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && returnEventEnabled == false"
+				},
+				{
+					"command": "rdbg.record.openPrevLog",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.record",
+					"group": "navigation"
+				},
+				{
+					"command": "rdbg.record.openNextLog",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.record",
+					"group": "navigation"
 				}
 			],
 			"view/item/context": [
