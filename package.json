@@ -30,7 +30,7 @@
 		"rdbg"
 	],
 	"engines": {
-		"vscode": "^1.49.0"
+		"vscode": "^1.65.0"
 	},
 	"activationEvents": [
 		"onLanguage:ruby",
@@ -336,7 +336,7 @@
 		"@types/glob": "^8.1.0",
 		"@types/mocha": "^10.0.1",
 		"@types/node": "^18.15.3",
-		"@types/vscode": "^1.76.0",
+		"@types/vscode": "^1.65.0",
 		"@typescript-eslint/eslint-plugin": "^5.55.0",
 		"@typescript-eslint/parser": "^5.55.0",
 		"@vscode/debugprotocol": "^1.59.0",
