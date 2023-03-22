@@ -47,22 +47,9 @@
                 }
             }
         ],
-        "@typescript-eslint/semi": "warn",
-        "@typescript-eslint/type-annotation-spacing": "warn",
         "no-unused-expressions": "error",
         "no-throw-literal": "warn",
         "semi": "off",
-        "indent": [
-            "warn",
-            "tab",
-            {
-                "SwitchCase": 1
-            }
-        ],
-        "object-curly-spacing": [
-            "warn",
-            "always"
-        ],
         "no-unused-vars": [
             "warn",
             {
@@ -72,10 +59,6 @@
             }
         ],
         "eqeqeq": "warn",
-        "quotes": [
-            "warn",
-            "double"
-        ],
         "prefer-const": "warn"
     }
 }
