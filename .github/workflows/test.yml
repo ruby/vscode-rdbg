@@ -26,7 +26,10 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
-    - run: gem install debug
+    - name: Install debug.gem
+      run: |
+        gem install debug
+        rdbg -v
     - run: npm install
     - run: xvfb-run -a npm test
       if: runner.os == 'Linux'
