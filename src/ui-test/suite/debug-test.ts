@@ -358,6 +358,7 @@ async function assertEvaluate(expected: string, expression: string, view: DebugC
 	const text = await view.getText();
 	assert.ok(text.includes(expected), `Expected to include ${expected} in ${text}, but not.`);
 	await view.clearText();
+	await view.wait(timeoutSec);
 }
 
 async function cleanup() {
