@@ -4,6 +4,9 @@ import * as path from "path";
 import * as net from "net";
 import * as vscode from "vscode";
 import { promisify } from "util";
+import {
+	OutputEvent
+} from "@vscode/debugadapter"
 
 import {
 	CancellationToken,
@@ -291,6 +294,75 @@ const findRDBGTerminal = (): vscode.Terminal | undefined => {
 	}
 	return terminal;
 };
+
+class RdbgUnixDomainDebugAdapter implements vscode.DebugAdapter {
+	onDidSendMessage: vscode.Event<vscode.DebugProtocolMessage> = this._onDidSendMessage.event;
+	handleMessage(message: vscode.DebugProtocolMessage): void {
+		const json = JSON.stringify(message);
+		console.log(json);
+		if (this._socket.writable) {
+			this._socket.write(
+				"Content-Length: " + Buffer.byteLength(json) + this.TWO_CRLF + json
+			);
+		}
+	}
+	dispose() {}
+
+	private readonly _socket: net.Socket
+	constructor(sockPath: string, private readonly _onDidSendMessage: EventEmitter<vscode.DebugProtocolMessage>) {
+		this._rawData = Buffer.alloc(0);
+		this._contentLength = -1;
+		this._socket = net.createConnection(sockPath);
+		this._socket.on('data', (data) => {
+			this._handleData(data);
+		});
+	}
+
+	private TWO_CRLF = '\r\n\r\n';
+	private _rawData: Buffer;
+	private _contentLength: number;
+	// copied from @vscode/debugadapter
+	private _handleData(data: Buffer): void {
+
+		this._rawData = Buffer.concat([this._rawData, data]);
+
+		while (true) {
+			if (this._contentLength >= 0) {
+				if (this._rawData.length >= this._contentLength) {
+					const message = this._rawData.toString('utf8', 0, this._contentLength);
+					this._rawData = this._rawData.slice(this._contentLength);
+					this._contentLength = -1;
+					if (message.length > 0) {
+						try {
+							const msg: DebugProtocol.ProtocolMessage = JSON.parse(message);
+							this._onDidSendMessage.fire(msg);
+						}
+						catch (e) {
+							console.error(e)
+							// this._emitEvent(new Event('error', 'Error handling data: ' + (e && e.message)));
+						}
+					}
+					continue;	// there may be more complete messages to process
+				}
+			} else {
+				const idx = this._rawData.indexOf(this.TWO_CRLF);
+				if (idx !== -1) {
+					const header = this._rawData.toString('utf8', 0, idx);
+					const lines = header.split('\r\n');
+					for (let i = 0; i < lines.length; i++) {
+						const pair = lines[i].split(/: +/);
+						if (pair[0] === 'Content-Length') {
+							this._contentLength = +pair[1];
+						}
+					}
+					this._rawData = this._rawData.slice(idx + this.TWO_CRLF.length);
+					continue;
+				}
+			}
+			break;
+		}
+	}
+}
 
 class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	private context: vscode.ExtensionContext;
@@ -887,14 +959,15 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			return new vscode.DebugAdapterServer(tcpPort, tcpHost);
 		}
 		const rdbgArgs = this.getUnixRdbgArgs(execCommand, sockPath);
+		const emitter = new EventEmitter<vscode.DebugProtocolMessage>()
 		try {
-			sockPath = await this.runDebuggeeWithUnix(debugConsole, rdbg, rdbgArgs, options);
+			sockPath = await this.runDebuggeeWithUnix(emitter, rdbg, rdbgArgs, options);
 		} catch (error: any) {
 			vscode.window.showErrorMessage(error.message);
 			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 		}
 		if (await this.waitFile(sockPath, config.waitLaunchTime)) {
-			return new DebugAdapterNamedPipeServer(sockPath);
+			return new vscode.DebugAdapterInlineImplementation(new RdbgUnixDomainDebugAdapter(sockPath, emitter));
 		}
 		// failed
 		return new DebugAdapterInlineImplementation(new StopDebugAdapter);
@@ -910,7 +983,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		blue: 34
 	};
 
-	private runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
+	private runDebuggeeWithUnix(emitter: EventEmitter<vscode.DebugProtocolMessage>, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
 		pp(`Running: ${cmd} ${args?.join(" ")}`);
 		let connectionReady = false;
 		let sockPath = "";
@@ -930,17 +1003,16 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 				if (found !== null && found.length === 2) {
 					sockPath = found[1];
 				}
-				debugConsole.append(this.colorMessage(msg, this.colors.red));
+				emitter.fire(new OutputEvent(msg, 'stderr'));
 
 				if (sockPath.length > 0 && connectionReady) {
 					resolve(sockPath);
 				}
 			});
 			debugProcess.stdout.on("data", (chunk) => {
-				debugConsole.append(this.colorMessage(chunk.toString(), this.colors.blue));
+				emitter.fire(new OutputEvent(chunk.toString(), 'stdout'));
 			});
 			debugProcess.on("error", (err) => {
-				debugConsole.append(err.message);
 				reject(err);
 			});
 			debugProcess.on("exit", (code) => {
