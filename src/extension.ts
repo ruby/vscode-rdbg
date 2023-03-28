@@ -156,7 +156,7 @@ export function activate(context: vscode.ExtensionContext) {
 					if (strVer === null) return;
 					const version = adapterDescriptorFactory.vernum(strVer);
 					// checks the version of debug.gem is 1.8.0 or higher.
-					if (version >= 1007000) {
+					if (version >= 1008000) {
 						if (traceEnabled) {
 							disposables = disposables.concat(registerTraceProvider(context, stopppedEvtEmitter));
 						}
