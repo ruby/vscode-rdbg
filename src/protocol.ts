@@ -3,8 +3,10 @@ export interface Location {
 	line: number;
 }
 
+type InspectorBaseCommands = "enable" | "disable" | "collect";
+
 export interface RdbgTraceInspectorArguments {
-	command: "enable" | "disable" | "collect";
+	command:  InspectorBaseCommands;
 }
 
 export type TraceEventKind = "line" | "call" | "return";
@@ -32,12 +34,49 @@ export interface TraceLogsResponse {
 	logs: TraceLog[];
 }
 
-export interface TraceLog {
+export interface TraceLog extends BaseLog {
 	hasChild?: boolean;
-	location: Location;
 	name?: string;
-	depth: number;
 	threadId: number;
 	returnValue?: string;
 	index: number;
+}
+
+export interface RdbgRecordInspectorArguments {
+	command:  InspectorBaseCommands | "step" | "stepBack";
+}
+
+export interface RdbgRecordInspectorEnableArguments extends RdbgRecordInspectorArguments {
+	command: "enable";
+}
+
+export interface RdbgRecordInspectorDisableArguments extends RdbgRecordInspectorArguments {
+	command: "disable";
+}
+
+export interface RdbgRecordInspectorCollectArguments extends RdbgRecordInspectorArguments {
+	command: "collect";
+	threadId: number;
+}
+
+export interface RdbgRecordInspectorPlayBackArguments extends RdbgRecordInspectorArguments {
+	command: "step" | "stepBack";
+	threadId: number;
+	count: number;
+}
+
+export interface RecordLogsResponse {
+	stoppedIndex: number;
+	logs: RecordLog[];
+}
+
+export interface RecordLog extends BaseLog {
+	name: string;
+	// This field is filled in the vscode-rdbg.
+	stopped?: boolean;
+}
+
+export interface BaseLog {
+	location: Location;
+	depth: number;
 }
