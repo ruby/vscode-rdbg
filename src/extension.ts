@@ -228,6 +228,16 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 
 class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvider {
 	resolveDebugConfiguration(_folder: WorkspaceFolder | undefined, config: DebugConfiguration, _token?: CancellationToken): ProviderResult<DebugConfiguration> {
+		const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgTraceInspector");
+		const extension = [];
+		if (traceEnabled) {
+			extension.push("traceInspector");
+		}
+		const recordEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgRecordInspector");
+		if (recordEnabled) {
+			extension.push("recordInspector");
+		}
+		config.extension = extension;
 		if (config.script || config.request === "attach") {
 			return config;
 		}
