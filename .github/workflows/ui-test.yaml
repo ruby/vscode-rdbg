@@ -20,5 +20,5 @@ jobs:
       with:
         node-version: 16.x
     - run: gem install debug
-    - run: npm install
+    - run: npm install @types/vscode@1.65.0
     - run: xvfb-run -a npm run ui-test
