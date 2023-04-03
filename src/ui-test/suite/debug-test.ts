@@ -364,7 +364,7 @@ async function assertEvaluate(expected: string, expression: string, view: DebugC
 
 async function cleanup() {
 	await VSBrowser.instance.waitForWorkbench();
-	await vscode.commands.executeCommand("workbench.debug.viewlet.action.removeAllBreakpoints");
+	await new TitleBar().select("Debug", "Delete All Breakpoints")
 	await new Promise(res => setTimeout(res, 2000));
 	await (await new ActivityBar().getViewControl("Run"))?.closeView();
 	await (await new ActivityBar().getViewControl("Explorer"))?.closeView();
