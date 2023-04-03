@@ -1,4 +1,4 @@
-name: Test for vscode-rdbg  
+name: UI Test
 
 on:
   push:
@@ -9,64 +9,19 @@ on:
       - master
 
 jobs:
-  test:
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-        ruby-version: ['head']
-    runs-on: ${{ matrix.os }}
+  build:
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v3
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: ${{ matrix.ruby-version }}
+        ruby-version: head
     - name: Install Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
-    - name: Install debug.gem
-      run: |
-        gem install debug
-        rdbg -v
-    - run: npm install
-    - run: xvfb-run -a npm test
-      if: runner.os == 'Linux'
-    # VS code overrides The PATH environment variable:
-    # https://github.com/microsoft/vscode/blob/1.73.0/src/vs/server/node/extensionHostConnection.ts#L59
-    # Thus, when we execute ruby command like `ruby target.rb`, the `ruby` path may be wrong as follows
-    # 
-    # The PATH environment variable before running VS Code:
-    #   /Users/runner/work/vscode-rdbg/vscode-rdbg/node_modules/.bin:/Users/runner/work/vscode-rdbg/node_modules/ ... /bin:/Users/runner/hostedtoolcache/Ruby/3.1.2/ ...
-    # 
-    # The PATH environment variable after running VS Code:
-    #   /usr/local/lib/ruby/gems/3.0.0/bin:/usr/local/opt/ruby@3.0/ ... /Users/runner/work/vscode-rdbg/vscode-rdbg/node_modules/.bin:/Users/runner/work/vscode-rdbg/node_modules/
-    # 
-    # The RUBY_DEBUG_TEST_PATH environment variable is for setting correct ruby path when testing.
-    - run: echo "RUBY_DEBUG_TEST_PATH=`which ruby`" >> $GITHUB_ENV
-      if: runner.os == 'macOS'
-    - run: npm test
-      if: runner.os != 'Linux'
-
-  dependabot:
-    needs: test
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' && github.actor == 'dependabot[bot]' }}
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@v1
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Enable auto-merge for Dependabot PRs
-        if: ${{ steps.metadata.outputs.update-type != 'version-update:semver-major' }}
-        run : |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --auto --rebase "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+    - run: gem install debug
+    - run: npm install @types/vscode@1.65.0
+    - run: xvfb-run -a npm run ui-test
