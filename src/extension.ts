@@ -865,7 +865,6 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			env: { ...process.env, ...config.env },
 			cwd: customPath(config.cwd || ""),
 		};
-		if (process.platform === "win32") options.shell = "powershell";
 
 		let sockPath: string | undefined = undefined;
 		let tcpHost: string | undefined = undefined;
