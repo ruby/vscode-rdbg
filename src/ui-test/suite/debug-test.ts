@@ -336,6 +336,7 @@ async function getDebugView(): Promise<DebugView> {
 
 async function openSampleProgram(path: string, sectionTitle: string, targetFileName: string) {
 	await VSBrowser.instance.openResources(path);
+	await new Promise(res => setTimeout(res, 3000));
 
 	await openFile(sectionTitle, targetFileName);
 }
