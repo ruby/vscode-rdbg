@@ -47,8 +47,8 @@ describe("breakpoint", () => {
 				await bar.waitForBreakPoint();
 				await assertLocation(2, view);
 				const debugView = await new BottomBarPanel().openDebugConsoleView();
-				await assertEvaluate("(rdbg:#debugger) b 3", ",b 3", debugView);
-				await assertEvaluate("(rdbg:#debugger) c", ",c", debugView);
+				await assertEvaluate("(rdbg:command) b 3", ",b 3", debugView);
+				await assertEvaluate("(rdbg:command) c", ",c", debugView);
 				await bar.waitForBreakPoint();
 				await assertLocation(3, view);
 				await bar.stop();
@@ -92,10 +92,10 @@ describe("breakpoint", () => {
 				await bar.waitForBreakPoint();
 				await assertLocation(expected, view);
 				const debugView = await new BottomBarPanel().openDebugConsoleView();
-				await assertEvaluate("(rdbg:#debugger) b 3", ",b 3", debugView);
-				await assertEvaluate("(rdbg:#debugger) b 4", ",b 4", debugView);
+				await assertEvaluate("(rdbg:command) b 3", ",b 3", debugView);
+				await assertEvaluate("(rdbg:command) b 4", ",b 4", debugView);
 				await assertEvaluate("deleted: #1", ",del 1", debugView);
-				await assertEvaluate("(rdbg:#debugger) c", ",c", debugView);
+				await assertEvaluate("(rdbg:command) c", ",c", debugView);
 				await bar.waitForBreakPoint();
 				await assertLocation(4, view);
 				await bar.stop();
@@ -150,7 +150,7 @@ describe("breakpoint", () => {
 			await assertLocation(2, view);
 			const debugView = await new BottomBarPanel().openDebugConsoleView();
 			await assertEvaluate("BP - Line", ",b foo.rb:8", debugView);
-			await assertEvaluate("(rdbg:#debugger) c", ",c", debugView);
+			await assertEvaluate("(rdbg:command) c", ",c", debugView);
 			await bar.waitForBreakPoint();
 			await assertLocation(8, view);
 			await bar.stop();
@@ -198,7 +198,7 @@ describe("step", () => {
 			await bar.waitForBreakPoint();
 			await assertLocation(2, view);
 			const debugView = await new BottomBarPanel().openDebugConsoleView();
-			await assertEvaluate("(rdbg:#debugger) s", ",s", debugView);
+			await assertEvaluate("(rdbg:command) s", ",s", debugView);
 			await assertLocation(3, view);
 			await bar.stop();
 			return new Promise((resolve, _reject) => resolve());
@@ -245,7 +245,7 @@ describe("next", () => {
 			await bar.waitForBreakPoint();
 			await assertLocation(2, view);
 			const debugView = await new BottomBarPanel().openDebugConsoleView();
-			await assertEvaluate("(rdbg:#debugger) n", ",n", debugView);
+			await assertEvaluate("(rdbg:command) n", ",n", debugView);
 			await view.click();
 			await assertLocation(3, view);
 			await bar.stop();
