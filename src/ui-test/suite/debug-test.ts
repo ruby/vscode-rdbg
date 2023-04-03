@@ -1,6 +1,7 @@
 import * as assert from "assert";
+import * as vscode from "vscode";
 
-import { ActivityBar, DebugToolbar, DebugView, DefaultTreeSection, EditorView, TextEditor, TitleBar, VSBrowser, Workbench, BottomBarPanel, DebugConsoleView, SideBarView } from "vscode-extension-tester";
+import { ActivityBar, DebugToolbar, DebugView, DefaultTreeSection, EditorView, TextEditor, TitleBar, VSBrowser, BottomBarPanel, DebugConsoleView, SideBarView } from "vscode-extension-tester";
 
 import * as path from "path";
 
@@ -363,7 +364,7 @@ async function assertEvaluate(expected: string, expression: string, view: DebugC
 
 async function cleanup() {
 	await VSBrowser.instance.waitForWorkbench();
-	await new Workbench().executeCommand("Remove All Breakpoints");
+	await vscode.commands.executeCommand("workbench.debug.viewlet.action.removeAllBreakpoints");
 	await new Promise(res => setTimeout(res, 2000));
 	await (await new ActivityBar().getViewControl("Run"))?.closeView();
 	await (await new ActivityBar().getViewControl("Explorer"))?.closeView();
