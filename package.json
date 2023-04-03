@@ -374,7 +374,7 @@
 		"pretest": "npm run compile && npm run lint",
 		"test": "node ./out/test/runTest.js",
 		"//": "`echo y` is used to allow to run tests without LICENSE.",
-		"ui-test": "npm run compile && echo y | extest setup-and-run -c 1.70.2 -m out/ui-test/config.js out/ui-test/suite/*.js"
+		"ui-test": "npm run compile && echo y | extest setup-and-run -c 1.65.0 -m out/ui-test/config.js out/ui-test/suite/*.js"
 	},
 	"devDependencies": {
 		"@types/glob": "^8.1.0",
