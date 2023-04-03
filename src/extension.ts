@@ -358,9 +358,13 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
+	private needShell(shell: string | undefined): boolean {
+		return !this.rubyActivated && this.supportLogin(shell)
+	}
+
 	makeShellCommand(cmd: string) {
 		const shell = process.env.SHELL;
-		if (!this.rubyActivated && this.supportLogin(shell)) {
+		if (this.needShell(shell)) {
 			return shell + " -lic '" + cmd + "'";
 		} else {
 			return cmd;
@@ -933,7 +937,25 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		blue: 34
 	};
 
-	private runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
+	private getSpawnCommand(rdbg: string): string {
+		const shell = process.env.SHELL;
+		if (shell && this.needShell(shell)) {
+			return shell;
+		}
+		return rdbg;
+	}
+
+	private getSpawnArgs(rdbg: string, args: string[]): string[] {
+		const shell = process.env.SHELL;
+		if (this.needShell(shell)) {
+			return ['-lic', rdbg  + ' ' + args.join(' ')];
+		}
+		return args;
+	}
+
+	private runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, rdbg: string, rdbgArgs: string[], options: child_process.SpawnOptionsWithoutStdio) {
+		const cmd = this.getSpawnCommand(rdbg);
+		const args = this.getSpawnArgs(rdbg, rdbgArgs);
 		pp(`Running: ${cmd} ${args?.join(" ")}`);
 		let connectionReady = false;
 		let sockPath = "";
@@ -974,7 +996,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	private readonly TCPRegex = /DEBUGGER:\sDebugger\scan\sattach\svia\s.+\((.+):(\d+)\)/;
 
-	private runDebuggeeWithTCP(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
+	private runDebuggeeWithTCP(debugConsole: vscode.DebugConsole, rdbg: string, rdbgArgs: string[], options: child_process.SpawnOptionsWithoutStdio) {
+		const cmd = this.getSpawnCommand(rdbg);
+		const args = this.getSpawnArgs(rdbg, rdbgArgs);
 		pp(`Running: ${cmd} ${args?.join(" ")}`);
 		let connectionReady = false;
 		let host = "";
