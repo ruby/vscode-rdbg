@@ -93,6 +93,10 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		});
 	}
 
+	get enabled(): boolean {
+    return this._enabled
+  }
+
 	async toggle() {
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) {

@@ -35,7 +35,9 @@ export function registerRecordProvider(emitter: vscode.EventEmitter<number | und
 
   disposables.push(
     emitter.event((threadId) => {
-      treeProvider.updateRecordLogs(threadId);
+      if (treeProvider.toggleTreeItem?.enabled) {
+				treeProvider.updateRecordLogs(threadId);
+			}
     }),
 
     vscode.debug.onDidTerminateDebugSession(async () => {

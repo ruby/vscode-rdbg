@@ -39,7 +39,9 @@ export function registerTraceProvider(ctx: vscode.ExtensionContext, emitter: vsc
 		),
 
 		emitter.event((threadId) => {
-			treeProvider.updateTraceLogs(threadId);
+			if (treeProvider.toggleTreeItem?.enabled) {
+				treeProvider.updateTraceLogs(threadId);
+			}
 		}),
 
 		vscode.debug.onDidTerminateDebugSession(async () => {
