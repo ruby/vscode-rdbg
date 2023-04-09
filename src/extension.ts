@@ -23,6 +23,7 @@ import {
 import { DebugProtocol } from "@vscode/debugprotocol";
 import { registerTraceProvider } from "./trace";
 import { registerRecordProvider } from "./record";
+import { AttachConfiguration, LaunchConfiguration } from "./config";
 
 const asyncExec = promisify(child_process.exec);
 
@@ -998,39 +999,3 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 }
 
 class InvalidExecCommandError extends Error { }
-
-interface AttachConfiguration extends DebugConfiguration {
-	type: "rdbg";
-	request: "attach";
-	rdbgPath?: string;
-	env?: { [key: string]: string };
-	debugPort?: string;
-	cwd?: string;
-	showProtocolLog?: boolean;
-
-	autoAttach?: string;
-}
-
-interface LaunchConfiguration extends DebugConfiguration {
-	type: "rdbg";
-	request: "launch";
-
-	script: string;
-
-	command?: string; // ruby
-	cwd?: string;
-	args?: string[];
-	env?: { [key: string]: string };
-
-	debugPort?: string;
-	waitLaunchTime?: number;
-
-	useBundler?: boolean;
-	askParameters?: boolean;
-
-	rdbgPath?: string;
-	showProtocolLog?: boolean;
-
-	useTerminal?: boolean
-}
-
