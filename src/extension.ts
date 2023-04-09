@@ -303,9 +303,11 @@ const findRDBGTerminal = (): vscode.Terminal | undefined => {
 
 class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 	private context: vscode.ExtensionContext;
+	private rubyActivated: boolean;
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context;
+		this.rubyActivated = false;
 	}
 
 	async createDebugAdapterDescriptor(session: DebugSession, _executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor> {
@@ -357,8 +359,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	makeShellCommand(cmd: string) {
 		const shell = process.env.SHELL;
-
-		if (this.supportLogin(shell)) {
+		if (!this.rubyActivated && this.supportLogin(shell)) {
 			return shell + " -lic '" + cmd + "'";
 		} else {
 			return cmd;
@@ -367,6 +368,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 
 	// Activate the Ruby environment variables using a version manager
 	async activateRuby(cwd: string | undefined) {
+		this.rubyActivated = false;
 		const manager: VersionManager | undefined = vscode.workspace.getConfiguration("rdbg").get("rubyVersionManager");
 		let command;
 
@@ -396,8 +398,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 					await this.sleepMs(500);
 					break;
 				default:
-					break;
+					return;
 			}
+			this.rubyActivated = true;
 		} catch (error) {
 			this.showError(`Failed to activate Ruby environment using ${manager}. Error: ${error}`);
 		}
