@@ -391,6 +391,6 @@
 		"mocha": "^10.2.0",
 		"prettier": "^2.8.7",
 		"typescript": "^5.0.2",
-		"vscode-extension-tester": "^5.5.1"
+		"vscode-extension-tester": "^5.5.2"
 	}
 }
