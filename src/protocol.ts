@@ -3,31 +3,36 @@ export interface Location {
 	line: number;
 }
 
-type InspectorBaseCommands = "enable" | "disable" | "collect";
+type RdbgInspectorBaseSubCommands = "enable" | "disable" | "collect";
+
+export type RdbgInspectorCommand = "record" | "trace"
 
 export interface RdbgTraceInspectorArguments {
-	command:  InspectorBaseCommands;
+	command: RdbgInspectorCommand;
+	subCommand: RdbgInspectorBaseSubCommands;
 }
 
-export type TraceEventKind = "line" | "call" | "return";
+export type TraceEventKind = "traceLine" | "traceCall" | "traceReturn" | "traceParams";
 
-export interface TraceEventKindState {
-	line: boolean;
-	call: boolean;
-	return: boolean;
+export interface RdbgInspectorConfig {
+	traceLine: boolean;
+	traceCall: boolean;
+	recordAndReplay: boolean;
+	filterRegExp?: string;
 }
 
-export interface RdbgTraceInspectorEnableArguments extends RdbgTraceInspectorArguments {
-	command: "enable";
-	events: TraceEventKind[];
+export interface RdbgInspectorEnableArguments extends RdbgTraceInspectorArguments {
+	subCommand: "enable";
+	events?: TraceEventKind[];
+	filterRegExp?: string;
 }
 
-export interface RdbgTraceInspectorDisableArguments extends RdbgTraceInspectorArguments {
-	command: "disable";
+export interface RdbgInspectorDisableArguments extends RdbgTraceInspectorArguments {
+	subCommand: "disable";
 }
 
 export interface RdbgTraceInspectorLogsArguments extends RdbgTraceInspectorArguments {
-	command: "collect";
+	subCommand: "collect";
 }
 
 export interface TraceLogsResponse {
@@ -39,28 +44,22 @@ export interface TraceLog extends BaseLog {
 	name?: string;
 	threadId: number;
 	returnValue?: string;
+	parameters?: {name: string, value: string}[];
 	index: number;
 }
 
 export interface RdbgRecordInspectorArguments {
-	command:  InspectorBaseCommands | "step" | "stepBack";
-}
-
-export interface RdbgRecordInspectorEnableArguments extends RdbgRecordInspectorArguments {
-	command: "enable";
-}
-
-export interface RdbgRecordInspectorDisableArguments extends RdbgRecordInspectorArguments {
-	command: "disable";
+	command: RdbgInspectorCommand;
+	subCommand: RdbgInspectorBaseSubCommands | "step" | "stepBack";
 }
 
 export interface RdbgRecordInspectorCollectArguments extends RdbgRecordInspectorArguments {
-	command: "collect";
+	subCommand: "collect";
 	threadId: number;
 }
 
 export interface RdbgRecordInspectorPlayBackArguments extends RdbgRecordInspectorArguments {
-	command: "step" | "stepBack";
+	subCommand: "step" | "stepBack";
 	threadId: number;
 	count: number;
 }
@@ -72,6 +71,7 @@ export interface RecordLogsResponse {
 
 export interface RecordLog extends BaseLog {
 	name: string;
+	parameters: {name: string, value: string}[];
 	// This field is filled in the vscode-rdbg.
 	stopped?: boolean;
 }

@@ -36,8 +36,7 @@
 		"onLanguage:ruby",
 		"onDebug",
 		"workspaceContains:.vscode/rdbg_autoattach.json",
-		"onView:rdbg.trace",
-		"onView:rdbg.record"
+		"onView:rdbg.inspector"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -204,17 +203,21 @@
 					"default": false,
 					"description": "(experimental) Save breakpoints information to '.rdbg.breakpoints' for rdbg command"
 				},
-				"rdbg.enableRdbgTraceInspector": {
+				"rdbg.enableTraceInspector": {
 					"type": "boolean",
 					"//": "The default value will be changed to true after 1.8.0 is released",
 					"default": false,
-					"description": "(experimental) Enable RdbgTraceInspector view. RdbgTraceInspector visualizes the trace log in Tree View. This feature will work in the version of debug.gem is 1.8.0 or higher."
+					"description": "(experimental) Enable TraceInspector view. TraceInspector visualizes the trace log in Tree View. This feature will work in the version of debug.gem is 1.8.0 or higher."
 				},
-				"rdbg.enableRdbgRecordInspector": {
+				"rdbg.enableTraceParameters": {
 					"type": "boolean",
-					"//": "The default value will be changed to true after 1.8.0 is released",
-					"default": false,
-					"description": "(experimental) Enable RdbgRecordInspector view. RdbgRecordInspector visualizes the trace log in Tree View. This feature will work in the version of debug.gem is 1.8.0 or higher."
+					"default": true,
+					"description": "(experimental) Enable tracing parameters in Call events."
+				},
+				"rdbg.enableTraceReturnValue": {
+					"type": "boolean",
+					"default": true,
+					"description": "(experimental) Enable tracing Return events."
 				},
 				"rdbg.rubyVersionManager": {
 					"type": "string",
@@ -233,134 +236,142 @@
 		"views": {
 			"debug": [
 				{
-					"id": "rdbg.trace",
-					"name": "Trace",
+					"id": "rdbg.inspector",
+					"name": "Trace Inspector",
 					"when": "traceInspectorEnabled == true"
-				},
-				{
-					"id": "rdbg.record",
-					"name": "Record And Replay",
-					"when": "recordInspectorEnabled == true"
 				}
 			]
 		},
 		"commands": [
 			{
-				"command": "rdbg.trace.openPrevLog",
+				"command": "rdbg.inspector.openPrevLog",
 				"title": "Go back to the previous log",
 				"icon": "$(arrow-up)"
 			},
 			{
-				"command": "rdbg.trace.openNextLog",
+				"command": "rdbg.inspector.openNextLog",
 				"title": "Go to the next trace log",
 				"icon": "$(arrow-down)"
 			},
 			{
-				"command": "rdbg.trace.disableLineEvent",
-				"title": "✓ line event"
+				"command": "rdbg.inspector.disableTraceLine",
+				"title": "✓ Trace Line"
 			},
 			{
-				"command": "rdbg.trace.enableLineEvent",
-				"title": "line event"
+				"command": "rdbg.inspector.enableTraceLine",
+				"title": "\u200B    Trace Line"
 			},
 			{
-				"command": "rdbg.trace.disableCallEvent",
-				"title": "✓ call event"
+				"command": "rdbg.inspector.disableTraceCall",
+				"title": "✓ Trace Call / Return"
 			},
 			{
-				"command": "rdbg.trace.enableCallEvent",
-				"title": "call event"
+				"command": "rdbg.inspector.enableTraceCall",
+				"title": "\u200B    Trace Call / Return"
 			},
 			{
-				"command": "rdbg.trace.disableReturnEvent",
-				"title": "✓ return event"
+				"command": "rdbg.inspector.disableRecordAndReplay",
+				"title": "✓ Record And Replay"
 			},
 			{
-				"command": "rdbg.trace.enableReturnEvent",
-				"title": "return event"
+				"command": "rdbg.inspector.enableRecordAndReplay",
+				"title": "\u200B    Record And Replay",
+				"enablement": "traceLineEnabled"
 			},
 			{
-				"command": "rdbg.record.openPrevLog",
-				"title": "Go back to the previous log",
-				"icon": "$(arrow-up)"
+				"command": "rdbg.inspector.enterFilter",
+				"title": "\u200B    Apply filter by RegExp"
 			},
 			{
-				"command": "rdbg.record.openNextLog",
-				"title": "Go to the next trace log",
-				"icon": "$(arrow-down)"
+				"command": "rdbg.inspector.reenterFilter",
+				"title": "✓ Apply filter by RegExp"
 			}
 		],
 		"menus": {
 			"view/title": [
 				{
-					"command": "rdbg.trace.openPrevLog",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace",
+					"command": "rdbg.inspector.openPrevLog",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector",
 					"group": "navigation"
 				},
 				{
-					"command": "rdbg.trace.openNextLog",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace",
+					"command": "rdbg.inspector.openNextLog",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector",
 					"group": "navigation"
 				},
 				{
-					"command": "rdbg.trace.disableLineEvent",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && lineEventEnabled == true"
+					"command": "rdbg.inspector.disableTraceLine",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && traceLineEnabled == true",
+					"group": "rdbg@1"
 				},
 				{
-					"command": "rdbg.trace.enableLineEvent",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && lineEventEnabled == false"
+					"command": "rdbg.inspector.enableTraceLine",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && traceLineEnabled == false",
+					"group": "rdbg@1"
 				},
 				{
-					"command": "rdbg.trace.disableCallEvent",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && callEventEnabled == true"
+					"command": "rdbg.inspector.disableTraceCall",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && traceCallEnabled == true",
+					"group": "rdbg@2"
 				},
 				{
-					"command": "rdbg.trace.enableCallEvent",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && callEventEnabled == false"
+					"command": "rdbg.inspector.enableTraceCall",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && traceCallEnabled == false",
+					"group": "rdbg@2"
 				},
 				{
-					"command": "rdbg.trace.disableReturnEvent",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && returnEventEnabled == true"
+					"command": "rdbg.inspector.disableRecordAndReplay",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && recordAndReplayEnabled == true",
+					"group": "rdbg@3"
 				},
 				{
-					"command": "rdbg.trace.enableReturnEvent",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.trace && returnEventEnabled == false"
+					"command": "rdbg.inspector.enableRecordAndReplay",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && recordAndReplayEnabled == false",
+					"group": "rdbg@3"
 				},
 				{
-					"command": "rdbg.record.openPrevLog",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.record",
-					"group": "navigation"
+					"command": "rdbg.inspector.enterFilter",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && filterEntered == false",
+					"group": "rdbg2@1"
 				},
 				{
-					"command": "rdbg.record.openNextLog",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.record",
-					"group": "navigation"
+					"command": "rdbg.inspector.reenterFilter",
+					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && filterEntered == true",
+					"group": "rdbg2@1"
 				}
 			],
 			"view/item/context": [
 				{
-					"command": "rdbg.trace.disableLineEvent",
-					"when": "view == rdbg.trace"
+					"command": "rdbg.inspector.disableTraceLine",
+					"when": "view == rdbg.inspector"
 				},
 				{
-					"command": "rdbg.trace.enableLineEvent",
-					"when": "view == rdbg.trace"
+					"command": "rdbg.inspector.enableTraceLine",
+					"when": "view == rdbg.inspector"
 				},
 				{
-					"command": "rdbg.trace.disableCallEvent",
-					"when": "view == rdbg.trace"
+					"command": "rdbg.inspector.disableTraceCall",
+					"when": "view == rdbg.inspector"
 				},
 				{
-					"command": "rdbg.trace.enableCallEvent",
-					"when": "view == rdbg.trace"
+					"command": "rdbg.inspector.enableTraceCall",
+					"when": "view == rdbg.inspector"
 				},
 				{
-					"command": "rdbg.trace.disableReturnEvent",
-					"when": "view == rdbg.trace"
+					"command": "rdbg.inspector.disableRecordAndReplay",
+					"when": "view == rdbg.inspector"
 				},
 				{
-					"command": "rdbg.trace.enableReturnEvent",
-					"when": "view == rdbg.trace"
+					"command": "rdbg.inspector.enableRecordAndReplay",
+					"when": "view == rdbg.inspector"
+				},
+				{
+					"command": "rdbg.inspector.enterFilter",
+					"when": "view == rdbg.inspector"
+				},
+				{
+					"command": "rdbg.inspector.reenterFilter",
+					"when": "view == rdbg.inspector"
 				}
 			]
 		}
