@@ -21,8 +21,7 @@ import {
 } from "vscode";
 
 import { DebugProtocol } from "@vscode/debugprotocol";
-import { registerTraceProvider } from "./trace";
-import { registerRecordProvider } from "./record";
+import { registerInspectorView } from "./inspector";
 import { AttachConfiguration, LaunchConfiguration } from "./config";
 
 const asyncExec = promisify(child_process.exec);
@@ -150,8 +149,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.debug.onDidStartDebugSession((session) => {
 			const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgTraceInspector");
-			const recordEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgRecordInspector");
-			if (traceEnabled || recordEnabled) {
+			if (traceEnabled) {
 				const config = session.configuration as LaunchConfiguration;
 				adapterDescriptorFactory.getVersion(config).then((strVer) => {
 					if (strVer === null) return;
@@ -159,10 +157,7 @@ export function activate(context: vscode.ExtensionContext) {
 					// checks the version of debug.gem is 1.8.0 or higher.
 					if (version >= 1008000) {
 						if (traceEnabled) {
-							disposables = disposables.concat(registerTraceProvider(context, stopppedEvtEmitter));
-						}
-						if (recordEnabled) {
-							disposables = disposables.concat(registerRecordProvider(stopppedEvtEmitter));
+							disposables = disposables.concat(registerInspectorView(stopppedEvtEmitter));
 						}
 					}
 				});
@@ -229,6 +224,13 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 
 class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvider {
 	resolveDebugConfiguration(_folder: WorkspaceFolder | undefined, config: DebugConfiguration, _token?: CancellationToken): ProviderResult<DebugConfiguration> {
+		const extension = [];
+		const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgTraceInspector");
+		if (traceEnabled) {
+			extension.push("traceInspector");
+		}
+		config.rdbgExtension = extension;
+
 		if (config.script || config.request === "attach") {
 			return config;
 		}

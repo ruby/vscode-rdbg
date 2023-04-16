@@ -50,7 +50,7 @@ export abstract class TreeItemProvider {
 		return this._omittedItems[idx];
 	}
 
-	getNextLogItem(selected: RdbgTreeItem) {
+	async getNextLogItem(selected: RdbgTreeItem) {
 		let idx: number;
 		let item: RdbgTreeItem;
 		switch (true) {
