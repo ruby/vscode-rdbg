@@ -1,7 +1,6 @@
 import * as child_process from "child_process";
 import * as fs from "fs";
 import * as path from "path";
-import * as net from "net";
 import * as vscode from "vscode";
 import { promisify } from "util";
 
@@ -665,13 +664,16 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 		}
 	}
 
-	getRandomPort() {
-		const server = net.createServer();
-		server.listen(0);
-		const addr = server.address() as net.AddressInfo;
-		const port = addr.port;
-		server.close();
-		return port;
+	// On Windows, generating `getTcpPortFile` method is always failed if the version of the debug.gem is less than 1.7.1.
+	// `invalidRdbgVersion` method checks the version of the debug.gem.
+	// FYI: https://github.com/ruby/debug/pull/937
+	async invalidRdbgVersion(config: LaunchConfiguration) {
+		const version = await this.getVersion(config);
+		if (version === null) {
+			return false;
+		}
+		const vernum = this.vernum(version);
+		return vernum < 1007002
 	}
 
 	async launchOnTerminal(session: DebugSession): Promise<DebugAdapterDescriptor> {
@@ -690,14 +692,25 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
 			[tcpHost, tcpPort, sockPath] = this.parsePort(config.debugPort);
 
 			if (process.platform === "win32" && tcpPort === 0) {
-				tcpPort = this.getRandomPort();
+				const invalid = await this.invalidRdbgVersion(config);
+				if (invalid) {
+					vscode.window.showErrorMessage("Please update the version of debug.gem to 1.7.2 or higher");
+					return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+				}
+				tcpPortFile = await this.getTcpPortFile(config);
 			} else if (tcpPort !== undefined) {
 				tcpPortFile = await this.getTcpPortFile(config);
 			}
 		} else if (process.platform === "win32") {
+			const invalid = await this.invalidRdbgVersion(config);
+			if (invalid) {
+				vscode.window.showErrorMessage("Please update the version of debug.gem to 1.7.2 or higher");
+				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
+			}
 			// default
 			tcpHost = "localhost";
-			tcpPort = this.getRandomPort();
+			tcpPort = 0;
+			tcpPortFile = await this.getTcpPortFile(config);
 		} else {
 			sockPath = await this.getSockPath(config);
 			if (!sockPath) {
