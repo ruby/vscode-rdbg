@@ -11,6 +11,7 @@ import * as os from "os";
 import { DebugProtocol } from "@vscode/debugprotocol";
 
 const twoCrlf = "\r\n\r\n";
+const randomPort = 0;
 
 suite("attach", () => {
 	suite("tcp: success", () => {
@@ -211,31 +212,16 @@ suite("launch", () => {
 		const projectRoot = path.join(__dirname, "..", "..", "..");
 		const testData = path.join(projectRoot, "src", "test", "testdata", "test.rb");
 
-		let port: number;
-		setup(() => {
-			const server = net.createServer((sock) => {
-				sock.on("data", (_data: Buffer) => {
-					sock.end();
-				});
-			});
-			server.listen(0, () => {
-				console.log("server bound");
-			});
-			const addr = server.address() as net.AddressInfo;
-			port = addr.port;
-			server.close();
-		});
-
 		test("localhost:{port}", async () => {
 			const c = generateLaunchConfig(testData);
-			c.debugPort = `localhost:${port}`;
+			c.debugPort = `localhost:${randomPort}`;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 
 		test("port", async () => {
 			const c = generateLaunchConfig(testData);
-			c.debugPort = port.toString();
+			c.debugPort = randomPort.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
@@ -243,21 +229,21 @@ suite("launch", () => {
 		test("env", async () => {
 			const c = generateLaunchConfig(testData);
 			c.env = { "SAMPLE": "sample" };
-			c.debugPort = port.toString();
+			c.debugPort = randomPort.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 
 		test("v2: localhost:{port}", async () => {
 			const c = generateLaunchV2Config(testData);
-			c.debugPort = `localhost:${port}`;
+			c.debugPort = `localhost:${randomPort}`;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
 
 		test("v2: port", async () => {
 			const c = generateLaunchV2Config(testData);
-			c.debugPort = port.toString();
+			c.debugPort = randomPort.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
@@ -265,7 +251,7 @@ suite("launch", () => {
 		test("v2: env", async () => {
 			const c = generateLaunchV2Config(testData);
 			c.env = { "SAMPLE": "sample" };
-			c.debugPort = port.toString();
+			c.debugPort = randomPort.toString();
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(success);
 		});
@@ -275,24 +261,9 @@ suite("launch", () => {
 		const projectRoot = path.join(__dirname, "..", "..", "..");
 		const testData = path.join(projectRoot, "src", "test", "testdata", "test.rb");
 
-		let port: number;
-		setup(() => {
-			const server = net.createServer((sock) => {
-				sock.on("data", (_data: Buffer) => {
-					sock.end();
-				});
-			});
-			server.listen(0, () => {
-				console.log("server bound");
-			});
-			const addr = server.address() as net.AddressInfo;
-			port = addr.port;
-			server.close();
-		});
-
 		test("noDebug is true", async () => {
 			const c = generateLaunchConfig(testData);
-			c.debugPort = port.toString();
+			c.debugPort = randomPort.toString();
 			c.noDebug = true;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(!success);
@@ -300,7 +271,7 @@ suite("launch", () => {
 
 		test("v2: noDebug is true", async () => {
 			const c = generateLaunchV2Config(testData);
-			c.debugPort = port.toString();
+			c.debugPort = randomPort.toString();
 			c.noDebug = true;
 			const success = await vscode.debug.startDebugging(undefined, c);
 			assert.ok(!success);
