@@ -2,29 +2,29 @@ import * as vscode from "vscode";
 import {
     BaseLogItem,
     CallTraceLogItem,
+    LineTraceLogItem,
     RdbgTreeItem,
     RecordLogItem,
     RootLogItem,
     ToggleTreeItem,
 } from "./rdbgTreeItem";
-import { RdbgInspectorConfig } from "./protocol";
-import { RdbgDecorationProvider } from "./utils";
+import { BaseLog, RdbgInspectorConfig } from "./protocol";
 import { RecordTreeItemProviderProxy, TraceTreeItemProviderProxy, TreeItemProviderProxy } from "./treeItemProxy";
+import { VersionChecker } from "./utils";
+import { LaunchConfiguration } from "./config";
+import { DebugProtocol } from "@vscode/debugprotocol";
 
-export function registerInspectorView(emitter: vscode.EventEmitter<number | undefined>) {
+export function registerInspectorView(emitter: vscode.EventEmitter<any>, versionChecker: VersionChecker) {
     const config: RdbgInspectorConfig = {
         traceLine: true,
         traceCall: true,
+        traceClanguageCall: true,
         recordAndReplay: true,
     };
     const treeProvider = new RdbgTraceInspectorTreeProvider(config);
     const view = vscode.window.createTreeView("rdbg.inspector", { treeDataProvider: treeProvider });
     const inlayHintsProvider = new RdbgCodeLensProvider(view);
     const disposables: vscode.Disposable[] = [];
-    const disp = RdbgDecorationProvider.create();
-    if (disp) {
-        disposables.push(disp);
-    }
 
     disposables.push(
         vscode.languages.registerCodeLensProvider(
@@ -42,14 +42,42 @@ export function registerInspectorView(emitter: vscode.EventEmitter<number | unde
             inlayHintsProvider,
         ),
 
-        emitter.event((threadId) => {
-            if (treeProvider.toggleTreeItem.enabled) {
-                treeProvider.updateTraceLogs(threadId);
+        emitter.event(async (message) => {
+            if (message.event === "stopped") {
+                const evt = message as DebugProtocol.StoppedEvent;
+                treeProvider.updateTraceLogs(evt.body.threadId);
+            }
+            if (treeProvider.toggleTreeItem.enabled && message.command === "launch") {
+                while (!vscode.debug.activeDebugSession) {
+                    await new Promise((resolve) => setTimeout(resolve, 10));
+                }
+                await treeProvider.toggleTreeItem.enable();
+            }
+        }),
+
+        vscode.debug.onDidStartDebugSession(async (session) => {
+            const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableTraceInspector");
+            if (!traceEnabled) {
+                vscode.commands.executeCommand("setContext", "traceInspectorEnabled", false);
+                return;
+            }
+            const config = session.configuration as LaunchConfiguration;
+            const str = await versionChecker.getVersion(config);
+            if (str === null) {
+                vscode.window.showErrorMessage("Trace Inpsector failed to start because of failing to check version");
+                return;
+            }
+            const version = versionChecker.vernum(str);
+            // checks the version of debug.gem is 1.8.0 or higher.
+            if (version < 1008000) {
+                vscode.window.showErrorMessage(
+                    "Trace Inpsector failed to start because of the version of debug.gem was less than 1.8.0. Please update the version.",
+                );
+                return;
             }
         }),
 
         vscode.debug.onDidTerminateDebugSession(async () => {
-            vscode.commands.executeCommand("setContext", "traceInspectorEnabled", false);
             treeProvider.cleanUp();
         }),
 
@@ -62,7 +90,7 @@ export function registerInspectorView(emitter: vscode.EventEmitter<number | unde
             }
             const log = await treeProvider.getPrevLogItem(view.selection[0]);
             if (log !== undefined) {
-                await view.reveal(log, { select: true, expand: 3 });
+                await view.reveal(log, { select: true });
             }
         }),
 
@@ -75,12 +103,8 @@ export function registerInspectorView(emitter: vscode.EventEmitter<number | unde
             }
             const log = await treeProvider.getNextLogItem(view.selection[0]);
             if (log !== undefined) {
-                await view.reveal(log, { select: true, expand: 3 });
+                await view.reveal(log, { select: true });
             }
-        }),
-
-        vscode.commands.registerCommand("rdbg.inspector.loadMoreLogs", (threadId) => {
-            treeProvider.loadMoreTraceLogs(threadId);
         }),
 
         vscode.commands.registerCommand("rdbg.inspector.toggle", async () => {
@@ -127,6 +151,16 @@ export function registerInspectorView(emitter: vscode.EventEmitter<number | unde
             vscode.commands.executeCommand("setContext", "recordAndReplayEnabled", true);
         }),
 
+        vscode.commands.registerCommand("rdbg.inspector.enableTraceClanguageCall", () => {
+            config.traceClanguageCall = true;
+            vscode.commands.executeCommand("setContext", "traceClanguageCallEnabled", true);
+        }),
+
+        vscode.commands.registerCommand("rdbg.inspector.disableTraceClanguageCall", () => {
+            config.traceClanguageCall = false;
+            vscode.commands.executeCommand("setContext", "traceClanguageCallEnabled", false);
+        }),
+
         vscode.commands.registerCommand("rdbg.inspector.enterFilter", async () => {
             const opts: vscode.InputBoxOptions = {
                 placeHolder: "e.g. foobar.*",
@@ -162,15 +196,48 @@ export function registerInspectorView(emitter: vscode.EventEmitter<number | unde
                 inlayHintsProvider.refresh();
             }
         }),
+
+        vscode.commands.registerCommand("rdbg.inspector.copyLog", (log: BaseLog) => {
+            const fields = getLogFields(log);
+            const json = JSON.stringify(fields);
+            vscode.env.clipboard.writeText(json);
+        }),
     );
 
     vscode.commands.executeCommand("setContext", "traceInspectorEnabled", true);
     vscode.commands.executeCommand("rdbg.inspector.disableRecordAndReplay");
+    vscode.commands.executeCommand("rdbg.inspector.disableTraceClanguageCall");
     vscode.commands.executeCommand("rdbg.inspector.enableTraceLine");
     vscode.commands.executeCommand("rdbg.inspector.enableTraceCall");
     vscode.commands.executeCommand("setContext", "filterEntered", false);
 
     return disposables;
+}
+
+function getLogFields(log: BaseLog) {
+    switch (true) {
+        case log instanceof CallTraceLogItem:
+            const call = log as CallTraceLogItem;
+            return {
+                method: call.label,
+                location: call.location,
+                returnValue: call.returnValue,
+                parameters: call.parameters,
+            };
+        case log instanceof LineTraceLogItem:
+            return {
+                location: log.location,
+            };
+        case log instanceof RecordLogItem:
+            const record = log as RecordLogItem;
+            return {
+                method: record.label,
+                location: log.location,
+                parameters: record.parameters,
+            };
+        default:
+            throw new Error("Invalid log type");
+    }
 }
 
 class RdbgTraceInspectorTreeProvider implements vscode.TreeDataProvider<RdbgTreeItem> {
@@ -183,7 +250,11 @@ class RdbgTraceInspectorTreeProvider implements vscode.TreeDataProvider<RdbgTree
     }
 
     cleanUp() {
+        this.providerProxy?.cleanUp();
         this.providerProxy = undefined;
+        if (this._toggleItem.enabled) {
+            this._toggleItem.toggle();
+        }
         this.refresh();
     }
 
@@ -197,11 +268,6 @@ class RdbgTraceInspectorTreeProvider implements vscode.TreeDataProvider<RdbgTree
 
     async updateTraceLogs(threadId: number | undefined) {
         await this.providerProxy?.updateTraceLogs(threadId);
-        this.refresh();
-    }
-
-    loadMoreTraceLogs(threadId: number) {
-        this.providerProxy?.loadMoreTraceLogs(threadId);
         this.refresh();
     }
 
@@ -228,8 +294,7 @@ class RdbgTraceInspectorTreeProvider implements vscode.TreeDataProvider<RdbgTree
 
     async getChildren(element?: RdbgTreeItem): Promise<RdbgTreeItem[] | undefined> {
         const session = vscode.debug.activeDebugSession;
-        if (session === undefined) return void 0;
-        if (this.providerProxy === undefined) return [this._toggleItem];
+        if (session === undefined || this.providerProxy === undefined) return [this.toggleTreeItem];
 
         if (element) {
             return element.children;
@@ -302,36 +367,53 @@ class RdbgCodeLensProvider implements vscode.CodeLensProvider {
             if (item.returnValue !== undefined) {
                 const label = item.label + this._singleSpace + this._arrow + this._singleSpace + item.returnValue;
                 codeLens.command = {
-                    title: label,
+                    title: this.truncateString(label),
                     command: "",
+                    tooltip: label,
                     arguments: [item, codeLens.range],
                 };
             }
             if (item.parameters) {
-                let label = "";
-                for (const param of item.parameters) {
-                    label += this._singleSpace + param.name + " = " + param.value;
-                }
+                const label = this.createCallEventTitle(item);
                 codeLens.command = {
-                    title: label,
+                    title: this.truncateString(label),
+                    tooltip: label,
                     command: "",
                     arguments: [item, codeLens.range],
                 };
             }
         } else if (item instanceof RecordLogItem) {
             if (item.parameters) {
-                let label = "";
-                for (const param of item.parameters) {
-                    label += this._singleSpace + param.name + " = " + param.value;
-                }
+                const label = this.createCallEventTitle(item);
                 codeLens.command = {
-                    title: label,
+                    title: this.truncateString(label),
+                    tooltip: label,
                     command: "",
                     arguments: [item, codeLens.range],
                 };
             }
         }
         return codeLens;
+    }
+    private createCallEventTitle(item: CallTraceLogItem | RecordLogItem) {
+        if (item.parameters === undefined) {
+            throw new Error("");
+        }
+        let params = "";
+        for (const param of item.parameters) {
+            params += `${param.name} = ${param.value}, `;
+        }
+        let methodName = item.label;
+        if (item.label instanceof Object) {
+            methodName = item.label.label;
+        }
+        return `${methodName}(${params.slice(0, params.length - 2)})`;
+    }
+    private truncateString(str: string) {
+        if (str.length > 99) {
+            return str.substring(0, 99) + "...";
+        }
+        return str;
     }
     refresh() {
         this._onDidChangeCodeLenses.fire();

@@ -12,11 +12,12 @@ export interface RdbgTraceInspectorArguments {
 	subCommand: RdbgInspectorBaseSubCommands;
 }
 
-export type TraceEventKind = "traceLine" | "traceCall" | "traceReturn" | "traceParams";
+export type TraceEventKind = "traceLine" | "traceCall" | "traceReturn" | "traceParams" | "traceClanguageReturn" | "traceClanguageCall";
 
 export interface RdbgInspectorConfig {
 	traceLine: boolean;
 	traceCall: boolean;
+	traceClanguageCall: boolean;
 	recordAndReplay: boolean;
 	filterRegExp?: string;
 }
@@ -25,6 +26,7 @@ export interface RdbgInspectorEnableArguments extends RdbgTraceInspectorArgument
 	subCommand: "enable";
 	events?: TraceEventKind[];
 	filterRegExp?: string;
+	maxLogSize :number;
 }
 
 export interface RdbgInspectorDisableArguments extends RdbgTraceInspectorArguments {
@@ -41,10 +43,7 @@ export interface TraceLogsResponse {
 
 export interface TraceLog extends BaseLog {
 	hasChild?: boolean;
-	name?: string;
 	threadId: number;
-	returnValue?: string;
-	parameters?: {name: string, value: string}[];
 	index: number;
 }
 
@@ -71,12 +70,14 @@ export interface RecordLogsResponse {
 
 export interface RecordLog extends BaseLog {
 	name: string;
-	parameters: {name: string, value: string}[];
 	// This field is filled in the vscode-rdbg.
 	stopped?: boolean;
 }
 
 export interface BaseLog {
+    name?: string;
 	location: Location;
 	depth: number;
+    returnValue?: string;
+	parameters?: {name: string, value: string}[];
 }

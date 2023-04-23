@@ -8,10 +8,9 @@ import {
 	RdbgInspectorConfig,
 	TraceLog,
 	RdbgInspectorCommand,
+	BaseLog,
 } from "./protocol";
 import { customRequest } from "./utils";
-
-const foldUpIcon = new vscode.ThemeIcon("fold-up", new vscode.ThemeColor("textLink.foreground"));
 
 export type RdbgTreeItemOptions = Pick<
 	vscode.TreeItem,
@@ -37,17 +36,6 @@ export class RdbgTreeItem extends vscode.TreeItem {
 	}
 }
 
-export class LoadMoreItem extends RdbgTreeItem {
-	constructor(threadId?: number) {
-		super("Load More Logs", {
-			command: { command: "inspector.loadMoreLogs", arguments: [threadId] },
-			resourceUri: vscode.Uri.parse("http://example.com"),
-			collapsibleState: vscode.TreeItemCollapsibleState.None,
-			iconPath: foldUpIcon,
-		});
-	}
-}
-
 export class BaseLogItem extends RdbgTreeItem {
 	constructor(
 		label: string | vscode.TreeItemLabel,
@@ -56,19 +44,17 @@ export class BaseLogItem extends RdbgTreeItem {
 		public readonly location: Location,
 		opts: RdbgTreeItemOptions = {},
 	) {
-		opts.tooltip = location.path + ":" + location.line.toString();
 		super(label, opts);
 	}
 }
 
 export class OmittedItem extends RdbgTreeItem {
 	constructor(
-		public readonly index: number,
 		public readonly offset: number,
 		public readonly depth: number,
 		public readonly threadId?: number,
 	) {
-		super("..", { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
+		super("..", { collapsibleState: vscode.TreeItemCollapsibleState.Collapsed });
 	}
 }
 
@@ -142,6 +128,36 @@ export class CallTraceLogItem extends TraceLogItem {
 		super(log.name || "Unknown frame name", idx, log.depth, log.location, log.threadId, opts);
 		this.returnValue = log.returnValue;
 		this.parameters = log.parameters;
+		this.tooltip = this.createToolTipValue(log);
+	}
+	createToolTipValue(log: BaseLog) {
+		const tooltip = new vscode.MarkdownString();
+		if (log.returnValue) {
+			tooltip.appendCodeblock(log.name || "");
+			tooltip.appendCodeblock(`#=> ${this.truncateString(log.returnValue)}`);
+			tooltip.appendText(`@${log.location.path}:${log.location.line}`);
+		} else {
+			tooltip.appendCodeblock(log.name || "");
+			if (log.parameters) {
+				if (log.parameters.length > 1) {
+					tooltip.appendCodeblock("(");
+					for (const param of log.parameters) {
+						tooltip.appendCodeblock(`  ${param.name} = ${this.truncateString(param.value)},`);
+					}
+					tooltip.appendCodeblock(")");
+				} else {
+					tooltip.appendCodeblock(`(${log.parameters[0].name} = ${log.parameters[0].value})`);
+				}
+			}
+			tooltip.appendText(`@${log.location.path}:${log.location.line}`);
+		}
+		return tooltip;
+	}
+	private truncateString(str: string) {
+		if (str.length > 256) {
+			return str.substring(0, 256) + "...";
+		}
+		return str;
 	}
 }
 
@@ -163,32 +179,30 @@ export class ToggleTreeItem extends RdbgTreeItem {
 	}
 
 	async toggle() {
-		const session = vscode.debug.activeDebugSession;
-		if (session === undefined) {
-			return;
-		}
 		if (this._enabled) {
-			this.disable(session);
+			this.disable();
 		} else {
-			this.enable(session);
+			this.enable();
 		}
 	}
 
-	async enable(_session: vscode.DebugSession) {
+	async enable() {
+		this.iconPath = stopCircleIcon;
+		this._enabled = true;
+		this.label = "Disable Trace";
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) {
 			return;
 		}
-		this.iconPath = stopCircleIcon;
-		this._enabled = true;
-		this.label = "Disable Trace";
 		const events: TraceEventKind[] = [];
 		let args: RdbgInspectorEnableArguments;
+		const maxLogSize = vscode.workspace.getConfiguration("rdbg").get<number>("maxTraceLogSize") || 50000;
 		if (this.config.recordAndReplay) {
 			this._enabledCommand = "record";
 			args = {
 				command: this._enabledCommand,
 				subCommand: "enable",
+				maxLogSize: maxLogSize,
 			};
 		} else {
 			this._enabledCommand = "trace";
@@ -197,6 +211,9 @@ export class ToggleTreeItem extends RdbgTreeItem {
 				const traceReturn = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableTraceReturnValue");
 				if (traceReturn) {
 					events.push("traceReturn");
+					if (this.config.traceClanguageCall) {
+						events.push("traceClanguageReturn")
+					}
 				}
 				const traceParams = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableTraceParameters");
 				if (traceParams) {
@@ -206,10 +223,14 @@ export class ToggleTreeItem extends RdbgTreeItem {
 			if (this.config.traceLine) {
 				events.push("traceLine");
 			}
+			if (this.config.traceClanguageCall) {
+				events.push("traceClanguageCall")
+			}
 			args = {
 				command: this._enabledCommand,
 				subCommand: "enable",
 				events,
+				maxLogSize: maxLogSize,
 			};
 		}
 		if (this.config.filterRegExp) {
@@ -218,7 +239,10 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		await customRequest(session, "rdbgTraceInspector", args);
 	}
 
-	async disable(_session: vscode.DebugSession) {
+	async disable() {
+		this._enabled = false;
+		this.iconPath = playCircleIcon;
+		this.label = "Enable Trace";
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined || this._enabledCommand === undefined) {
 			return;
@@ -228,9 +252,6 @@ export class ToggleTreeItem extends RdbgTreeItem {
 			subCommand: "disable",
 		};
 		await customRequest(session, "rdbgTraceInspector", args);
-		this._enabled = false;
 		this._enabledCommand = undefined;
-		this.iconPath = playCircleIcon;
-		this.label = "Enable Trace";
 	}
 }
