@@ -12,7 +12,6 @@ import {
     BaseLogItem,
     CallTraceLogItem,
     LineTraceLogItem,
-    LoadMoreItem,
     OmittedItem,
     RdbgTreeItem,
     RecordLogItem,
@@ -28,8 +27,6 @@ import { TreeItemProvider } from "./treeItemProvider";
 export interface TreeItemProviderProxy {
     updateTraceLogs(threadId: number | undefined): Promise<undefined>;
 
-    loadMoreTraceLogs(threadId: number): void;
-
     getPrevLogItem(selected: RdbgTreeItem): Promise<RdbgTreeItem | undefined>;
 
     getNextLogItem(selected: RdbgTreeItem): Promise<RdbgTreeItem | undefined>;
@@ -37,6 +34,8 @@ export interface TreeItemProviderProxy {
     createTree(): Promise<RdbgTreeItem[]>;
 
     selectLog(selected: RdbgTreeItem): Promise<void>;
+
+    cleanUp(): void;
 }
 
 export class RecordTreeItemProviderProxy implements TreeItemProviderProxy {
@@ -45,6 +44,8 @@ export class RecordTreeItemProviderProxy implements TreeItemProviderProxy {
     private curStoppedIndex: number | undefined;
 
     constructor(private readonly _toggleItem: ToggleTreeItem) {}
+
+    cleanUp(): void {}
 
     async updateTraceLogs(threadId: number | undefined) {
         const session = vscode.debug.activeDebugSession;
@@ -65,9 +66,6 @@ export class RecordTreeItemProviderProxy implements TreeItemProviderProxy {
         }
         this._recordTree = new RecordLogTreeProvider(resp.logs);
     }
-    loadMoreTraceLogs(_threadId: number): void {
-        this._recordTree?.loadMoreLogs();
-    }
     async selectLog(selected: RdbgTreeItem) {
         const session = vscode.debug.activeDebugSession;
         if (session === undefined || this.curThreadId === undefined || this.curStoppedIndex === undefined) return;
@@ -84,24 +82,24 @@ export class RecordTreeItemProviderProxy implements TreeItemProviderProxy {
             subCommand: command,
             count,
             threadId: this.curThreadId,
-            command: "record"
+            command: "record",
         };
         customRequest(session, rdbgTraceInspectorCmd, args);
     }
     async getPrevLogItem(selected: RdbgTreeItem) {
-        if (!(selected instanceof LoadMoreItem) && !(selected instanceof OmittedItem) && this.curStoppedIndex) {
+        if (!(selected instanceof OmittedItem) && this.curStoppedIndex) {
             selected = this._recordTree!.getLogItem(this.curStoppedIndex);
         }
-        if (selected instanceof RecordLogItem || selected instanceof OmittedItem || selected instanceof LoadMoreItem) {
+        if (selected instanceof RecordLogItem || selected instanceof OmittedItem) {
             return this._recordTree?.getPrevLogItem(selected);
         }
         return this._recordTree?.getBottomLogItem();
     }
     async getNextLogItem(selected: RdbgTreeItem) {
-        if (!(selected instanceof LoadMoreItem) && !(selected instanceof OmittedItem) && this.curStoppedIndex) {
+        if (!(selected instanceof OmittedItem) && this.curStoppedIndex) {
             selected = this._recordTree!.getLogItem(this.curStoppedIndex);
         }
-        if (selected instanceof RecordLogItem || selected instanceof OmittedItem || selected instanceof LoadMoreItem) {
+        if (selected instanceof RecordLogItem || selected instanceof OmittedItem) {
             return this._recordTree?.getNextLogItem(selected);
         }
         return this._recordTree?.getBottomLogItem();
@@ -133,15 +131,6 @@ export class RecordTreeItemProviderProxy implements TreeItemProviderProxy {
 }
 
 class RecordLogTreeProvider extends TreeItemProvider {
-    protected needLoading(item: RdbgTreeItem): boolean {
-        return item.parent instanceof RootLogItem;
-    }
-    protected execLoadingCommand(threadId?: number | undefined): Thenable<void> {
-        return vscode.commands.executeCommand("rdbg.inspector.loadMoreLogs", threadId);
-    }
-    protected newLoadMoreItem(_threadId?: number | undefined): LoadMoreItem {
-        return new LoadMoreItem();
-    }
     protected newLogItem(log: BaseLog, idx: number, state: vscode.TreeItemCollapsibleState): BaseLogItem {
         const record = log as RecordLog;
         let label: string | vscode.TreeItemLabel = record.name;
@@ -158,15 +147,26 @@ const rdbgTraceInspectorCmd = "rdbgTraceInspector";
 export class TraceTreeItemProviderProxy implements TreeItemProviderProxy {
     private _traceTreeMap: Map<number, TraceLogTreeProvider>;
     private curThreadId: number | undefined;
+    private decorationType: vscode.TextEditorDecorationType;
+
+    cleanUp(): void {
+        this.decorationType.dispose();
+    }
 
     constructor(private readonly _toggleItem: ToggleTreeItem) {
         this._traceTreeMap = new Map<number, TraceLogTreeProvider>();
+        this.decorationType = vscode.window.createTextEditorDecorationType({
+            isWholeLine: true,
+            backgroundColor: new vscode.ThemeColor("editorInlayHint.background"),
+        });
     }
 
     async updateTraceLogs(threadId: number | undefined) {
         const session = vscode.debug.activeDebugSession;
         if (session === undefined) return void 0;
-        this.curThreadId = threadId;
+        if (threadId !== undefined) {
+            this.curThreadId = threadId;
+        }
         const args: RdbgTraceInspectorLogsArguments = {
             command: "trace",
             subCommand: "collect",
@@ -201,18 +201,17 @@ export class TraceTreeItemProviderProxy implements TreeItemProviderProxy {
         return map;
     }
 
-    loadMoreTraceLogs(threadId: number) {
-        const provider = this._traceTreeMap.get(threadId);
-        provider?.loadMoreLogs();
-    }
-
     async selectLog(selected: RdbgTreeItem) {
         const location = (selected as TraceLogItem).location;
+        const range = new vscode.Range(location.line - 1, 0, location.line - 1, 0);
         const opts: vscode.TextDocumentShowOptions = {
-            selection: new vscode.Range(location.line - 1, 0, location.line - 1, 0),
+            selection: range,
             preserveFocus: true,
         };
         await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(location.path), opts);
+        if (vscode.window.activeTextEditor) {
+            vscode.window.activeTextEditor.setDecorations(this.decorationType, [range]);
+        }
     }
 
     async getPrevLogItem(selected: RdbgTreeItem) {
@@ -259,9 +258,6 @@ export class TraceTreeItemProviderProxy implements TreeItemProviderProxy {
                 case item instanceof RootLogItem:
                     for (const threadId of this._traceTreeMap.keys()) {
                         const item = new ThreadIdItem(threadId);
-                        if (threadId === this.curThreadId) {
-                            item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
-                        }
                         children.push(item);
                     }
                     this.setParentChild(children, item);
@@ -270,6 +266,39 @@ export class TraceTreeItemProviderProxy implements TreeItemProviderProxy {
             for (const child of children) {
                 if (child.collapsibleState !== vscode.TreeItemCollapsibleState.None) {
                     stack.push(child);
+                }
+            }
+        }
+        return this.collapseLastItems(items);
+    }
+
+    private async collapseLastItems(items: RdbgTreeItem[]) {
+        if (items.length === 1) {
+            return items;
+        }
+        const stack = [items[items.length - 1]];
+        while (true) {
+            const item = stack.pop();
+            if (item === undefined) {
+                break;
+            }
+            if (item.children && item.children.length > 0) {
+                switch (true) {
+                    case item instanceof BaseLogItem:
+                        item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+                        stack.push(...item.children);
+                        break;
+                    case item instanceof ThreadIdItem:
+                        const thread = item as ThreadIdItem;
+                        if (thread.threadId === this.curThreadId) {
+                            item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+                            stack.push(item.children[item.children.length - 1]);
+                        }
+                        break;
+                    default:
+                        item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+                        stack.push(...item.children);
+                        break;
                 }
             }
         }
@@ -285,15 +314,6 @@ export class TraceTreeItemProviderProxy implements TreeItemProviderProxy {
 }
 
 class TraceLogTreeProvider extends TreeItemProvider {
-    protected needLoading(item: RdbgTreeItem): boolean {
-        return item.parent instanceof ThreadIdItem;
-    }
-    protected execLoadingCommand(threadId?: number | undefined): Thenable<void> {
-        return vscode.commands.executeCommand("rdbg.inspector.loadMoreLogs", threadId);
-    }
-    protected newLoadMoreItem(threadId?: number): LoadMoreItem {
-        return new LoadMoreItem(threadId);
-    }
     protected newLogItem(log: BaseLog, idx: number, state: vscode.TreeItemCollapsibleState): BaseLogItem {
         const trace = log as TraceLog;
         if (trace.name) {

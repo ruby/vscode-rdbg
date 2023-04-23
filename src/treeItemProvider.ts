@@ -1,26 +1,16 @@
 import * as vscode from "vscode";
 import { BaseLog } from "./protocol";
-import { LoadMoreItem, BaseLogItem, OmittedItem, RdbgTreeItem } from "./rdbgTreeItem";
+import { BaseLogItem, OmittedItem, RdbgTreeItem } from "./rdbgTreeItem";
 
-const initRowCount = 100;
-const loadingRowCount = 80;
 const push = Array.prototype.push;
 
 export abstract class TreeItemProvider {
 	private _logItems: BaseLogItem[] = [];
-	private _loadMoreOffset: number = -1;
 	private _minDepth = Infinity;
 	private _omittedItems: OmittedItem[] = [];
 
 	constructor(logs: BaseLog[], private readonly _threadId?: number) {
 		this._logItems = this.toLogItems(logs);
-		let quotient = Math.floor(logs.length / initRowCount);
-		let remainder = logs.length % initRowCount;
-		if (quotient === 0) {
-			quotient = 1;
-			remainder = 0;
-		}
-		this._loadMoreOffset = initRowCount * (quotient - 1) + remainder;
 		this._minDepth = this.getMinDepth(this._logItems);
 	}
 
@@ -31,11 +21,7 @@ export abstract class TreeItemProvider {
 	}
 
 	private topItem(idx: number) {
-		return idx === this._loadMoreOffset;
-	}
-
-	private getTopLogItem() {
-		return this._logItems[this._loadMoreOffset];
+		return idx === 0;
 	}
 
 	getBottomLogItem() {
@@ -44,10 +30,6 @@ export abstract class TreeItemProvider {
 
 	getLogItem(idx: number) {
 		return this._logItems[idx];
-	}
-
-	private getOmittedItem(idx: number) {
-		return this._omittedItems[idx];
 	}
 
 	async getNextLogItem(selected: RdbgTreeItem) {
@@ -59,8 +41,8 @@ export abstract class TreeItemProvider {
 				item = this.getLogItem(idx + 1);
 				return item;
 			case selected instanceof OmittedItem:
-				idx = (selected as OmittedItem).index;
-				item = this.getOmittedItem(idx + 1) || this.getTopLogItem();
+				const omit = selected as OmittedItem;
+				item = this.getLogItem(omit.offset);
 				return item;
 		}
 	}
@@ -73,35 +55,12 @@ export abstract class TreeItemProvider {
 				const traceItem = selected as BaseLogItem;
 				idx = traceItem.index;
 				if (this.topItem(idx)) {
-					if (this.needLoading(selected)) {
-						await this.execLoadingCommand(this._threadId);
-						item = this.getLogItem(idx - 1);
-					} else {
-						item = selected.parent;
-					}
-				} else {
-					item = this.getLogItem(idx - 1);
+					return;
 				}
-				return item;
+				return this.getLogItem(idx - 1);
 			case selected instanceof OmittedItem:
-				idx = this._loadMoreOffset;
-				if (this.needLoading(selected)) {
-					await this.execLoadingCommand(this._threadId);
-					item = this.getLogItem(idx - 1);
-				} else {
-					item = selected.parent;
-				}
+				item = selected.parent;
 				return item;
-		}
-	}
-
-	protected abstract needLoading(item: RdbgTreeItem): boolean;
-	protected abstract execLoadingCommand(threadId?: number): Thenable<void>;
-
-	loadMoreLogs() {
-		this._loadMoreOffset -= loadingRowCount;
-		if (this._loadMoreOffset < 0) {
-			this._loadMoreOffset = 0;
 		}
 	}
 
@@ -110,21 +69,15 @@ export abstract class TreeItemProvider {
 		return logs[index + 1] && logs[index + 1].depth > target.depth;
 	}
 
-	protected abstract newLoadMoreItem(threadId?: number): LoadMoreItem;
-
 	public async createTree() {
 		this.clearArray(this._omittedItems);
 		const items: RdbgTreeItem[] = [];
-		if (this._loadMoreOffset !== 0) {
-			items.push(this.newLoadMoreItem(this._threadId));
-		}
-		const logs = this._logItems.slice(this._loadMoreOffset);
-		if (logs[0].depth > this._minDepth) {
-			const omitted = new OmittedItem(0, this._loadMoreOffset, this._minDepth, this._threadId);
+		if (this._logItems[0].depth > this._minDepth) {
+			const omitted = new OmittedItem(0, this._minDepth, this._threadId);
 			this._omittedItems.push(omitted);
 			items.push(omitted);
 		}
-		const traceItem = this.listLogItems(logs, this._minDepth);
+		const traceItem = this.listLogItems(this._logItems, this._minDepth);
 		push.apply(items, traceItem);
 		const stack = items.concat();
 		while (true) {
@@ -132,7 +85,7 @@ export abstract class TreeItemProvider {
 			if (item === undefined) {
 				break;
 			}
-			let children: RdbgTreeItem[] = [];
+			const children: RdbgTreeItem[] = [];
 			let subArray: BaseLogItem[];
 			let childLogs: BaseLogItem[];
 			let childEnd: number;
@@ -142,7 +95,7 @@ export abstract class TreeItemProvider {
 				case item instanceof BaseLogItem:
 					const idx = (item as BaseLogItem).index;
 					subArray = this._logItems.slice(idx + 1);
-					childEnd = subArray.length;
+					childEnd = subArray.length - 1;
 					for (let i = 0; i < subArray.length; i++) {
 						if (subArray[i].depth <= this._logItems[idx].depth) {
 							childEnd = i;
@@ -151,14 +104,20 @@ export abstract class TreeItemProvider {
 					}
 					childLogs = subArray.slice(0, childEnd);
 					childMinDepth = this.getMinDepth(childLogs);
-					children = this.listLogItems(childLogs, childMinDepth);
+					if (childLogs[0] && childLogs[0].depth > childMinDepth) {
+						const o = new OmittedItem(childLogs[0].index, childMinDepth, this._threadId);
+						this._omittedItems.push(o);
+						children.push(o);
+					}
+					traceItem = this.listLogItems(childLogs, childMinDepth);
+					push.apply(children, traceItem);
 					// Do not await
 					this.setParentChild(children, item);
 					break;
 				case item instanceof OmittedItem:
 					const omitted = item as OmittedItem;
 					subArray = this._logItems.slice(omitted.offset);
-					childEnd = subArray.length;
+					childEnd = subArray.length - 1;
 					for (let i = 0; i < subArray.length; i++) {
 						if (subArray[i].depth === omitted.depth) {
 							childEnd = i;
@@ -168,7 +127,7 @@ export abstract class TreeItemProvider {
 					childLogs = subArray.slice(0, childEnd);
 					childMinDepth = this.getMinDepth(childLogs);
 					if (childLogs[0].depth > childMinDepth) {
-						const o = new OmittedItem(omitted.index + 1, this._loadMoreOffset, childMinDepth, this._threadId);
+						const o = new OmittedItem(omitted.offset, childMinDepth, this._threadId);
 						this._omittedItems.push(o);
 						children.push(o);
 					}
@@ -192,7 +151,7 @@ export abstract class TreeItemProvider {
 		logs.forEach((log, idx) => {
 			let state = vscode.TreeItemCollapsibleState.None;
 			if (this.hasChild(logs, idx)) {
-				state = vscode.TreeItemCollapsibleState.Expanded;
+				state = vscode.TreeItemCollapsibleState.Collapsed;
 			}
 			items.push(this.newLogItem(log, idx, state));
 		});

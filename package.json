@@ -219,6 +219,11 @@
 					"default": true,
 					"description": "(experimental) Enable tracing Return events."
 				},
+				"rdbg.maxTraceLogSize": {
+					"type": "number",
+					"default": 50000,
+					"description": "(experimental) Maximum size of trace log that a debugger will save"
+				},
 				"rdbg.rubyVersionManager": {
 					"type": "string",
 					"enum": [
@@ -271,11 +276,11 @@
 			},
 			{
 				"command": "rdbg.inspector.disableRecordAndReplay",
-				"title": "✓ Record And Replay"
+				"title": "✓ Record And Replay (Slow)"
 			},
 			{
 				"command": "rdbg.inspector.enableRecordAndReplay",
-				"title": "\u200B    Record And Replay",
+				"title": "\u200B    Record And Replay (Slow)",
 				"enablement": "traceLineEnabled"
 			},
 			{
@@ -285,6 +290,18 @@
 			{
 				"command": "rdbg.inspector.reenterFilter",
 				"title": "✓ Apply filter by RegExp"
+			},
+			{
+				"command": "rdbg.inspector.copyLog",
+				"title": "Copy Trace log"
+			},
+			{
+				"command": "rdbg.inspector.enableTraceClanguageCall",
+				"title": "\u200B    Trace C-language Call/Return"
+			},
+			{
+				"command": "rdbg.inspector.disableTraceClanguageCall",
+				"title": "✓ Trace C-language Call/Return"
 			}
 		],
 		"menus": {
@@ -301,76 +318,58 @@
 				},
 				{
 					"command": "rdbg.inspector.disableTraceLine",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && traceLineEnabled == true",
+					"when": "debuggersAvailable && view == rdbg.inspector && traceLineEnabled == true",
 					"group": "rdbg@1"
 				},
 				{
 					"command": "rdbg.inspector.enableTraceLine",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && traceLineEnabled == false",
+					"when": "debuggersAvailable && view == rdbg.inspector && traceLineEnabled == false",
 					"group": "rdbg@1"
 				},
 				{
 					"command": "rdbg.inspector.disableTraceCall",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && traceCallEnabled == true",
+					"when": "debuggersAvailable && view == rdbg.inspector && traceCallEnabled == true",
 					"group": "rdbg@2"
 				},
 				{
 					"command": "rdbg.inspector.enableTraceCall",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && traceCallEnabled == false",
+					"when": "debuggersAvailable && view == rdbg.inspector && traceCallEnabled == false",
 					"group": "rdbg@2"
 				},
 				{
 					"command": "rdbg.inspector.disableRecordAndReplay",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && recordAndReplayEnabled == true",
-					"group": "rdbg@3"
+					"when": "debuggersAvailable && view == rdbg.inspector && recordAndReplayEnabled == true",
+					"group": "rdbg2@1"
 				},
 				{
 					"command": "rdbg.inspector.enableRecordAndReplay",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && recordAndReplayEnabled == false",
-					"group": "rdbg@3"
+					"when": "debuggersAvailable && view == rdbg.inspector && recordAndReplayEnabled == false",
+					"group": "rdbg2@1"
 				},
 				{
 					"command": "rdbg.inspector.enterFilter",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && filterEntered == false",
-					"group": "rdbg2@1"
+					"when": "debuggersAvailable && view == rdbg.inspector && filterEntered == false",
+					"group": "rdbg2@2"
 				},
 				{
 					"command": "rdbg.inspector.reenterFilter",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector && filterEntered == true",
-					"group": "rdbg2@1"
+					"when": "debuggersAvailable && view == rdbg.inspector && filterEntered == true",
+					"group": "rdbg2@2"
+				},
+				{
+					"command": "rdbg.inspector.enableTraceClanguageCall",
+					"when": "debuggersAvailable && view == rdbg.inspector && traceClanguageCallEnabled == false",
+					"group": "rdbg2@3"
+				},
+				{
+					"command": "rdbg.inspector.disableTraceClanguageCall",
+					"when": "debuggersAvailable && view == rdbg.inspector && traceClanguageCallEnabled == true",
+					"group": "rdbg2@3"
 				}
 			],
 			"view/item/context": [
 				{
-					"command": "rdbg.inspector.disableTraceLine",
-					"when": "view == rdbg.inspector"
-				},
-				{
-					"command": "rdbg.inspector.enableTraceLine",
-					"when": "view == rdbg.inspector"
-				},
-				{
-					"command": "rdbg.inspector.disableTraceCall",
-					"when": "view == rdbg.inspector"
-				},
-				{
-					"command": "rdbg.inspector.enableTraceCall",
-					"when": "view == rdbg.inspector"
-				},
-				{
-					"command": "rdbg.inspector.disableRecordAndReplay",
-					"when": "view == rdbg.inspector"
-				},
-				{
-					"command": "rdbg.inspector.enableRecordAndReplay",
-					"when": "view == rdbg.inspector"
-				},
-				{
-					"command": "rdbg.inspector.enterFilter",
-					"when": "view == rdbg.inspector"
-				},
-				{
-					"command": "rdbg.inspector.reenterFilter",
+					"command": "rdbg.inspector.copyLog",
 					"when": "view == rdbg.inspector"
 				}
 			]

@@ -22,6 +22,7 @@ import {
 import { DebugProtocol } from "@vscode/debugprotocol";
 import { registerInspectorView } from "./inspector";
 import { AttachConfiguration, LaunchConfiguration } from "./config";
+import { VersionChecker } from "./utils";
 
 const asyncExec = promisify(child_process.exec);
 
@@ -92,10 +93,10 @@ export function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel("rdbg");
 
 	const adapterDescriptorFactory = new RdbgAdapterDescriptorFactory(context);
-	const stopppedEvtEmitter = new EventEmitter<number | undefined>();
+	const DAPTrackQueue = new EventEmitter<any>();
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider("rdbg", new RdbgInitialConfigurationProvider()));
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory("rdbg", adapterDescriptorFactory));
-	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory("rdbg", new RdbgDebugAdapterTrackerFactory(stopppedEvtEmitter)));
+	context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory("rdbg", new RdbgDebugAdapterTrackerFactory(DAPTrackQueue)));
 
 	//
 	context.subscriptions.push(vscode.debug.onDidChangeBreakpoints(() => {
@@ -144,32 +145,8 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	let disposables: vscode.Disposable[] = [];
-	context.subscriptions.push(
-		vscode.debug.onDidStartDebugSession((session) => {
-			const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgTraceInspector");
-			if (traceEnabled) {
-				const config = session.configuration as LaunchConfiguration;
-				adapterDescriptorFactory.getVersion(config).then((strVer) => {
-					if (strVer === null) return;
-					const version = adapterDescriptorFactory.vernum(strVer);
-					// checks the version of debug.gem is 1.8.0 or higher.
-					if (version >= 1008000) {
-						if (traceEnabled) {
-							disposables = disposables.concat(registerInspectorView(stopppedEvtEmitter));
-						}
-					}
-				});
-			}
-		}),
-
-		vscode.debug.onDidTerminateDebugSession(() => {
-			while(disposables.length > 0) {
-				const disp = disposables.pop();
-				disp?.dispose();
-			}
-		})
-	);
+	const disp = registerInspectorView(DAPTrackQueue, adapterDescriptorFactory);
+	context.subscriptions.concat(disp);
 }
 
 export function deactivate() {
@@ -177,7 +154,7 @@ export function deactivate() {
 
 class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactory {
 	constructor(
-		public readonly _emitter: vscode.EventEmitter<number | undefined>,
+		public readonly _emitter: vscode.EventEmitter<any>,
 	) {}
 	createDebugAdapterTracker(session: DebugSession): ProviderResult<vscode.DebugAdapterTracker> {
 		const self = this;
@@ -198,7 +175,7 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 		};
 		if (session.configuration.showProtocolLog) {
 			tracker.onDidSendMessage = (message: any): void => {
-				self.stoppedEvtPublisher(message);
+				self.publishMessage(message);
 				outputChannel.appendLine("[DA->VSCode] " + JSON.stringify(message));
 			};
 			tracker.onWillReceiveMessage = (message: any): void => {
@@ -206,17 +183,15 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 			};
 		} else {
 			tracker.onDidSendMessage = (message: any): void => {
-				self.stoppedEvtPublisher(message);
+				self.publishMessage(message);
 			};
 		}
 		return tracker;
 	}
 
-	private stoppedEvtPublisher(message: any) {
-		if (message.event === "stopped") {
-			const evt = message as DebugProtocol.StoppedEvent;
-			const threadId = evt.body.threadId;
-			this._emitter.fire(threadId);
+	private publishMessage(message: any) {
+		if (message.event === "stopped" || message.command === "launch") {
+			this._emitter.fire(message);
 		}
 	}
 }
@@ -302,7 +277,7 @@ const findRDBGTerminal = (): vscode.Terminal | undefined => {
 	return terminal;
 };
 
-class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
+class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, VersionChecker {
 	private context: vscode.ExtensionContext;
 	private rubyActivated: boolean;
 
