@@ -25,6 +25,7 @@ export function registerInspectorView(emitter: vscode.EventEmitter<any>, version
     const view = vscode.window.createTreeView("rdbg.inspector", { treeDataProvider: treeProvider });
     const inlayHintsProvider = new RdbgCodeLensProvider(view);
     const disposables: vscode.Disposable[] = [];
+    let traceInspectorEnabled: boolean | undefined;
 
     disposables.push(
         vscode.languages.registerCodeLensProvider(
@@ -43,42 +44,54 @@ export function registerInspectorView(emitter: vscode.EventEmitter<any>, version
         ),
 
         emitter.event(async (message) => {
-            if (message.event === "stopped") {
-                const evt = message as DebugProtocol.StoppedEvent;
-                treeProvider.updateTraceLogs(evt.body.threadId);
-            }
-            if (treeProvider.toggleTreeItem.enabled && message.command === "launch") {
-                while (!vscode.debug.activeDebugSession) {
-                    await new Promise((resolve) => setTimeout(resolve, 10));
-                }
-                await treeProvider.toggleTreeItem.enable();
-            }
-        }),
-
-        vscode.debug.onDidStartDebugSession(async (session) => {
-            const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableTraceInspector");
-            if (!traceEnabled) {
-                vscode.commands.executeCommand("setContext", "traceInspectorEnabled", false);
-                return;
-            }
-            const config = session.configuration as LaunchConfiguration;
-            const str = await versionChecker.getVersion(config);
-            if (str === null) {
-                vscode.window.showErrorMessage("Trace Inpsector failed to start because of failing to check version");
-                return;
-            }
-            const version = versionChecker.vernum(str);
-            // checks the version of debug.gem is 1.8.0 or higher.
-            if (version < 1008000) {
-                vscode.window.showErrorMessage(
-                    "Trace Inpsector failed to start because of the version of debug.gem was less than 1.8.0. Please update the version.",
-                );
-                return;
+            switch (true) {
+                case message.event === "stopped":
+                    while (traceInspectorEnabled === undefined) {
+                        await new Promise((resolve) => setTimeout(resolve, 10));
+                    }
+                    if (!traceInspectorEnabled) {
+                        return;
+                    }
+                    const evt = message as DebugProtocol.StoppedEvent;
+                    treeProvider.updateTraceLogs(evt.body.threadId);
+                    break;
+                case treeProvider.toggleTreeItem.enabled &&
+                    (message.command === "launch" || message.command === "attach"):
+                    while (traceInspectorEnabled === undefined) {
+                        await new Promise((resolve) => setTimeout(resolve, 1));
+                    }
+                    if (!traceInspectorEnabled) {
+                        return;
+                    }
+                    while (!vscode.debug.activeDebugSession) {
+                        await new Promise((resolve) => setTimeout(resolve, 10));
+                    }
+                    await treeProvider.toggleTreeItem.enable();
+                    break;
             }
         }),
 
         vscode.debug.onDidTerminateDebugSession(async () => {
+            traceInspectorEnabled = undefined;
             treeProvider.cleanUp();
+        }),
+
+        // rdbg.inspector.startDebugSession is defined to check the version of debug.gem. To send the request to enable Trace Inspector as soon as possible, we need to finish checking the version of debug.gem in advance.
+        vscode.commands.registerCommand("rdbg.inspector.startDebugSession", async (session: vscode.DebugSession) => {
+            const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableTraceInspector");
+            if (!traceEnabled) {
+                if (treeProvider.toggleTreeItem.enabled) {
+                    vscode.window.showErrorMessage(
+                        "Trace Inpsector failed to start because enableTraceInspector field is false. Please set it to true",
+                    );
+                    await treeProvider.toggleTreeItem.resetView();
+                    treeProvider.refresh();
+                }
+                traceInspectorEnabled = false;
+                return;
+            }
+            const config = session.configuration as LaunchConfiguration;
+            traceInspectorEnabled = await validVersion(config, versionChecker, treeProvider);
         }),
 
         vscode.commands.registerCommand("rdbg.inspector.openPrevLog", async () => {
@@ -108,6 +121,13 @@ export function registerInspectorView(emitter: vscode.EventEmitter<any>, version
         }),
 
         vscode.commands.registerCommand("rdbg.inspector.toggle", async () => {
+            // When traceInspectorEnabled is undefined, debug session is not started. We can enable trace inspector in this case.
+            if (traceInspectorEnabled === false) {
+                vscode.window.showErrorMessage(
+                    "Trace Inpsector failed to start because of the version of debug.gem was less than 1.8.0. Please update the version.",
+                );
+                return;
+            }
             const item = treeProvider.toggleTreeItem;
             await item.toggle();
             if (item.enabled) {
@@ -212,6 +232,31 @@ export function registerInspectorView(emitter: vscode.EventEmitter<any>, version
     vscode.commands.executeCommand("setContext", "filterEntered", false);
 
     return disposables;
+}
+
+async function validVersion(
+    config: LaunchConfiguration,
+    versionChecker: VersionChecker,
+    treeProvider: RdbgTraceInspectorTreeProvider,
+) {
+    const str = await versionChecker.getVersion(config);
+    if (str === null) {
+        vscode.window.showErrorMessage("Trace Inpsector failed to start because of failing to check version");
+        return false;
+    }
+    const version = versionChecker.vernum(str);
+    // checks the version of debug.gem is 1.8.0 or higher.
+    if (version < 1008000) {
+        if (treeProvider.toggleTreeItem.enabled) {
+            await treeProvider.toggleTreeItem.resetView();
+            treeProvider.refresh();
+            vscode.window.showErrorMessage(
+                "Trace Inpsector failed to start because of the version of debug.gem was less than 1.8.0. Please update the version.",
+            );
+        }
+        return false;
+    }
+    return true;
 }
 
 function getLogFields(log: BaseLog) {
