@@ -303,6 +303,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 			watcher.onDidDelete(() => this.activateRuby(cwd));
 		}
 
+		vscode.commands.executeCommand("rdbg.inspector.startDebugSession", session);
 		if (c.request === "attach") {
 			return this.attach(session);
 		}

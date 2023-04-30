@@ -239,10 +239,14 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		await customRequest(session, "rdbgTraceInspector", args);
 	}
 
-	async disable() {
+	async resetView() {
 		this._enabled = false;
 		this.iconPath = playCircleIcon;
 		this.label = "Enable Trace";
+	}
+
+	async disable() {
+		this.resetView();
 		const session = vscode.debug.activeDebugSession;
 		if (session === undefined || this._enabledCommand === undefined) {
 			return;
