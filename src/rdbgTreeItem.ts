@@ -70,21 +70,54 @@ export class ThreadIdItem extends RdbgTreeItem {
 	}
 }
 
+function createToolTipValue(log: BaseLog) {
+	const tooltip = new vscode.MarkdownString();
+	if (log.returnValue) {
+		tooltip.appendCodeblock(log.name || "");
+		tooltip.appendCodeblock(`#=> ${truncateString(log.returnValue)}`);
+		tooltip.appendText(`@${log.location.path}:${log.location.line}`);
+	} else {
+		tooltip.appendCodeblock(log.name || "");
+		if (log.parameters && log.parameters.length > 0) {
+			if (log.parameters.length > 1) {
+				tooltip.appendCodeblock("(");
+				for (const param of log.parameters) {
+					tooltip.appendCodeblock(`  ${param.name} = ${truncateString(param.value)},`);
+				}
+				tooltip.appendCodeblock(")");
+			} else {
+				tooltip.appendCodeblock(`(${log.parameters[0].name} = ${log.parameters[0].value})`);
+			}
+		}
+		tooltip.appendText(`@${log.location.path}:${log.location.line}`);
+	}
+	return tooltip;
+}
+
+function truncateString(str: string) {
+	if (str.length > 256) {
+		return str.substring(0, 256) + "...";
+	}
+	return str;
+}
+
 export class RecordLogItem extends BaseLogItem {
+	public readonly parameters: BaseLog["parameters"];
 	constructor(
 		label: string | vscode.TreeItemLabel,
+		log: RecordLog,
 		public readonly index: number,
-		public readonly depth: number,
-		public readonly location: Location,
-		public readonly parameters: RecordLog["parameters"],
-		state: vscode.TreeItemCollapsibleState,
-		opts: RdbgTreeItemOptions = {},
-	) {
-		const description = location.path + ":" + location.line;
+		state?: vscode.TreeItemCollapsibleState,
+	)
+	{
+		const description = log.location.path + ":" + log.location.line;
+		const opts: RdbgTreeItemOptions = { collapsibleState: state };
 		opts.collapsibleState = state;
 		opts.description = description;
-		super(label, index, depth, location, opts);
+		super(label, index, log.depth, log.location, opts);
 		this.id = index.toString();
+		this.tooltip = createToolTipValue(log);
+		this.parameters = log.parameters;
 	}
 }
 
@@ -128,36 +161,7 @@ export class CallTraceLogItem extends TraceLogItem {
 		super(log.name || "Unknown frame name", idx, log.depth, log.location, log.threadId, opts);
 		this.returnValue = log.returnValue;
 		this.parameters = log.parameters;
-		this.tooltip = this.createToolTipValue(log);
-	}
-	createToolTipValue(log: BaseLog) {
-		const tooltip = new vscode.MarkdownString();
-		if (log.returnValue) {
-			tooltip.appendCodeblock(log.name || "");
-			tooltip.appendCodeblock(`#=> ${this.truncateString(log.returnValue)}`);
-			tooltip.appendText(`@${log.location.path}:${log.location.line}`);
-		} else {
-			tooltip.appendCodeblock(log.name || "");
-			if (log.parameters) {
-				if (log.parameters.length > 1) {
-					tooltip.appendCodeblock("(");
-					for (const param of log.parameters) {
-						tooltip.appendCodeblock(`  ${param.name} = ${this.truncateString(param.value)},`);
-					}
-					tooltip.appendCodeblock(")");
-				} else {
-					tooltip.appendCodeblock(`(${log.parameters[0].name} = ${log.parameters[0].value})`);
-				}
-			}
-			tooltip.appendText(`@${log.location.path}:${log.location.line}`);
-		}
-		return tooltip;
-	}
-	private truncateString(str: string) {
-		if (str.length > 256) {
-			return str.substring(0, 256) + "...";
-		}
-		return str;
+		this.tooltip = createToolTipValue(log);
 	}
 }
 

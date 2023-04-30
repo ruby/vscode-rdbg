@@ -138,7 +138,7 @@ class RecordLogTreeProvider extends TreeItemProvider {
             const name = "(Stopped): " + label;
             label = { label: name, highlights: [[0, name.length]] };
         }
-        return new RecordLogItem(label, idx, record.depth, record.location, record.parameters, state);
+        return new RecordLogItem(label, record, idx, state);
     }
 }
 
