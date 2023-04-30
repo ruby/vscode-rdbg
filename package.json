@@ -205,8 +205,7 @@
 				},
 				"rdbg.enableTraceInspector": {
 					"type": "boolean",
-					"//": "The default value will be changed to true after 1.8.0 is released",
-					"default": false,
+					"default": true,
 					"description": "(experimental) Enable TraceInspector view. TraceInspector visualizes the trace log in Tree View. This feature will work in the version of debug.gem is 1.8.0 or higher."
 				},
 				"rdbg.enableTraceParameters": {
