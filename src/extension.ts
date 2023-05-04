@@ -404,8 +404,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 	}
 
 	async getSockList(config: AttachConfiguration): Promise<string[]> {
-		const rdbg = config.rdbgPath || "rdbg";
-		const cmd = this.makeShellCommand(rdbg + " --util=list-socks");
+		const cmd = this.makeShellCommand(this.rdbgBin(config) + " --util=list-socks");
 		return new Promise((resolve, reject) => {
 			child_process.exec(cmd, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
@@ -490,10 +489,14 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		}
 	}
 
+	rdbgBin(config: LaunchConfiguration | AttachConfiguration) {
+		const rdbg = config.rdbgPath || "rdbg";
+		return rdbg;
+	}
+
 	getSockPath(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
-			const rdbg = config.rdbgPath || "rdbg";
-			const command = this.makeShellCommand(rdbg + " --util=gen-sockpath");
+			const command = this.makeShellCommand(this.rdbgBin(config) + " --util=gen-sockpath");
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
 				env: { ...process.env, ...config.env }
@@ -524,8 +527,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 
 	getTcpPortFile(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
-			const rdbg = config.rdbgPath || "rdbg";
-			const command = this.makeShellCommand(rdbg + " --util=gen-portpath");
+			const command = this.makeShellCommand(this.rdbgBin(config) + " --util=gen-portpath");
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
 				env: { ...process.env, ...config.env }
@@ -549,8 +551,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 
 	getVersion(config: LaunchConfiguration): Promise<string | null> {
 		return new Promise((resolve) => {
-			const rdbg = config.rdbgPath || "rdbg";
-			const command = this.makeShellCommand(rdbg + " --version");
+			const command = this.makeShellCommand(this.rdbgBin(config) + " --version");
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
 				env: { ...process.env, ...config.env }
@@ -660,7 +661,6 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 
 	async launchOnTerminal(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
-		const rdbg = config.rdbgPath || "rdbg";
 
 		// outputChannel.appendLine(JSON.stringify(session));
 
@@ -743,7 +743,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 			} else {
 				rdbgArgs = this.getUnixRdbgArgs(execCommand, sockPath);
 			}
-			cmdline += rdbg + " " + rdbgArgs.join(" ");
+			cmdline += this.rdbgBin(config) + " " + rdbgArgs.join(" ");
 		}
 
 		if (outputTerminal) {
@@ -792,10 +792,14 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		return new DebugAdapterInlineImplementation(new StopDebugAdapter);
 	}
 
-	async getExecCommands(config: LaunchConfiguration) {
+	useBundler(config: LaunchConfiguration) {
 		const useBundlerFlag = (config.useBundler !== undefined) ? config.useBundler : vscode.workspace.getConfiguration("rdbg").get("useBundler");
 		const useBundler = useBundlerFlag && fs.existsSync(workspaceFolder() + "/Gemfile");
-		const rubyCommand = config.command ? config.command : (useBundler ? "bundle exec ruby" : "ruby");
+		return useBundler;
+	}
+
+	async getExecCommands(config: LaunchConfiguration) {
+		const rubyCommand = config.command ? config.command : (this.useBundler(config) ? "bundle exec ruby" : "ruby");
 		const execArgs = config.script + " " + (config.args ? config.args.join(" ") : "");
 		let execCommand: string | undefined = rubyCommand + " " + execArgs;
 
@@ -846,7 +850,6 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 
 	async launchOnConsole(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as LaunchConfiguration;
-		const rdbg = config.rdbgPath || "rdbg";
 		const debugConsole = vscode.debug.activeDebugConsole;
 
 		// outputChannel.appendLine(JSON.stringify(session));
@@ -882,7 +885,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		if (tcpHost !== undefined && tcpPort !== undefined) {
 			const rdbgArgs = this.getTCPRdbgArgs(execCommand, tcpHost, tcpPort);
 			try {
-				[, tcpPort] = await this.runDebuggeeWithTCP(debugConsole, rdbg, rdbgArgs, options);
+				[, tcpPort] = await this.runDebuggeeWithTCP(debugConsole, this.rdbgBin(config), rdbgArgs, options);
 			} catch (error: any) {
 				vscode.window.showErrorMessage(error.message);
 				return new DebugAdapterInlineImplementation(new StopDebugAdapter);
@@ -891,7 +894,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		}
 		const rdbgArgs = this.getUnixRdbgArgs(execCommand, sockPath);
 		try {
-			sockPath = await this.runDebuggeeWithUnix(debugConsole, rdbg, rdbgArgs, options);
+			sockPath = await this.runDebuggeeWithUnix(debugConsole, this.rdbgBin(config), rdbgArgs, options);
 		} catch (error: any) {
 			vscode.window.showErrorMessage(error.message);
 			return new DebugAdapterInlineImplementation(new StopDebugAdapter);
