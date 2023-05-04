@@ -221,7 +221,7 @@ In this case, the current directory of host (`${workspaceFolder}`) is shared wit
 
 ### Selecting a version manager
 
-In order to launch the debugger using the correct Ruby version, rdbg allows configuring your preferred version manager, which is used to activate the Ruby environment.
+In order to launch the debugger using the correct Ruby version, rdbg allows configuring your preferred version manager, which is used to activate the Ruby environment with [extension settings](https://code.visualstudio.com/docs/getstarted/settings) (or [`settings.json`](https://code.visualstudio.com/docs/getstarted/settings#_settingsjson)).
 
 ```jsonc
 // Default value is "none" for not using a version manager to activate the environment
@@ -232,6 +232,8 @@ In order to launch the debugger using the correct Ruby version, rdbg allows conf
   "rdbg.rubyVersionManager": "none"
 }
 ```
+
+If you are using `rbenv` configured with a login shell (on bash or zsh), you do not need to specify this configuration because vscode-rdbg will launch ruby command with login shell setting like `bash -lic ruby ...`. With this configuration, vscode-rdbg will launch simply `ruby` command. This configuration will be useful if you are using other environment such as chruby and so on.
 
 ## Acknowledgement
 
