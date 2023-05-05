@@ -199,7 +199,7 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvider {
 	resolveDebugConfiguration(_folder: WorkspaceFolder | undefined, config: DebugConfiguration, _token?: CancellationToken): ProviderResult<DebugConfiguration> {
 		const extension = [];
-		const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableRdbgTraceInspector");
+		const traceEnabled = vscode.workspace.getConfiguration("rdbg").get<boolean>("enableTraceInspector");
 		if (traceEnabled) {
 			extension.push("traceInspector");
 		}
