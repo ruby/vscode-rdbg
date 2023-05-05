@@ -110,7 +110,7 @@ export class RecordLogItem extends BaseLogItem {
 		state?: vscode.TreeItemCollapsibleState,
 	)
 	{
-		const description = log.location.path + ":" + log.location.line;
+		const description = prettyPath(log.location.path) + ":" + log.location.line;
 		const opts: RdbgTreeItemOptions = { collapsibleState: state };
 		opts.collapsibleState = state;
 		opts.description = description;
@@ -119,6 +119,15 @@ export class RecordLogItem extends BaseLogItem {
 		this.tooltip = createToolTipValue(log);
 		this.parameters = log.parameters;
 	}
+}
+
+function prettyPath(path: string) {
+	const relative = vscode.workspace.asRelativePath(path);
+	const home = process.env.HOME;
+	if (home) {
+		return relative.replace(home, "~");
+	}
+	return relative;
 }
 
 export class TraceLogItem extends BaseLogItem {
@@ -138,8 +147,9 @@ const locationIcon = new vscode.ThemeIcon("location");
 
 export class LineTraceLogItem extends TraceLogItem {
 	constructor(log: TraceLog, idx: number, state?: vscode.TreeItemCollapsibleState) {
-		const label = log.location.path + ":" + log.location.line.toString();
-		const opts: RdbgTreeItemOptions = { iconPath: locationIcon, collapsibleState: state };
+		const label = prettyPath(log.location.path) + ":" + log.location.line.toString();
+		const tooltip = log.location.path;
+		const opts: RdbgTreeItemOptions = { iconPath: locationIcon, collapsibleState: state , tooltip};
 		super(label, idx, log.depth, log.location, log.threadId, opts);
 	}
 }
@@ -156,7 +166,7 @@ export class CallTraceLogItem extends TraceLogItem {
 		} else {
 			iconPath = arrowCircleRight;
 		}
-		const description = log.location.path + ":" + log.location.line;
+		const description = prettyPath(log.location.path) + ":" + log.location.line;
 		const opts: RdbgTreeItemOptions = { iconPath: iconPath, collapsibleState: state, description };
 		super(log.name || "Unknown frame name", idx, log.depth, log.location, log.threadId, opts);
 		this.returnValue = log.returnValue;
