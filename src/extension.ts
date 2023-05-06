@@ -190,9 +190,7 @@ class RdbgDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactor
 	}
 
 	private publishMessage(message: any) {
-		if (message.event === "stopped" || message.command === "launch") {
-			this._emitter.fire(message);
-		}
+		this._emitter.fire(message);
 	}
 }
 
