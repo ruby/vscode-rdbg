@@ -9,7 +9,7 @@ export abstract class TreeItemProvider {
 	private _minDepth = Infinity;
 	private _omittedItems: OmittedItem[] = [];
 
-	constructor(logs: BaseLog[], private readonly _threadId?: number) {
+	protected constructor(logs: BaseLog[], private readonly _threadId?: number) {
 		this._logItems = this.toLogItems(logs);
 		this._minDepth = this.getMinDepth(this._logItems);
 	}

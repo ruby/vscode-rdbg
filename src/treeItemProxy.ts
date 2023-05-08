@@ -23,6 +23,9 @@ import {
 import * as vscode from "vscode";
 import { customRequest } from "./utils";
 import { TreeItemProvider } from "./treeItemProvider";
+import * as path from "path";
+import * as fs from "fs/promises";
+import { Dirent } from "fs";
 
 export interface TreeItemProviderProxy {
     updateTraceLogs(threadId: number | undefined): Promise<undefined>;
@@ -64,7 +67,7 @@ export class RecordTreeItemProviderProxy implements TreeItemProviderProxy {
         if (resp.logs[this.curStoppedIndex]) {
             resp.logs[this.curStoppedIndex].stopped = true;
         }
-        this._recordTree = new RecordLogTreeProvider(resp.logs);
+        this._recordTree = await RecordLogTreeProvider.create(resp.logs);
     }
     async selectLog(selected: RdbgTreeItem) {
         const session = vscode.debug.activeDebugSession;
@@ -130,7 +133,83 @@ export class RecordTreeItemProviderProxy implements TreeItemProviderProxy {
     }
 }
 
+async function setFullPath(logs: BaseLog[]) {
+    for (const log of logs) {
+        log.location.path = await fullPath(log.location.path);
+    }
+}
+
+async function fullPath(target: string) {
+    if (path.isAbsolute(target)) {
+        return target;
+    }
+    const session = vscode.debug.activeDebugSession;
+    if (session === undefined) {
+        return target;
+    }
+    return Promise.race([
+        findInWorkspaceDir(target),
+        findInHomeDir(target),
+        new Promise<string>((resolve) =>
+            setTimeout(() => {
+                resolve(target);
+            }, 1000),
+        ),
+    ]);
+}
+
+async function findInHomeDir(target: string) {
+    const home = process.env.HOME;
+    if (home === undefined) {
+        return target;
+    }
+    return findTargetFile(target, home);
+}
+
+async function findInWorkspaceDir(target: string) {
+    const fsPath = vscode.debug.activeDebugSession?.workspaceFolder?.uri.fsPath;
+    if (fsPath === undefined) {
+        return target;
+    }
+    return findTargetFile(target, fsPath);
+}
+
+async function findTargetFile(target: string, p: string) {
+    const dirents = await fs.readdir(p, { withFileTypes: true });
+    const stack: [string, Dirent][] = [];
+    for (const d of dirents) {
+        stack.push([p, d]);
+    }
+    while (true) {
+        const element = stack.pop();
+        if (element === undefined) {
+            return target;
+        }
+        const directly = element[0];
+        const dirent = element[1];
+        if (dirent.isFile()) {
+            const fullPath = path.join(directly, dirent.name);
+            if (fullPath.endsWith(target)) {
+                return fullPath;
+            }
+        }
+        if (dirent.isDirectory()) {
+            const fullPath = path.join(directly, dirent.name);
+            try {
+                const newDirents = await fs.readdir(fullPath, { withFileTypes: true });
+                for (const d of newDirents) {
+                    stack.push([fullPath, d]);
+                }
+            } catch (error) {}
+        }
+    }
+}
+
 class RecordLogTreeProvider extends TreeItemProvider {
+    static async create(logs: BaseLog[], threadId?: number) {
+        await setFullPath(logs);
+        return new RecordLogTreeProvider(logs, threadId);
+    }
     protected newLogItem(log: BaseLog, idx: number, state: vscode.TreeItemCollapsibleState): BaseLogItem {
         const record = log as RecordLog;
         let label: string | vscode.TreeItemLabel = record.name;
@@ -175,15 +254,16 @@ export class TraceTreeItemProviderProxy implements TreeItemProviderProxy {
         if (resp === undefined || resp.logs.length < 1) {
             return void 0;
         }
-        this._traceTreeMap = this.toTraceTreeMap(resp.logs);
+        this._traceTreeMap = await this.toTraceTreeMap(resp.logs);
     }
 
-    private toTraceTreeMap(logs: TraceLog[]) {
+    private async toTraceTreeMap(logs: TraceLog[]) {
         const treeMap = new Map<number, TraceLogTreeProvider>();
         const logMap = this.toTraceLogMap(logs);
-        logMap.forEach((logs, threadId) => {
-            treeMap.set(threadId, new TraceLogTreeProvider(logs, threadId));
-        });
+        for (const [threadId, logs] of logMap) {
+            const provider = await TraceLogTreeProvider.create(logs, threadId);
+            treeMap.set(threadId, provider);
+        }
         return new Map([...treeMap].sort((a, b) => a[0] - b[0]));
     }
 
@@ -314,6 +394,11 @@ export class TraceTreeItemProviderProxy implements TreeItemProviderProxy {
 }
 
 class TraceLogTreeProvider extends TreeItemProvider {
+    static async create(logs: BaseLog[], threadId?: number) {
+        await setFullPath(logs);
+        return new TraceLogTreeProvider(logs, threadId);
+    }
+
     protected newLogItem(log: BaseLog, idx: number, state: vscode.TreeItemCollapsibleState): BaseLogItem {
         const trace = log as TraceLog;
         if (trace.name) {
