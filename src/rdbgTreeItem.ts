@@ -11,6 +11,8 @@ import {
 	BaseLog,
 } from "./protocol";
 import { customRequest } from "./utils";
+import * as path from "path";
+import * as fs from "fs";
 
 export type RdbgTreeItemOptions = Pick<
 	vscode.TreeItem,
@@ -110,6 +112,7 @@ export class RecordLogItem extends BaseLogItem {
 		state?: vscode.TreeItemCollapsibleState,
 	)
 	{
+        log.location.path = fullPath(log.location.path);
 		const description = prettyPath(log.location.path) + ":" + log.location.line;
 		const opts: RdbgTreeItemOptions = { collapsibleState: state };
 		opts.collapsibleState = state;
@@ -147,6 +150,7 @@ const locationIcon = new vscode.ThemeIcon("location");
 
 export class LineTraceLogItem extends TraceLogItem {
 	constructor(log: TraceLog, idx: number, state?: vscode.TreeItemCollapsibleState) {
+        log.location.path = fullPath(log.location.path);
 		const label = prettyPath(log.location.path) + ":" + log.location.line.toString();
 		const tooltip = log.location.path;
 		const opts: RdbgTreeItemOptions = { iconPath: locationIcon, collapsibleState: state , tooltip};
@@ -160,6 +164,7 @@ export class CallTraceLogItem extends TraceLogItem {
 	public readonly returnValue: TraceLog["returnValue"];
 	public readonly parameters: TraceLog["parameters"];
 	constructor(log: TraceLog, idx: number, state?: vscode.TreeItemCollapsibleState) {
+        log.location.path = fullPath(log.location.path);
 		let iconPath: vscode.ThemeIcon;
 		if (log.returnValue) {
 			iconPath = arrowCircleLeft;
@@ -271,4 +276,19 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		await customRequest(session, "rdbgTraceInspector", args);
 		this._enabledCommand = undefined;
 	}
+}
+
+function fullPath(p: string) {
+    if (path.isAbsolute(p)) {
+        return p;
+    }
+    const workspace = vscode.debug.activeDebugSession?.workspaceFolder;
+    if (workspace === undefined) {
+        return p;
+    }
+    const fullPath = path.join(workspace.uri.fsPath, p);
+    if (fs.existsSync(fullPath)) {
+        return fullPath;
+    }
+    return p;
 }
