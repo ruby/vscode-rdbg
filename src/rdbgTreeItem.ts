@@ -183,18 +183,18 @@ export class ToggleTreeItem extends RdbgTreeItem {
 	}
 
 	async toggle() {
+        const session = vscode.debug.activeDebugSession;
 		if (this._enabled) {
-			this.disable();
+			this.disable(session);
 		} else {
-			this.enable();
+			this.enable(session);
 		}
 	}
 
-	async enable() {
+	async enable(session: vscode.DebugSession | undefined) {
 		this.iconPath = stopCircleIcon;
 		this._enabled = true;
 		this.label = "Disable Trace";
-		const session = vscode.debug.activeDebugSession;
 		if (session === undefined) {
 			return;
 		}
@@ -249,9 +249,8 @@ export class ToggleTreeItem extends RdbgTreeItem {
 		this.label = "Enable Trace";
 	}
 
-	async disable() {
+	async disable(session: vscode.DebugSession | undefined) {
 		this.resetView();
-		const session = vscode.debug.activeDebugSession;
 		if (session === undefined || this._enabledCommand === undefined) {
 			return;
 		}

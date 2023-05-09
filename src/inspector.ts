@@ -26,6 +26,9 @@ export function registerInspectorView(emitter: vscode.EventEmitter<any>, version
     const inlayHintsProvider = new RdbgCodeLensProvider(view);
     const disposables: vscode.Disposable[] = [];
     let traceInspectorEnabled: boolean | undefined;
+    // Since it takes time to get vscode.debug.activeDebugSession,
+    // we holds the session obtained in DebugAdapterDescriptorFactory#createDebugAdapterDescriptor.
+    let activeSession: vscode.DebugSession | undefined;
 
     disposables.push(
         vscode.languages.registerCodeLensProvider(
@@ -63,10 +66,7 @@ export function registerInspectorView(emitter: vscode.EventEmitter<any>, version
                     if (!traceInspectorEnabled) {
                         return;
                     }
-                    while (!vscode.debug.activeDebugSession) {
-                        await new Promise((resolve) => setTimeout(resolve, 10));
-                    }
-                    await treeProvider.toggleTreeItem.enable();
+                    await treeProvider.toggleTreeItem.enable(activeSession);
                     break;
             }
         }),
@@ -90,6 +90,7 @@ export function registerInspectorView(emitter: vscode.EventEmitter<any>, version
                 traceInspectorEnabled = false;
                 return;
             }
+            activeSession = session;
             const config = session.configuration as LaunchConfiguration;
             traceInspectorEnabled = await validVersion(config, versionChecker, treeProvider);
         }),
