@@ -295,11 +295,11 @@
 			},
 			{
 				"command": "rdbg.inspector.enableTraceClanguageCall",
-				"title": "\u200B    Trace C-language Call/Return"
+				"title": "\u200B    Trace c_call / c_return"
 			},
 			{
 				"command": "rdbg.inspector.disableTraceClanguageCall",
-				"title": "✓ Trace C-language Call/Return"
+				"title": "✓ Trace c_call / c_return"
 			}
 		],
 		"menus": {
