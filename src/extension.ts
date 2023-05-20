@@ -410,9 +410,13 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
 				env: { ...process.env, ...config.env }
 			}, (err, stdout, stderr) => {
-				if (err || stderr) {
-					reject(err ?? stderr);
-				} else {
+				if (err) {
+					reject(err);
+				}
+				if (stderr) {
+					pp(stderr);
+				}
+				if (stdout) {
 					const socks: Array<string> = [];
 					if (stdout.length > 0) {
 						for (const line of stdout.split("\n")) {
@@ -423,6 +427,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 					}
 					resolve(socks);
 				}
+				resolve([]);
 			});
 		});
 	}
