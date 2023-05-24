@@ -82,7 +82,7 @@ export function registerInspectorView(emitter: vscode.EventEmitter<any>, version
             if (!traceEnabled) {
                 if (treeProvider.toggleTreeItem.enabled) {
                     vscode.window.showErrorMessage(
-                        "Trace Inpsector failed to start because enableTraceInspector field is false. Please set it to true",
+                        "Trace Inspector failed to start because enableTraceInspector field is false. Please set it to true",
                     );
                     await treeProvider.toggleTreeItem.resetView();
                     treeProvider.refresh();
@@ -125,7 +125,7 @@ export function registerInspectorView(emitter: vscode.EventEmitter<any>, version
             // When traceInspectorEnabled is undefined, debug session is not started. We can enable trace inspector in this case.
             if (traceInspectorEnabled === false) {
                 vscode.window.showErrorMessage(
-                    "Trace Inpsector failed to start because of the version of debug.gem was less than 1.8.0. Please update the version.",
+                    "Trace Inspector failed to start because of the version of debug.gem was less than 1.8.0. Please update the version.",
                 );
                 return;
             }
@@ -242,7 +242,7 @@ async function validVersion(
 ) {
     const str = await versionChecker.getVersion(config);
     if (str === null) {
-        vscode.window.showErrorMessage("Trace Inpsector failed to start because of failing to check version");
+        vscode.window.showErrorMessage("Trace Inspector failed to start because of failing to check version");
         return false;
     }
     const version = versionChecker.vernum(str);
@@ -252,7 +252,7 @@ async function validVersion(
             await treeProvider.toggleTreeItem.resetView();
             treeProvider.refresh();
             vscode.window.showErrorMessage(
-                "Trace Inpsector failed to start because of the version of debug.gem was less than 1.8.0. Please update the version.",
+                "Trace Inspector failed to start because of the version of debug.gem was less than 1.8.0. Please update the version.",
             );
         }
         return false;
