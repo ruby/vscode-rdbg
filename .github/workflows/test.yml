@@ -30,7 +30,7 @@ jobs:
       run: |
         gem install debug
         rdbg -v
-    - run: npm install
+    - run: npm ci
     - run: xvfb-run -a npm test
       if: runner.os == 'Linux'
     # VS code overrides The PATH environment variable:
