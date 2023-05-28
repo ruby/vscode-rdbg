@@ -338,14 +338,12 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		return !this.rubyActivated && this.supportLogin(shell)
 	}
 
-	makeShellCommand(cmd: string) {
-		const shell = process.env.SHELL;
-		if (this.needShell(shell)) {
-			return shell + " -lic '" + cmd + "'";
-		} else {
-			return cmd;
-		}
-	}
+    getDefaultShell() {
+        if (this.rubyActivated) {
+            return undefined
+        }
+        return process.env.SHELL;
+    }
 
 	// Activate the Ruby environment variables using a version manager
 	async activateRuby(cwd: string | undefined) {
@@ -356,20 +354,20 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		try {
 			switch (manager) {
 				case VersionManager.Asdf:
-					command = this.makeShellCommand('asdf exec ruby');
+					command = 'asdf exec ruby';
 					await this.injectRubyEnvironment(command, cwd);
 					break;
 				case VersionManager.Rbenv:
-					command = this.makeShellCommand('rbenv exec ruby');
+					command = 'rbenv exec ruby';
 					await this.injectRubyEnvironment(command, cwd);
 					break;
 				case VersionManager.Rvm:
-					command = this.makeShellCommand('rvm-auto-ruby');
+					command = 'rvm-auto-ruby';
 					await this.injectRubyEnvironment(command, cwd);
 					break;
 				case VersionManager.Chruby:
 					const rubyVersion = fs.readFileSync(path.join(cwd!, ".ruby-version"), "utf8").trim();
-					command = this.makeShellCommand(`chruby-exec "${rubyVersion}" -- ruby`);
+					command = `chruby-exec "${rubyVersion}" -- ruby`;
 					await this.injectRubyEnvironment(command, cwd);
 					break;
 				case VersionManager.Shadowenv:
@@ -393,7 +391,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		// terminal/shell combinations may print extra characters in interactive mode
 		const result = await asyncExec(`${command} -rjson -e "printf(%{RUBY_ENV_ACTIVATE%sRUBY_ENV_ACTIVATE}, JSON.dump(ENV.to_h))"`, {
 			cwd,
-			env: process.env
+			env: process.env,
+            shell: this.getDefaultShell()
 		});
 
 		const envJson = result.stdout.match(
@@ -404,11 +403,12 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 	}
 
 	async getSockList(config: AttachConfiguration): Promise<string[]> {
-		const cmd = this.makeShellCommand(this.rdbgBin(config) + " --util=list-socks");
+		const cmd = this.rdbgBin(config) + " --util=list-socks";
 		return new Promise((resolve, reject) => {
 			child_process.exec(cmd, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: { ...process.env, ...config.env },
+                shell: this.getDefaultShell()
 			}, (err, stdout, stderr) => {
 				if (err || stderr) {
 					reject(err ?? stderr);
@@ -496,10 +496,11 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 
 	getSockPath(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
-			const command = this.makeShellCommand(this.rdbgBin(config) + " --util=gen-sockpath");
+			const command = this.rdbgBin(config) + " --util=gen-sockpath";
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: { ...process.env, ...config.env },
+                shell: this.getDefaultShell()
 			});
 			let path: string;
 
@@ -527,10 +528,11 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 
 	getTcpPortFile(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
-			const command = this.makeShellCommand(this.rdbgBin(config) + " --util=gen-portpath");
+			const command = this.rdbgBin(config) + " --util=gen-portpath";
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: { ...process.env, ...config.env },
+                shell: this.getDefaultShell()
 			});
 			let path: string;
 
@@ -551,10 +553,11 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 
 	getVersion(config: LaunchConfiguration): Promise<string | null> {
 		return new Promise((resolve) => {
-			const command = this.makeShellCommand(this.rdbgBin(config) + " --version");
+			const command = this.rdbgBin(config) + " --version";
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: { ...process.env, ...config.env },
+                shell: this.getDefaultShell()
 			});
 			let version: string;
 
@@ -916,29 +919,15 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		blue: 34
 	};
 
-	private getSpawnCommand(rdbg: string): string {
-		const shell = process.env.SHELL;
-		if (shell && this.needShell(shell)) {
-			return shell;
-		}
-		return rdbg;
-	}
-
-	private getSpawnArgs(rdbg: string, args: string[]): string[] {
-		const shell = process.env.SHELL;
-		if (this.needShell(shell)) {
-			return ['-lic', rdbg  + ' ' + args.join(' ')];
-		}
-		return args;
-	}
-
-	private runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, rdbg: string, rdbgArgs: string[], options: child_process.SpawnOptionsWithoutStdio) {
-		const cmd = this.getSpawnCommand(rdbg);
-		const args = this.getSpawnArgs(rdbg, rdbgArgs);
+	private runDebuggeeWithUnix(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
 		pp(`Running: ${cmd} ${args?.join(" ")}`);
 		let connectionReady = false;
 		let sockPath = "";
 		let stderr = "";
+        if (options === undefined) {
+            options = {};
+        }
+        options.shell = this.getDefaultShell();
 		return new Promise<string>((resolve, reject) => {
 			const debugProcess = child_process.spawn(cmd, args, options);
 			debugProcess.stderr.on("data", (chunk) => {
@@ -975,14 +964,16 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 
 	private readonly TCPRegex = /DEBUGGER:\sDebugger\scan\sattach\svia\s.+\((.+):(\d+)\)/;
 
-	private runDebuggeeWithTCP(debugConsole: vscode.DebugConsole, rdbg: string, rdbgArgs: string[], options: child_process.SpawnOptionsWithoutStdio) {
-		const cmd = this.getSpawnCommand(rdbg);
-		const args = this.getSpawnArgs(rdbg, rdbgArgs);
+	private runDebuggeeWithTCP(debugConsole: vscode.DebugConsole, cmd: string, args?: string[] | undefined, options?: child_process.SpawnOptionsWithoutStdio) {
 		pp(`Running: ${cmd} ${args?.join(" ")}`);
 		let connectionReady = false;
 		let host = "";
 		let port = -1;
 		let stderr = "";
+        if (options === undefined) {
+            options = {};
+        }
+        options.shell = this.getDefaultShell();
 		return new Promise<[string, number]>((resolve, reject) => {
 			const debugProcess = child_process.spawn(cmd, args, options);
 			debugProcess.stderr.on("data", (chunk) => {
