@@ -300,6 +300,10 @@
 			{
 				"command": "rdbg.inspector.disableTraceClanguageCall",
 				"title": "✓ Trace c_call / c_return"
+			},
+			{
+				"command": "rdbg.setVariableValue",
+				"title": "Set Value"
 			}
 		],
 		"menus": {
@@ -369,6 +373,12 @@
 				{
 					"command": "rdbg.inspector.copyLog",
 					"when": "view == rdbg.inspector"
+				}
+			],
+			"debug/variables/context": [
+				{
+					"command": "rdbg.setVariableValue",
+					"when": "debugType == 'rdbg'"
 				}
 			]
 		}
