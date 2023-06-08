@@ -22,7 +22,7 @@ import {
 import { DebugProtocol } from "@vscode/debugprotocol";
 import { registerInspectorView } from "./inspector";
 import { AttachConfiguration, LaunchConfiguration } from "./config";
-import { VersionChecker } from "./utils";
+import { VersionChecker, fullPath } from "./utils";
 
 const asyncExec = promisify(child_process.exec);
 
@@ -483,7 +483,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		}
 
 		if (sockPath) {
-			return new DebugAdapterNamedPipeServer(sockPath);
+			return new DebugAdapterNamedPipeServer(fullPath(sockPath, session));
 		}
 		else if (port) {
 			return new vscode.DebugAdapterServer(port, host);
