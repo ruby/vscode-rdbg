@@ -403,12 +403,26 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		process.env = JSON.parse(envJson);
 	}
 
+	private getEnv(config?: LaunchConfiguration | AttachConfiguration): NodeJS.ProcessEnv {
+		const shell = process.env.SHELL;
+		if (!this.rubyActivated && shell && shell.endsWith("zsh")) {
+			// Disable color outputs.
+			// Fixes ruby/vscode-rdbg#277.
+			return {
+				...process.env, ...config?.env, TERM: "dumb"
+			}
+		}
+		return {
+			...process.env, ...config?.env
+		}
+	}
+
 	async getSockList(config: AttachConfiguration): Promise<string[]> {
 		const cmd = this.makeShellCommand(this.rdbgBin(config) + " --util=list-socks");
 		return new Promise((resolve, reject) => {
 			child_process.exec(cmd, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: this.getEnv(config)
 			}, (err, stdout, stderr) => {
 				if (err) {
 					reject(err);
@@ -504,7 +518,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 			const command = this.makeShellCommand(this.rdbgBin(config) + " --util=gen-sockpath");
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: this.getEnv(config)
 			});
 			let path: string;
 
@@ -535,7 +549,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 			const command = this.makeShellCommand(this.rdbgBin(config) + " --util=gen-portpath");
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: this.getEnv(config)
 			});
 			let path: string;
 
@@ -559,7 +573,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 			const command = this.makeShellCommand(this.rdbgBin(config) + " --version");
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: this.getEnv(config)
 			});
 			let version: string;
 
@@ -869,7 +883,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 			throw error;
 		}
 		const options: child_process.SpawnOptionsWithoutStdio = {
-			env: { ...process.env, ...config.env },
+			env: this.getEnv(config),
 			cwd: customPath(config.cwd || ""),
 		};
 		if (process.platform === "win32") options.shell = "powershell";
