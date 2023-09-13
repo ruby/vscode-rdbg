@@ -446,6 +446,38 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		}
 	}
 
+	findLongestCommonPrefix(strings: string[]): string {
+		if (strings.length === 0) {
+			return "";
+		}
+
+		let lcp = strings[0];
+		for (let i = 1; i < strings.length; i++) {
+			const curr = strings[i];
+			let j = 0;
+			while (j < lcp.length && j < curr.length && lcp[j] === curr[j]) {
+			j++;
+			}
+			lcp = lcp.substring(0, j);
+		}
+		return lcp;
+	}
+
+
+	simplifySockList(list: string[]): string[] {
+		const lcp = this.findLongestCommonPrefix(list);
+		const lastSlashPosition = lcp.lastIndexOf("/");
+
+		const simplified = list.map (sock => {
+			if (lastSlashPosition > 0) {
+				sock = ".../" + sock.substring(lastSlashPosition + 1);
+			}
+			return sock
+		});
+
+		return simplified;
+	}
+
 	async attach(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as AttachConfiguration;
 		let port: number | undefined;
@@ -472,9 +504,11 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 					sockPath = list[0];
 					break;
 				default:
-					const sock = await vscode.window.showQuickPick(list);
+					const simplifiedList = this.simplifySockList(list);
+					const sock = await vscode.window.showQuickPick(simplifiedList);
 					if (sock) {
-						sockPath = sock;
+						const index = simplifiedList.indexOf(sock);
+						sockPath = list[index];
 					}
 					else {
 						return new DebugAdapterInlineImplementation(new StopDebugAdapter);
