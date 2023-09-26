@@ -352,24 +352,25 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		this.rubyActivated = false;
 		const manager: VersionManager | undefined = vscode.workspace.getConfiguration("rdbg").get("rubyVersionManager");
 		let command;
+		const rubyEnvCommand = ' -rjson -e "printf(%{RUBY_ENV_ACTIVATE%sRUBY_ENV_ACTIVATE}, JSON.dump(ENV.to_h))"';
 
 		try {
 			switch (manager) {
 				case VersionManager.Asdf:
-					command = this.makeShellCommand('asdf exec ruby');
+					command = this.makeShellCommand('asdf exec ruby' + rubyEnvCommand);
 					await this.injectRubyEnvironment(command, cwd);
 					break;
 				case VersionManager.Rbenv:
-					command = this.makeShellCommand('rbenv exec ruby');
+					command = this.makeShellCommand('rbenv exec ruby' + rubyEnvCommand);
 					await this.injectRubyEnvironment(command, cwd);
 					break;
 				case VersionManager.Rvm:
-					command = this.makeShellCommand('rvm-auto-ruby');
+					command = this.makeShellCommand('rvm-auto-ruby' + rubyEnvCommand);
 					await this.injectRubyEnvironment(command, cwd);
 					break;
 				case VersionManager.Chruby:
 					const rubyVersion = fs.readFileSync(path.join(cwd!, ".ruby-version"), "utf8").trim();
-					command = this.makeShellCommand(`chruby-exec "${rubyVersion}" -- ruby`);
+					command = this.makeShellCommand(`chruby-exec "${rubyVersion}" -- ruby` + rubyEnvCommand);
 					await this.injectRubyEnvironment(command, cwd);
 					break;
 				case VersionManager.Shadowenv:
@@ -391,7 +392,7 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		// Print the current environment after activating it with a version manager, so that we can inject it into the node
 		// process. We wrap the environment JSON in `RUBY_ENV_ACTIVATE` to make sure we extract only the JSON since some
 		// terminal/shell combinations may print extra characters in interactive mode
-		const result = await asyncExec(`${command} -rjson -e "printf(%{RUBY_ENV_ACTIVATE%sRUBY_ENV_ACTIVATE}, JSON.dump(ENV.to_h))"`, {
+		const result = await asyncExec(command, {
 			cwd,
 			env: process.env
 		});
