@@ -84,7 +84,7 @@
 								"description": "Specify pairs of remote root path and local root path like `/remote_dir:/local_dir`. `/remote_dir:$(workspaceFolder)` is useful. You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`."
 							},
 							"env": {
-								"type": "string",
+								"type": "object",
 								"description": "Additional environment variables to pass to the rdbg process",
 								"default": {}
 							}
