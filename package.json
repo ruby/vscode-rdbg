@@ -397,7 +397,7 @@
 		"@vscode/test-electron": "^2.3.5",
 		"eslint": "^8.52.0",
 		"eslint-config-prettier": "^8.8.0",
-		"glob": "^8.1.0",
+		"glob": "^10.3.10",
 		"mocha": "^10.2.0",
 		"prettier": "^2.8.8",
 		"typescript": "^5.2.2",
