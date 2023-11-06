@@ -166,7 +166,7 @@ $ RUBY_DEBUG_OPEN=true ruby -r debug foo.rb
 $ RUBY_DEBUG_OPEN=true ruby foo.rb
 
 # If your Gemfile has a line `gem 'debug'` with Rails, you only need to launch it with the `RUBY_DEBUG_OPEN` envval.
-$ RUBY_DEBUG_OPEN=true raise server
+$ RUBY_DEBUG_OPEN=true rails server
 ```
 
 After that, you can connect to the debug port. This extension searches opening debugger port and attach to that port by running `Attach with rdbg` (select it on the top of "RUN AND DEBUG" pane and push the green "Start Debugging" button).
