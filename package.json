@@ -396,7 +396,7 @@
 		"@vscode/debugprotocol": "^1.63.0",
 		"@vscode/test-electron": "^2.3.6",
 		"eslint": "^8.52.0",
-		"eslint-config-prettier": "^8.8.0",
+		"eslint-config-prettier": "^9.0.0",
 		"glob": "^8.1.0",
 		"mocha": "^10.2.0",
 		"prettier": "^2.8.8",
