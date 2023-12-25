@@ -447,6 +447,15 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 		}
 	}
 
+	simplifySockList(list: string[]): string[] {
+		const simplified = list.map (sock_path => {
+			sock_path = path.basename(sock_path);
+			return sock_path;
+		});
+
+		return simplified;
+	}
+
 	async attach(session: DebugSession): Promise<DebugAdapterDescriptor> {
 		const config = session.configuration as AttachConfiguration;
 		let port: number | undefined;
@@ -473,9 +482,13 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 					sockPath = list[0];
 					break;
 				default:
-					const sock = await vscode.window.showQuickPick(list);
+					const simplifiedList = this.simplifySockList(list);
+					const sock = await vscode.window.showQuickPick(simplifiedList, {
+						title: "debug ports in " + path.dirname(list[0])
+					});
 					if (sock) {
-						sockPath = sock;
+						const index = simplifiedList.indexOf(sock);
+						sockPath = list[index];
 					}
 					else {
 						return new DebugAdapterInlineImplementation(new StopDebugAdapter);
