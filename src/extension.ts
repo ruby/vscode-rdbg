@@ -448,12 +448,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 	}
 
 	simplifySockList(list: string[]): string[] {
-		const simplified = list.map (sock_path => {
-			sock_path = path.basename(sock_path);
-			return sock_path;
+		return list.map (sockPath => {
+			return path.basename(sockPath);
 		});
-
-		return simplified;
 	}
 
 	async attach(session: DebugSession): Promise<DebugAdapterDescriptor> {
