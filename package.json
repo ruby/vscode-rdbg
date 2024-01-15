@@ -401,6 +401,6 @@
 		"mocha": "^10.2.0",
 		"prettier": "^3.2.2",
 		"typescript": "^5.3.3",
-		"vscode-extension-tester": "^5.10.0"
+		"vscode-extension-tester": "^7.0.0"
 	}
 }
