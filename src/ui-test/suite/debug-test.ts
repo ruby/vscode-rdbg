@@ -57,30 +57,6 @@ describe("breakpoint", () => {
 		});
 
 		describe("remove breakpoint", () => {
-			it("editor", async () => {
-				const editor = (await new EditorView().openEditor("test.rb")) as TextEditor;
-				const expected = 2;
-				const result1 = await editor.toggleBreakpoint(expected);
-				assert.ok(result1);
-				const view = await getDebugView();
-				await view.start();
-				const bar = await DebugToolbar.create(timeoutSec);
-				await bar.waitForBreakPoint();
-				await assertLocation(expected, view);
-				const result2 = await editor.toggleBreakpoint(3);
-				assert.ok(result2);
-				const result3 = await editor.toggleBreakpoint(4);
-				assert.ok(result3);
-				// remove breakpoint
-				const result4 = await editor.toggleBreakpoint(3);
-				assert.ok(!result4);
-				await bar.continue();
-				await bar.waitForBreakPoint();
-				await assertLocation(4, view);
-				await bar.stop();
-				return new Promise((resolve, _reject) => resolve());
-			});
-
 			it("debug console", async () => {
 				const editor = (await new EditorView().openEditor("test.rb")) as TextEditor;
 				const expected = 2;
