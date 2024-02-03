@@ -41,6 +41,7 @@ let lastExecCommand: string | undefined;
 let lastProgram: string | undefined;
 
 const terminalName: string = "Ruby Debug Terminal";
+const attachSingleSocketEvent: string = "attachSingleSocket";
 
 function workspaceFolder(): string | undefined {
 	if (vscode.workspace.workspaceFolders) {
@@ -118,6 +119,24 @@ export function activate(context: vscode.ExtensionContext) {
 			pp(err);
 		}
 	}));
+
+	context.subscriptions.push(
+		vscode.debug.onDidReceiveDebugSessionCustomEvent((e) => {
+			switch (e.event) {
+				case attachSingleSocketEvent:
+					vscode.debug.startDebugging(
+						e.session.workspaceFolder,
+						{
+							type: "rdbg",
+							name: e.body.name,
+							request: "attach",
+							debugPort: e.body.socketPath,
+						} as AttachConfiguration,
+						e.session,
+					);
+			}
+		}),
+	);
 
 	const folders = vscode.workspace.workspaceFolders;
 
@@ -262,6 +281,34 @@ class StopDebugAdapter implements vscode.DebugAdapter {
 	}
 
 	dispose() {
+	}
+}
+
+class MultiSessionDebugAdapter implements vscode.DebugAdapter {
+	private sockPaths: Array<string> = [];
+	private sendMessage = new vscode.EventEmitter<vscode.DebugProtocolMessage>();
+	readonly onDidSendMessage: vscode.Event<any> = this.sendMessage.event;
+
+	constructor(sockPaths: Array<string>) {
+		this.sockPaths = sockPaths;
+	}
+
+	handleMessage(message: any): void {
+		if (message.type === "request" && message.command === "initialize") {
+			for (const [index, socketPath] of this.sockPaths.entries()) {
+				const name = socketPath.split("/").pop();
+				this.sendMessage.fire({
+					type: "event",
+					seq: index,
+					event: attachSingleSocketEvent,
+					body: { name, socketPath },
+				});
+			}
+		}
+	}
+
+	dispose() {
+		// Nothing to do
 	}
 }
 
@@ -479,6 +526,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 					sockPath = list[0];
 					break;
 				default:
+					if (config.supportAttachMultiSockets) {
+						return new DebugAdapterInlineImplementation(new MultiSessionDebugAdapter(list));
+					}
+
 					const simplifiedList = this.simplifySockList(list);
 					const sock = await vscode.window.showQuickPick(simplifiedList, {
 						title: "debug ports in " + path.dirname(list[0])
