@@ -49,7 +49,7 @@ jobs:
 
         launchable verify
 
-        launchable record build --name "${{ env.GITHUB_RUN_ID }}"
+        launchable record build --name "${{ env.GITHUB_PR_HEAD_SHA }}"
 
         cat .launchable
 
