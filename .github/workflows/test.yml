@@ -43,13 +43,15 @@ jobs:
       with:
         distribution: 'adopt'
         java-version: '8'
-    - name: Launchable - install command
-      run: pip install launchable
-    - name: Launchable - verify
-      run: launchable verify
-    - name: Launchable - record build
-      run: launchable record build --name "${GITHUB_PR_HEAD_SHA}"
-    - run: cat .launchable
+    - name: Setup Launchable
+      run: |
+        pip install launchable
+
+        launchable verify
+
+        launchable record build --name "${{ env.GITHUB_RUN_ID }}"
+
+        cat .launchable
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
@@ -81,6 +83,7 @@ jobs:
       if: runner.os == 'macOS'
     - run: npm test
       if: runner.os != 'Linux'
+    - run: cat .launchable
     - name: Record tests with Launchable
       run: launchable record tests --flavor os=${{ matrix.os }} --flavor test=integration_test file $LAUNCHABLE_TEST_REPORTS
       if: always()
