@@ -46,8 +46,11 @@ jobs:
     - name: Setup Launchable
       run: |
         pip install launchable
+
         launchable verify
+
         launchable record build --name ${GITHUB_RUN_ID}
+
         cat .launchable
 
     - name: Set up Ruby
