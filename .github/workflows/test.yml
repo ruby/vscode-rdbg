@@ -8,6 +8,18 @@ on:
     branches:
       - master
 
+env:
+  LAUNCHABLE_TEST_REPORTS: "launchable-test-reports.xml"
+  # GITHUB_PULL_REQUEST_URL are used for commenting test reports in Launchable Github App.
+  # https://github.com/launchableinc/cli/blob/v1.80.1/launchable/utils/link.py#L42
+  GITHUB_PULL_REQUEST_URL: ${{ github.event.pull_request.html_url }}
+  # The following envs are necessary in Launchable tokenless authentication.
+  # https://github.com/launchableinc/cli/blob/v1.80.1/launchable/utils/authentication.py#L20
+  LAUNCHABLE_ORGANIZATION: "ruby"
+  LAUNCHABLE_WORKSPACE: "vscode-rdbg"
+  # https://github.com/launchableinc/cli/blob/v1.80.1/launchable/utils/authentication.py#L71
+  GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
 jobs:
   test:
     strategy:
@@ -18,6 +30,25 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        # Set fetch-depth: 0 so that Launchable can receive commits information.
+        fetch-depth: 0
+    # Launchable requires Python and Java
+    # https://www.launchableinc.com/docs/resources/cli-reference/
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'adopt'
+        java-version: '8'
+    - name: Setup Launchable
+      run: |
+        pip install launchable
+        launchable verify
+        launchable record build --name "$GITHUB_PR_HEAD_SHA"
+
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
@@ -48,6 +79,9 @@ jobs:
       if: runner.os == 'macOS'
     - run: npm test
       if: runner.os != 'Linux'
+    - name: Record tests with Launchable
+      run: launchable record tests --flavor os=${{ matrix.os }} --flavor test=integration_test file $LAUNCHABLE_TEST_REPORTS
+      if: always()
 
   dependabot:
     needs: test
