@@ -5,12 +5,45 @@ on:
     # This job runs at 00:00 UTC every day.
     - cron: '0 0 * * *'
 
+env:
+  LAUNCHABLE_TEST_REPORTS: "launchable-test-reports.xml"
+  # GITHUB_PULL_REQUEST_URL are used for commenting test reports in Launchable Github App.
+  # https://github.com/launchableinc/cli/blob/v1.80.1/launchable/utils/link.py#L42
+  GITHUB_PULL_REQUEST_URL: ${{ github.event.pull_request.html_url }}
+  # The following envs are necessary in Launchable tokenless authentication.
+  # https://github.com/launchableinc/cli/blob/v1.80.1/launchable/utils/authentication.py#L20
+  LAUNCHABLE_ORGANIZATION: "ruby"
+  LAUNCHABLE_WORKSPACE: "vscode-rdbg"
+  # https://github.com/launchableinc/cli/blob/v1.80.1/launchable/utils/authentication.py#L71
+  GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        # Set fetch-depth: 0 so that Launchable can receive commits information.
+        fetch-depth: 0
+    # Launchable requires Python and Java
+    # https://www.launchableinc.com/docs/resources/cli-reference/
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'adopt'
+        java-version: '8'
+    - name: Setup Launchable
+      run: |
+        pip install launchable
+        launchable verify
+        : # The build name must be a unique identifier for this build. Therefore, $GITHUB_RUN_ID is appropriate in this case.
+        : # https://www.launchableinc.com/docs/sending-data-to-launchable/using-the-launchable-cli/recording-builds-with-the-launchable-cli/
+        launchable record build --name "$GITHUB_RUN_ID"
+
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
@@ -22,3 +55,6 @@ jobs:
     - run: gem install debug
     - run: npm install @types/vscode@1.65.0
     - run: xvfb-run -a npm run ui-test
+    - name: Record tests with Launchable
+      run: launchable record tests --flavor os=ubuntu-latest --flavor test=e2e_test file $LAUNCHABLE_TEST_REPORTS
+      if: always()
