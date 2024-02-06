@@ -9,6 +9,8 @@ export function run(): Promise<void> {
 		color: true
 	}
 	const testReports = process.env.LAUNCHABLE_TEST_REPORTS
+	console.log('debug')
+	console.log(testReports)
 	if (testReports) {
 		mochaOpts.reporter = 'mocha-junit-reporter';
 		mochaOpts.reporterOptions = {
