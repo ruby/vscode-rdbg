@@ -9,7 +9,8 @@ on:
       - master
 
 env:
-  LAUNCHABLE_TEST_REPORTS: ${{ format('{0}/{1}', github.workspace, 'launchable-test-reports.xml') }}
+  # 
+  LAUNCHABLE_TEST_REPORTS: ${{ format('{0}-{1}', github.workspace, 'launchable-test-reports.xml') }}
   # GITHUB_PULL_REQUEST_URL are used for commenting test reports in Launchable Github App.
   # https://github.com/launchableinc/cli/blob/v1.80.1/launchable/utils/link.py#L42
   GITHUB_PULL_REQUEST_URL: ${{ github.event.pull_request.html_url }}
