@@ -77,7 +77,9 @@ jobs:
     # The RUBY_DEBUG_TEST_PATH environment variable is for setting correct ruby path when testing.
     - run: echo "RUBY_DEBUG_TEST_PATH=`which ruby`" >> $GITHUB_ENV
       if: runner.os == 'macOS'
-    - run: npm test
+    - run: |
+        npm test
+        cat ${{ env.LAUNCHABLE_TEST_REPORTS }}
       if: runner.os != 'Linux'
     - name: Record tests with Launchable
       run: launchable record tests --flavor os=${{ matrix.os }} --flavor test=integration_test file "${{ env.LAUNCHABLE_TEST_REPORTS }}"
