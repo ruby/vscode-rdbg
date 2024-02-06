@@ -399,6 +399,7 @@
 		"eslint-config-prettier": "^9.1.0",
 		"glob": "^8.1.0",
 		"mocha": "^10.2.0",
+		"mocha-junit-reporter": "^2.2.1",
 		"prettier": "^3.2.5",
 		"typescript": "^5.3.3",
 		"vscode-extension-tester": "^7.0.0"

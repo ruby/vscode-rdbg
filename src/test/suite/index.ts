@@ -1,13 +1,22 @@
 import * as path from "path";
 import * as Mocha from "mocha";
 import * as glob from "glob";
+import { MochaOptions } from "mocha";
 
 export function run(): Promise<void> {
-	// Create the mocha test
-	const mocha = new Mocha({
+	const mochaOpts: MochaOptions = {
 		ui: "tdd",
 		color: true
-	});
+	}
+	const testReports = process.env.LAUNCHABLE_TEST_REPORTS
+	if (testReports) {
+		mochaOpts.reporter = 'mocha-junit-reporter';
+		mochaOpts.reporterOptions = {
+			mochaFile: testReports
+		}
+	}
+	// Create the mocha test
+	const mocha = new Mocha(mochaOpts);
 
 	mocha.timeout("20000");
 
