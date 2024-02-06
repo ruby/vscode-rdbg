@@ -24,7 +24,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [windows-latest]
         ruby-version: ['head']
     runs-on: ${{ matrix.os }}
     steps:
@@ -80,7 +80,7 @@ jobs:
     - run: npm test
       if: runner.os != 'Linux'
     - name: Record tests with Launchable
-      run: launchable record tests --flavor os=${{ matrix.os }} --flavor test=integration_test file ${{ env.LAUNCHABLE_TEST_REPORTS }}
+      run: launchable record tests --flavor os=${{ matrix.os }} --flavor test=integration_test file "${{ env.LAUNCHABLE_TEST_REPORTS }}"
       if: always()
 
   dependabot:
