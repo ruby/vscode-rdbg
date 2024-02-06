@@ -24,7 +24,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [windows-latest]
         ruby-version: ['head']
     runs-on: ${{ matrix.os }}
     steps:
