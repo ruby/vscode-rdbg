@@ -48,7 +48,7 @@ jobs:
     - name: Launchable - verify
       run: launchable verify
     - name: Launchable - record build
-      run: launchable record build --name ${GITHUB_PR_HEAD_SHA}
+      run: launchable record build --name "${GITHUB_PR_HEAD_SHA}"
     - run: cat .launchable
 
     - name: Set up Ruby
