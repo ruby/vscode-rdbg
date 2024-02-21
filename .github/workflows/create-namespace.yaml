@@ -1,0 +1,22 @@
+name: Create the namespace
+
+on:
+  workflow_dispatch:
+
+jobs:
+  createNamespace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - name: Create the namespace
+        run: |
+          npm install
+          npm install -g ovsx
+          ovsx create-namespace KoichiSasada
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
