@@ -234,6 +234,11 @@
 						"none"
 					],
 					"default": "none"
+				},
+				"rdbg.hideClassItem": {
+					"type": "boolean",
+					"default": false,
+					"description": "Hide the #class item for each object in VARIABLES view"
 				}
 			}
 		},
