@@ -387,7 +387,6 @@
 		"ui-test": "npm run compile && echo y | extest setup-and-run -c 1.65.0 -m out/ui-test/config.js out/ui-test/suite/*.js"
 	},
 	"devDependencies": {
-		"@types/glob": "^8.1.0",
 		"@types/mocha": "^10.0.6",
 		"@types/node": "^20.11.25",
 		"@types/vscode": "^1.65.0",
@@ -397,7 +396,7 @@
 		"@vscode/test-electron": "^2.3.9",
 		"eslint": "^8.57.0",
 		"eslint-config-prettier": "^9.1.0",
-		"glob": "^8.1.0",
+		"glob": "^10.3.10",
 		"mocha": "^10.3.0",
 		"mocha-junit-reporter": "^2.2.1",
 		"prettier": "^3.2.5",
