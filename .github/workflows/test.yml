@@ -65,6 +65,10 @@ jobs:
         gem install debug
         rdbg -v
     - run: npm ci
+    - name: Lint ESLint
+      run: npm run lint:eslint
+    - name: Lint Prettier
+      run: npm run lint:prettier
     - run: xvfb-run -a npm test
       if: runner.os == 'Linux'
     # VS code overrides The PATH environment variable:

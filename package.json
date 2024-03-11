@@ -1,406 +1,406 @@
 {
-	"name": "vscode-rdbg",
-	"displayName": "VSCode rdbg Ruby Debugger",
-	"description": "Ruby's rdbg debugger support for VSCode",
-	"publisher": "KoichiSasada",
-	"version": "0.2.2",
-	"license": "MIT",
-	"icon": "icon.png",
-	"author": {
-		"name": "Koichi Sasada",
-		"email": "ko1@atdot.net",
-		"url": "https://www.atdot.net/~ko1/"
-	},
-	"homepage": "https://github.com/ruby/vscode-rdbg",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/ruby/vscode-rdbg.git"
-	},
-	"bugs": {
-		"url": "https://github.com/ruby/vscode-rdbg/issues"
-	},
-	"categories": [
-		"Debuggers"
-	],
-	"keywords": [
-		"debug",
-		"debugging",
-		"debugger",
-		"ruby",
-		"rdbg"
-	],
-	"engines": {
-		"vscode": "^1.65.0"
-	},
-	"activationEvents": [
-		"onLanguage:ruby",
-		"onDebug",
-		"workspaceContains:.vscode/rdbg_autoattach.json",
-		"onView:rdbg.inspector"
-	],
-	"main": "./out/extension.js",
-	"contributes": {
-		"breakpoints": [
-			{
-				"language": "ruby"
-			},
-			{
-				"language": "haml"
-			},
-			{
-				"language": "slim"
-			}
-		],
-		"debuggers": [
-			{
-				"type": "rdbg",
-				"label": "Ruby (rdbg)",
-				"languages": [
-					"ruby"
-				],
-				"configurationAttributes": {
-					"attach": {
-						"properties": {
-							"rdbgPath": {
-								"type": "string",
-								"description": "Location of the rdbg executable"
-							},
-							"debugPort": {
-								"type": "string",
-								"description": "UNIX domain socket name or TPC/IP host:port"
-							},
-							"showProtocolLog": {
-								"type": "boolean",
-								"description": "Show a log of DAP requests, events, and responses",
-								"default": false
-							},
-							"localfs": {
-								"type": "boolean",
-								"description": "true if the VSCode and debugger run on a same machine",
-								"default": false
-							},
-							"localfsMap": {
-								"type": "string",
-								"description": "Specify pairs of remote root path and local root path like `/remote_dir:/local_dir`. `/remote_dir:$(workspaceFolder)` is useful. You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`."
-							},
-							"env": {
-								"type": "object",
-								"description": "Additional environment variables to pass to the rdbg process",
-								"default": {}
-							}
-						}
-					},
-					"launch": {
-						"required": [
-							"script"
-						],
-						"properties": {
-							"command": {
-								"type": "string",
-								"description": "Command name (ruby, rake, bin/rails, bundle exec ruby, etc)",
-								"default": "ruby"
-							},
-							"script": {
-								"type": "string",
-								"description": "Absolute path to a Ruby file.",
-								"default": "${workspaceFolder}/${command:AskForProgramName}"
-							},
-							"cwd": {
-								"type": "string",
-								"description": "Directory to execute the program in",
-								"default": "${workspaceFolder}"
-							},
-							"args": {
-								"type": "array",
-								"description": "Command line arguments passed to the program",
-								"items": {
-									"type": "string"
-								},
-								"default": []
-							},
-							"env": {
-								"type": "object",
-								"description": "Additional environment variables to pass to the debugging (and debugged) process",
-								"default": {}
-							},
-							"showProtocolLog": {
-								"type": "boolean",
-								"description": "Show a log of DAP requests, events, and responses",
-								"default": false
-							},
-							"useBundler": {
-								"type": "boolean",
-								"description": "Execute Ruby programs with `bundle exec` instead of directly",
-								"default": false
-							},
-							"bundlePath": {
-								"type": "string",
-								"description": "Location of the bundle executable"
-							},
-							"rdbgPath": {
-								"type": "string",
-								"description": "Location of the rdbg executable"
-							},
-							"askParameters": {
-								"type": "boolean",
-								"description": "Ask parameters at first."
-							},
-							"debugPort": {
-								"type": "string",
-								"description": "UNIX domain socket name or TPC/IP host:port"
-							},
-							"waitLaunchTime": {
-								"type": "number",
-								"description": "Wait time before connection in milliseconds"
-							},
-							"localfs": {
-								"type": "boolean",
-								"description": "true if the VSCode and debugger run on a same machine",
-								"default": false
-							},
-							"useTerminal": {
-								"type": "boolean",
-								"description": "Create a new terminal and then execute commands there",
-								"default": false
-							}
-						}
-					}
-				},
-				"configurationSnippets": [
-					{
-						"label": "Ruby: launch current file with rdbg",
-						"description": "A new configuration to launch a current file with rdbg",
-						"body": {
-							"type": "rdbg",
-							"name": "Debug current file",
-							"request": "launch",
-							"script": "${file}",
-							"askParameters": true
-						}
-					},
-					{
-						"label": "Ruby: attach process with rdbg",
-						"description": "A new configuration to attach Ruby process with rdbg",
-						"body": {
-							"type": "rdbg",
-							"name": "Attach rdbg",
-							"request": "attach"
-						}
-					}
-				]
-			}
-		],
-		"configuration": {
-			"title": "Ruby rdbg debugger",
-			"properties": {
-				"rdbg.useBundler": {
-					"type": "boolean",
-					"default": true,
-					"description": "Run `bundle exec` if Gemfile is available."
-				},
-				"rdbg.saveBreakpoints": {
-					"type": "boolean",
-					"default": false,
-					"description": "(experimental) Save breakpoints information to '.rdbg.breakpoints' for rdbg command"
-				},
-				"rdbg.enableTraceInspector": {
-					"type": "boolean",
-					"default": true,
-					"description": "(experimental) Enable TraceInspector view. TraceInspector visualizes the trace log in Tree View. This feature will work in the version of debug.gem is 1.8.0 or higher."
-				},
-				"rdbg.enableTraceParameters": {
-					"type": "boolean",
-					"default": true,
-					"description": "(experimental) Enable tracing parameters in Call events."
-				},
-				"rdbg.enableTraceReturnValue": {
-					"type": "boolean",
-					"default": true,
-					"description": "(experimental) Enable tracing Return events."
-				},
-				"rdbg.maxTraceLogSize": {
-					"type": "number",
-					"default": 50000,
-					"description": "(experimental) Maximum size of trace log that a debugger will save"
-				},
-				"rdbg.rubyVersionManager": {
-					"type": "string",
-					"enum": [
-						"shadowenv",
-						"chruby",
-						"asdf",
-						"rbenv",
-						"rvm",
-						"none"
-					],
-					"default": "none"
-				}
-			}
-		},
-		"views": {
-			"debug": [
-				{
-					"id": "rdbg.inspector",
-					"name": "Trace Inspector"
-				}
-			]
-		},
-		"commands": [
-			{
-				"command": "rdbg.inspector.openPrevLog",
-				"title": "Go back to the previous log",
-				"icon": "$(arrow-up)"
-			},
-			{
-				"command": "rdbg.inspector.openNextLog",
-				"title": "Go to the next trace log",
-				"icon": "$(arrow-down)"
-			},
-			{
-				"command": "rdbg.inspector.disableTraceLine",
-				"title": "✓ Trace Line"
-			},
-			{
-				"command": "rdbg.inspector.enableTraceLine",
-				"title": "\u200B    Trace Line"
-			},
-			{
-				"command": "rdbg.inspector.disableTraceCall",
-				"title": "✓ Trace Call / Return"
-			},
-			{
-				"command": "rdbg.inspector.enableTraceCall",
-				"title": "\u200B    Trace Call / Return"
-			},
-			{
-				"command": "rdbg.inspector.disableRecordAndReplay",
-				"title": "✓ Record And Replay (Slow)"
-			},
-			{
-				"command": "rdbg.inspector.enableRecordAndReplay",
-				"title": "\u200B    Record And Replay (Slow)",
-				"enablement": "traceLineEnabled"
-			},
-			{
-				"command": "rdbg.inspector.enterFilter",
-				"title": "\u200B    Apply filter by RegExp"
-			},
-			{
-				"command": "rdbg.inspector.reenterFilter",
-				"title": "✓ Apply filter by RegExp"
-			},
-			{
-				"command": "rdbg.inspector.copyLog",
-				"title": "Copy Trace log"
-			},
-			{
-				"command": "rdbg.inspector.enableTraceClanguageCall",
-				"title": "\u200B    Trace c_call / c_return"
-			},
-			{
-				"command": "rdbg.inspector.disableTraceClanguageCall",
-				"title": "✓ Trace c_call / c_return"
-			}
-		],
-		"menus": {
-			"view/title": [
-				{
-					"command": "rdbg.inspector.openPrevLog",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.inspector.openNextLog",
-					"when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector",
-					"group": "navigation"
-				},
-				{
-					"command": "rdbg.inspector.disableTraceLine",
-					"when": "debuggersAvailable && view == rdbg.inspector && traceLineEnabled == true",
-					"group": "rdbg@1"
-				},
-				{
-					"command": "rdbg.inspector.enableTraceLine",
-					"when": "debuggersAvailable && view == rdbg.inspector && traceLineEnabled == false",
-					"group": "rdbg@1"
-				},
-				{
-					"command": "rdbg.inspector.disableTraceCall",
-					"when": "debuggersAvailable && view == rdbg.inspector && traceCallEnabled == true",
-					"group": "rdbg@2"
-				},
-				{
-					"command": "rdbg.inspector.enableTraceCall",
-					"when": "debuggersAvailable && view == rdbg.inspector && traceCallEnabled == false",
-					"group": "rdbg@2"
-				},
-				{
-					"command": "rdbg.inspector.disableRecordAndReplay",
-					"when": "debuggersAvailable && view == rdbg.inspector && recordAndReplayEnabled == true",
-					"group": "rdbg2@1"
-				},
-				{
-					"command": "rdbg.inspector.enableRecordAndReplay",
-					"when": "debuggersAvailable && view == rdbg.inspector && recordAndReplayEnabled == false",
-					"group": "rdbg2@1"
-				},
-				{
-					"command": "rdbg.inspector.enterFilter",
-					"when": "debuggersAvailable && view == rdbg.inspector && filterEntered == false",
-					"group": "rdbg2@2"
-				},
-				{
-					"command": "rdbg.inspector.reenterFilter",
-					"when": "debuggersAvailable && view == rdbg.inspector && filterEntered == true",
-					"group": "rdbg2@2"
-				},
-				{
-					"command": "rdbg.inspector.enableTraceClanguageCall",
-					"when": "debuggersAvailable && view == rdbg.inspector && traceClanguageCallEnabled == false",
-					"group": "rdbg2@3"
-				},
-				{
-					"command": "rdbg.inspector.disableTraceClanguageCall",
-					"when": "debuggersAvailable && view == rdbg.inspector && traceClanguageCallEnabled == true",
-					"group": "rdbg2@3"
-				}
-			],
-			"view/item/context": [
-				{
-					"command": "rdbg.inspector.copyLog",
-					"when": "view == rdbg.inspector"
-				}
-			]
-		}
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"lint": "eslint src --ext ts",
-		"format:eslint": "eslint src --ext ts --fix",
-		"format:prettier": "prettier --check . --write",
-		"format": "npm run format:eslint && npm run format:prettier",
-		"watch": "tsc -watch -p ./",
-		"pretest": "npm run compile && npm run lint",
-		"test": "node ./out/test/runTest.js",
-		"//": "`echo y` is used to allow to run tests without LICENSE.",
-		"ui-test": "npm run compile && echo y | extest setup-and-run -c 1.65.0 -m out/ui-test/config.js out/ui-test/suite/*.js"
-	},
-	"devDependencies": {
-		"@types/mocha": "^10.0.6",
-		"@types/node": "^20.11.24",
-		"@types/vscode": "^1.65.0",
-		"@typescript-eslint/eslint-plugin": "^5.62.0",
-		"@typescript-eslint/parser": "^5.62.0",
-		"@vscode/debugprotocol": "^1.65.0",
-		"@vscode/test-electron": "^2.3.9",
-		"eslint": "^8.57.0",
-		"eslint-config-prettier": "^9.1.0",
-		"glob": "^10.3.10",
-		"mocha": "^10.3.0",
-		"mocha-junit-reporter": "^2.2.1",
-		"prettier": "^3.2.5",
-		"typescript": "^5.3.3",
-		"vscode-extension-tester": "^7.2.0"
-	}
+    "name": "vscode-rdbg",
+    "displayName": "VSCode rdbg Ruby Debugger",
+    "description": "Ruby's rdbg debugger support for VSCode",
+    "publisher": "KoichiSasada",
+    "version": "0.2.2",
+    "license": "MIT",
+    "icon": "icon.png",
+    "author": {
+        "name": "Koichi Sasada",
+        "email": "ko1@atdot.net",
+        "url": "https://www.atdot.net/~ko1/"
+    },
+    "homepage": "https://github.com/ruby/vscode-rdbg",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ruby/vscode-rdbg.git"
+    },
+    "bugs": {
+        "url": "https://github.com/ruby/vscode-rdbg/issues"
+    },
+    "categories": [
+        "Debuggers"
+    ],
+    "keywords": [
+        "debug",
+        "debugging",
+        "debugger",
+        "ruby",
+        "rdbg"
+    ],
+    "engines": {
+        "vscode": "^1.65.0"
+    },
+    "activationEvents": [
+        "onLanguage:ruby",
+        "onDebug",
+        "workspaceContains:.vscode/rdbg_autoattach.json",
+        "onView:rdbg.inspector"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "breakpoints": [
+            {
+                "language": "ruby"
+            },
+            {
+                "language": "haml"
+            },
+            {
+                "language": "slim"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "rdbg",
+                "label": "Ruby (rdbg)",
+                "languages": [
+                    "ruby"
+                ],
+                "configurationAttributes": {
+                    "attach": {
+                        "properties": {
+                            "rdbgPath": {
+                                "type": "string",
+                                "description": "Location of the rdbg executable"
+                            },
+                            "debugPort": {
+                                "type": "string",
+                                "description": "UNIX domain socket name or TPC/IP host:port"
+                            },
+                            "showProtocolLog": {
+                                "type": "boolean",
+                                "description": "Show a log of DAP requests, events, and responses",
+                                "default": false
+                            },
+                            "localfs": {
+                                "type": "boolean",
+                                "description": "true if the VSCode and debugger run on a same machine",
+                                "default": false
+                            },
+                            "localfsMap": {
+                                "type": "string",
+                                "description": "Specify pairs of remote root path and local root path like `/remote_dir:/local_dir`. `/remote_dir:$(workspaceFolder)` is useful. You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`."
+                            },
+                            "env": {
+                                "type": "object",
+                                "description": "Additional environment variables to pass to the rdbg process",
+                                "default": {}
+                            }
+                        }
+                    },
+                    "launch": {
+                        "required": [
+                            "script"
+                        ],
+                        "properties": {
+                            "command": {
+                                "type": "string",
+                                "description": "Command name (ruby, rake, bin/rails, bundle exec ruby, etc)",
+                                "default": "ruby"
+                            },
+                            "script": {
+                                "type": "string",
+                                "description": "Absolute path to a Ruby file.",
+                                "default": "${workspaceFolder}/${command:AskForProgramName}"
+                            },
+                            "cwd": {
+                                "type": "string",
+                                "description": "Directory to execute the program in",
+                                "default": "${workspaceFolder}"
+                            },
+                            "args": {
+                                "type": "array",
+                                "description": "Command line arguments passed to the program",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "default": []
+                            },
+                            "env": {
+                                "type": "object",
+                                "description": "Additional environment variables to pass to the debugging (and debugged) process",
+                                "default": {}
+                            },
+                            "showProtocolLog": {
+                                "type": "boolean",
+                                "description": "Show a log of DAP requests, events, and responses",
+                                "default": false
+                            },
+                            "useBundler": {
+                                "type": "boolean",
+                                "description": "Execute Ruby programs with `bundle exec` instead of directly",
+                                "default": false
+                            },
+                            "bundlePath": {
+                                "type": "string",
+                                "description": "Location of the bundle executable"
+                            },
+                            "rdbgPath": {
+                                "type": "string",
+                                "description": "Location of the rdbg executable"
+                            },
+                            "askParameters": {
+                                "type": "boolean",
+                                "description": "Ask parameters at first."
+                            },
+                            "debugPort": {
+                                "type": "string",
+                                "description": "UNIX domain socket name or TPC/IP host:port"
+                            },
+                            "waitLaunchTime": {
+                                "type": "number",
+                                "description": "Wait time before connection in milliseconds"
+                            },
+                            "localfs": {
+                                "type": "boolean",
+                                "description": "true if the VSCode and debugger run on a same machine",
+                                "default": false
+                            },
+                            "useTerminal": {
+                                "type": "boolean",
+                                "description": "Create a new terminal and then execute commands there",
+                                "default": false
+                            }
+                        }
+                    }
+                },
+                "configurationSnippets": [
+                    {
+                        "label": "Ruby: launch current file with rdbg",
+                        "description": "A new configuration to launch a current file with rdbg",
+                        "body": {
+                            "type": "rdbg",
+                            "name": "Debug current file",
+                            "request": "launch",
+                            "script": "${file}",
+                            "askParameters": true
+                        }
+                    },
+                    {
+                        "label": "Ruby: attach process with rdbg",
+                        "description": "A new configuration to attach Ruby process with rdbg",
+                        "body": {
+                            "type": "rdbg",
+                            "name": "Attach rdbg",
+                            "request": "attach"
+                        }
+                    }
+                ]
+            }
+        ],
+        "configuration": {
+            "title": "Ruby rdbg debugger",
+            "properties": {
+                "rdbg.useBundler": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Run `bundle exec` if Gemfile is available."
+                },
+                "rdbg.saveBreakpoints": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "(experimental) Save breakpoints information to '.rdbg.breakpoints' for rdbg command"
+                },
+                "rdbg.enableTraceInspector": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "(experimental) Enable TraceInspector view. TraceInspector visualizes the trace log in Tree View. This feature will work in the version of debug.gem is 1.8.0 or higher."
+                },
+                "rdbg.enableTraceParameters": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "(experimental) Enable tracing parameters in Call events."
+                },
+                "rdbg.enableTraceReturnValue": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "(experimental) Enable tracing Return events."
+                },
+                "rdbg.maxTraceLogSize": {
+                    "type": "number",
+                    "default": 50000,
+                    "description": "(experimental) Maximum size of trace log that a debugger will save"
+                },
+                "rdbg.rubyVersionManager": {
+                    "type": "string",
+                    "enum": [
+                        "shadowenv",
+                        "chruby",
+                        "asdf",
+                        "rbenv",
+                        "rvm",
+                        "none"
+                    ],
+                    "default": "none"
+                }
+            }
+        },
+        "views": {
+            "debug": [
+                {
+                    "id": "rdbg.inspector",
+                    "name": "Trace Inspector"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "rdbg.inspector.openPrevLog",
+                "title": "Go back to the previous log",
+                "icon": "$(arrow-up)"
+            },
+            {
+                "command": "rdbg.inspector.openNextLog",
+                "title": "Go to the next trace log",
+                "icon": "$(arrow-down)"
+            },
+            {
+                "command": "rdbg.inspector.disableTraceLine",
+                "title": "✓ Trace Line"
+            },
+            {
+                "command": "rdbg.inspector.enableTraceLine",
+                "title": "​    Trace Line"
+            },
+            {
+                "command": "rdbg.inspector.disableTraceCall",
+                "title": "✓ Trace Call / Return"
+            },
+            {
+                "command": "rdbg.inspector.enableTraceCall",
+                "title": "​    Trace Call / Return"
+            },
+            {
+                "command": "rdbg.inspector.disableRecordAndReplay",
+                "title": "✓ Record And Replay (Slow)"
+            },
+            {
+                "command": "rdbg.inspector.enableRecordAndReplay",
+                "title": "​    Record And Replay (Slow)",
+                "enablement": "traceLineEnabled"
+            },
+            {
+                "command": "rdbg.inspector.enterFilter",
+                "title": "​    Apply filter by RegExp"
+            },
+            {
+                "command": "rdbg.inspector.reenterFilter",
+                "title": "✓ Apply filter by RegExp"
+            },
+            {
+                "command": "rdbg.inspector.copyLog",
+                "title": "Copy Trace log"
+            },
+            {
+                "command": "rdbg.inspector.enableTraceClanguageCall",
+                "title": "​    Trace c_call / c_return"
+            },
+            {
+                "command": "rdbg.inspector.disableTraceClanguageCall",
+                "title": "✓ Trace c_call / c_return"
+            }
+        ],
+        "menus": {
+            "view/title": [
+                {
+                    "command": "rdbg.inspector.openPrevLog",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector",
+                    "group": "navigation"
+                },
+                {
+                    "command": "rdbg.inspector.openNextLog",
+                    "when": "debuggersAvailable && inDebugMode && debugState == stopped && view == rdbg.inspector",
+                    "group": "navigation"
+                },
+                {
+                    "command": "rdbg.inspector.disableTraceLine",
+                    "when": "debuggersAvailable && view == rdbg.inspector && traceLineEnabled == true",
+                    "group": "rdbg@1"
+                },
+                {
+                    "command": "rdbg.inspector.enableTraceLine",
+                    "when": "debuggersAvailable && view == rdbg.inspector && traceLineEnabled == false",
+                    "group": "rdbg@1"
+                },
+                {
+                    "command": "rdbg.inspector.disableTraceCall",
+                    "when": "debuggersAvailable && view == rdbg.inspector && traceCallEnabled == true",
+                    "group": "rdbg@2"
+                },
+                {
+                    "command": "rdbg.inspector.enableTraceCall",
+                    "when": "debuggersAvailable && view == rdbg.inspector && traceCallEnabled == false",
+                    "group": "rdbg@2"
+                },
+                {
+                    "command": "rdbg.inspector.disableRecordAndReplay",
+                    "when": "debuggersAvailable && view == rdbg.inspector && recordAndReplayEnabled == true",
+                    "group": "rdbg2@1"
+                },
+                {
+                    "command": "rdbg.inspector.enableRecordAndReplay",
+                    "when": "debuggersAvailable && view == rdbg.inspector && recordAndReplayEnabled == false",
+                    "group": "rdbg2@1"
+                },
+                {
+                    "command": "rdbg.inspector.enterFilter",
+                    "when": "debuggersAvailable && view == rdbg.inspector && filterEntered == false",
+                    "group": "rdbg2@2"
+                },
+                {
+                    "command": "rdbg.inspector.reenterFilter",
+                    "when": "debuggersAvailable && view == rdbg.inspector && filterEntered == true",
+                    "group": "rdbg2@2"
+                },
+                {
+                    "command": "rdbg.inspector.enableTraceClanguageCall",
+                    "when": "debuggersAvailable && view == rdbg.inspector && traceClanguageCallEnabled == false",
+                    "group": "rdbg2@3"
+                },
+                {
+                    "command": "rdbg.inspector.disableTraceClanguageCall",
+                    "when": "debuggersAvailable && view == rdbg.inspector && traceClanguageCallEnabled == true",
+                    "group": "rdbg2@3"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "rdbg.inspector.copyLog",
+                    "when": "view == rdbg.inspector"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "lint": "eslint src --ext ts",
+        "format:eslint": "eslint src --ext ts --fix",
+        "format:prettier": "prettier --check . --write",
+        "format": "npm run format:eslint && npm run format:prettier",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "test": "node ./out/test/runTest.js",
+        "//": "`echo y` is used to allow to run tests without LICENSE.",
+        "ui-test": "npm run compile && echo y | extest setup-and-run -c 1.65.0 -m out/ui-test/config.js out/ui-test/suite/*.js"
+    },
+    "devDependencies": {
+        "@types/mocha": "^10.0.6",
+        "@types/node": "^20.11.24",
+        "@types/vscode": "^1.65.0",
+        "@typescript-eslint/eslint-plugin": "^5.62.0",
+        "@typescript-eslint/parser": "^5.62.0",
+        "@vscode/debugprotocol": "^1.65.0",
+        "@vscode/test-electron": "^2.3.9",
+        "eslint": "^8.57.0",
+        "eslint-config-prettier": "^9.1.0",
+        "glob": "^10.3.10",
+        "mocha": "^10.3.0",
+        "mocha-junit-reporter": "^2.2.1",
+        "prettier": "^3.2.5",
+        "typescript": "^5.3.3",
+        "vscode-extension-tester": "^7.2.0"
+    }
 }

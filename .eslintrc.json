@@ -5,42 +5,28 @@
         "ecmaVersion": 6,
         "sourceType": "module"
     },
-    "plugins": [
-        "@typescript-eslint"
-    ],
+    "plugins": ["@typescript-eslint"],
     "rules": {
         "@typescript-eslint/naming-convention": [
             "warn",
             {
                 "selector": "default",
-                "format": [
-                    "camelCase",
-                    "PascalCase",
-                    "UPPER_CASE"
-                ],
+                "format": ["camelCase", "PascalCase", "UPPER_CASE"],
                 "leadingUnderscore": "allow",
                 "trailingUnderscore": "allow"
             },
             {
                 "selector": "typeLike",
-                "format": [
-                    "PascalCase"
-                ]
+                "format": ["PascalCase"]
             },
             {
                 "selector": "typeParameter",
-                "format": [
-                    "PascalCase"
-                ],
-                "prefix": [
-                    "T"
-                ]
+                "format": ["PascalCase"],
+                "prefix": ["T"]
             },
             {
                 "selector": "interface",
-                "format": [
-                    "PascalCase"
-                ],
+                "format": ["PascalCase"],
                 "custom": {
                     "regex": "^I[A-Z]",
                     "match": false

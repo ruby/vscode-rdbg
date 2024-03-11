@@ -4,13 +4,13 @@ import * as path from "path";
 import * as fs from "fs";
 
 export async function customRequest(session: vscode.DebugSession, command: string, args?: any) {
-	try {
-		return await session.customRequest(command, args);
-	} catch (error) {
-		console.error(error);
-		return undefined;
-	}
-};
+    try {
+        return await session.customRequest(command, args);
+    } catch (error) {
+        console.error(error);
+        return undefined;
+    }
+}
 
 export interface VersionChecker {
     getVersion(config: LaunchConfiguration): Promise<string | null>;
