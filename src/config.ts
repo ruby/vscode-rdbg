@@ -8,6 +8,7 @@ export interface AttachConfiguration extends DebugConfiguration {
 	debugPort?: string;
 	cwd?: string;
 	showProtocolLog?: boolean;
+	supportAttachMultiSockets?: boolean;
 
 	autoAttach?: string;
 }
@@ -32,5 +33,5 @@ export interface LaunchConfiguration extends DebugConfiguration {
 	rdbgPath?: string;
 	showProtocolLog?: boolean;
 
-	useTerminal?: boolean
+	useTerminal?: boolean;
 }
