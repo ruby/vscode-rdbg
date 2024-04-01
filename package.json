@@ -400,7 +400,7 @@
 		"mocha": "^10.4.0",
 		"mocha-junit-reporter": "^2.2.1",
 		"prettier": "^3.2.5",
-		"typescript": "^5.3.3",
+		"typescript": "^5.4.3",
 		"vscode-extension-tester": "^7.3.2"
 	}
 }
