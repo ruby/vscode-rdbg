@@ -394,7 +394,7 @@
 		"@typescript-eslint/parser": "^5.62.0",
 		"@vscode/debugprotocol": "^1.65.0",
 		"@vscode/test-electron": "^2.3.9",
-		"eslint": "^8.57.0",
+		"eslint": "^9.0.0",
 		"eslint-config-prettier": "^9.1.0",
 		"glob": "^10.3.12",
 		"mocha": "^10.4.0",
