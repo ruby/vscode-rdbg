@@ -184,6 +184,8 @@ You can specify the following "attach" configurations.
   * Specify pairs of remote root path and local root path like `/remote_dir:/local_dir` if sharing the same source repository with local and remote computers.
   * You can specify multiple pairs like `/rem1:/loc1,/rem2:/loc2` by concatenating with `,`.
   * default: undefined
+* `supportAttachMultiSockets`
+  * Allow for attaching multiple running sockets at once 
 
 Without `debugPort` configuration, the
 
