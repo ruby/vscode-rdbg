@@ -67,7 +67,7 @@
 							},
 							"debugPort": {
 								"type": "string",
-								"description": "UNIX domain socket name or TPC/IP host:port"
+								"description": "UNIX domain socket name or TCP/IP host:port"
 							},
 							"showProtocolLog": {
 								"type": "boolean",
@@ -147,7 +147,7 @@
 							},
 							"debugPort": {
 								"type": "string",
-								"description": "UNIX domain socket name or TPC/IP host:port"
+								"description": "UNIX domain socket name or TCP/IP host:port"
 							},
 							"waitLaunchTime": {
 								"type": "number",
