@@ -145,6 +145,28 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
+	context.subscriptions.push(
+		vscode.commands.registerCommand("rdbg.setVariableValue", async(variable) => {
+			const session = vscode.debug.activeDebugSession;
+			const value = await vscode.window.showInputBox({
+				title: "Enter a value of the variable",
+			});
+			if (value === undefined || session === undefined) {
+				return;
+			}
+			const name = variable.variable.name;
+			const args: DebugProtocol.EvaluateArguments = {
+				expression: `,eval ${name}=${value}`,
+				context: "repl"
+			};
+			try {
+				await session.customRequest("evaluate", args);
+			} catch (err) {
+				vscode.window.showErrorMessage(`Failed to set a value: ${err}`);
+			}
+		})
+	);
+
 	const disp = registerInspectorView(DAPTrackQueue, adapterDescriptorFactory);
 	context.subscriptions.concat(disp);
 }
