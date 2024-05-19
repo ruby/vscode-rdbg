@@ -205,6 +205,11 @@ class RdbgInitialConfigurationProvider implements vscode.DebugConfigurationProvi
 		config.rdbgExtensions = extensions;
 		config.rdbgInitialScripts = []; // for future extension
 
+		const hideClassItem = vscode.workspace.getConfiguration("rdbg").get<boolean>("hideClassItem");
+		if (hideClassItem) {
+			config.hideClassItem = true;
+		}
+
 		if (config.script || config.request === "attach") {
 			return config;
 		}
