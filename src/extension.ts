@@ -105,7 +105,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.debug.onDidStartDebugSession(async session => {
 		const config = session.configuration;
-		if (config.request !== "launch" || config.useTerminal || config.noDebug) return;
+		if (config.type !== "rdbg" || config.request !== "launch" || config.useTerminal || config.noDebug) return;
 
 		const args: DebugProtocol.EvaluateArguments = {
 			expression: ",eval $stdout.sync=true",
