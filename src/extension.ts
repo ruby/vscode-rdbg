@@ -32,6 +32,7 @@ enum VersionManager {
 	Rbenv = "rbenv",
 	Rvm = "rvm",
 	Shadowenv = "shadowenv",
+	Mise = "mise",
 	None = "none",
 }
 
@@ -378,6 +379,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 						.getExtension("shopify.vscode-shadowenv")
 						?.activate();
 					await this.sleepMs(500);
+					break;
+				case VersionManager.Mise:
+					command = this.makeShellCommand('mise exec ruby -- ruby' + rubyEnvCommand);
+					await this.injectRubyEnvironment(command, cwd);
 					break;
 				default:
 					return;

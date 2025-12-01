@@ -231,6 +231,7 @@
 						"asdf",
 						"rbenv",
 						"rvm",
+						"mise",
 						"none"
 					],
 					"default": "none"

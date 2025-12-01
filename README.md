@@ -225,7 +225,7 @@ In order to launch the debugger using the correct Ruby version, rdbg allows conf
 
 ```jsonc
 // Default value is "none" for not using a version manager to activate the environment
-// Available managers are shadowenv, chruby, asdf, rbenv and rvm
+// Available managers are shadowenv, chruby, asdf, rbenv, mise and rvm
 
 {
   // User settings
