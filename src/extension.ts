@@ -22,7 +22,7 @@ import {
 import { DebugProtocol } from "@vscode/debugprotocol";
 import { registerInspectorView } from "./inspector";
 import { AttachConfiguration, LaunchConfiguration } from "./config";
-import { VersionChecker, fullPath } from "./utils";
+import { VersionChecker, fullPath, parseEnvFile } from "./utils";
 
 const asyncExec = promisify(child_process.exec);
 
@@ -62,6 +62,41 @@ function customPath(workingDirectory: string): string {
 			return workingDirectory;
 		}
 	}
+}
+
+/**
+ * Merge environment variables from envFile and config.env
+ * Variables in config.env take precedence over those in envFile
+ * @param config Launch configuration
+ * @returns Merged environment variables, or undefined if neither envFile nor env is specified
+ */
+function mergeEnvVariables(config: LaunchConfiguration): { [key: string]: string } | undefined {
+	let mergedEnv: { [key: string]: string } | undefined;
+
+	if (config.envFile) {
+		const envFilePath = path.isAbsolute(config.envFile)
+			? config.envFile
+			: path.join(config.cwd ? customPath(config.cwd) : workspaceFolder() || "", config.envFile);
+
+		const envFromFile = parseEnvFile(envFilePath);
+		if (envFromFile === undefined) {
+			
+			outputChannel.appendLine(`Warning: Could not read envFile: ${envFilePath}`);
+			vscode.window.showWarningMessage(`Could not read envFile: ${envFilePath}`);
+		} else {
+			mergedEnv = { ...envFromFile };
+		}
+	}
+	
+	if (config.env) {
+		if (mergedEnv) {
+			mergedEnv = { ...mergedEnv, ...config.env };
+		} else {
+			mergedEnv = { ...config.env };
+		}
+	}
+
+	return mergedEnv;
 }
 
 function pp(obj: any) {
@@ -513,9 +548,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 	getSockPath(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
 			const command = this.makeShellCommand(this.rdbgBin(config) + " --util=gen-sockpath");
+			const mergedEnv = mergeEnvVariables(config);
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: { ...process.env, ...mergedEnv }
 			});
 			let path: string;
 
@@ -544,9 +580,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 	getTcpPortFile(config: LaunchConfiguration): Promise<string | undefined> {
 		return new Promise((resolve) => {
 			const command = this.makeShellCommand(this.rdbgBin(config) + " --util=gen-portpath");
+			const mergedEnv = mergeEnvVariables(config);
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: { ...process.env, ...mergedEnv }
 			});
 			let path: string;
 
@@ -568,9 +605,10 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 	getVersion(config: LaunchConfiguration): Promise<string | null> {
 		return new Promise((resolve) => {
 			const command = this.makeShellCommand(this.rdbgBin(config) + " --version");
+			const mergedEnv = mergeEnvVariables(config);
 			const p = child_process.exec(command, {
 				cwd: config.cwd ? customPath(config.cwd) : workspaceFolder(),
-				env: { ...process.env, ...config.env }
+				env: { ...process.env, ...mergedEnv }
 			});
 			let version: string;
 
@@ -748,7 +786,8 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 			throw error;
 		}
 
-		let cmdline = this.envPrefix(config.env);
+		const mergedEnv = mergeEnvVariables(config);
+		let cmdline = this.envPrefix(mergedEnv);
 
 		if (config.noDebug) {
 			cmdline += execCommand;
@@ -879,8 +918,9 @@ class RdbgAdapterDescriptorFactory implements DebugAdapterDescriptorFactory, Ver
 			}
 			throw error;
 		}
+		const mergedEnv = mergeEnvVariables(config);
 		const options: child_process.SpawnOptionsWithoutStdio = {
-			env: { ...process.env, ...config.env },
+			env: { ...process.env, ...mergedEnv },
 			cwd: customPath(config.cwd || ""),
 		};
 		if (process.platform === "win32") options.shell = "powershell";

@@ -123,6 +123,11 @@
 								"description": "Additional environment variables to pass to the debugging (and debugged) process",
 								"default": {}
 							},
+							"envFile": {
+								"type": "string",
+								"description": "Path to a file containing environment variable definitions (e.g., .env file). Variables defined in 'env' will override those in envFile.",
+								"default": ""
+							},
 							"showProtocolLog": {
 								"type": "boolean",
 								"description": "Show a log of DAP requests, events, and responses",

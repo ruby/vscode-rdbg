@@ -22,6 +22,7 @@ export interface LaunchConfiguration extends DebugConfiguration {
 	cwd?: string;
 	args?: string[];
 	env?: { [key: string]: string };
+	envFile?: string;
 
 	debugPort?: string;
 	waitLaunchTime?: number;
